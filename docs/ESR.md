@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-22 14:41*
+*Last updated: 2026-03-22 14:50*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -184,3 +184,7 @@ Builder produced zero code — feat/gc-mock-data branch is identical to main. No
 ### Update: 2026-03-22 14:41
 ### claude-gc-feature-verify — 2026-03-22 14:41
 No builder code changes — verification pass only. Vite build clean (901 modules), tsc --noEmit clean, all Python API modules import OK, no 501 stubs remain, all i18n keys present, RatePage route wired correctly. Pre-existing dead-code (editProposalsApi.getMine, supervisorsApi.proposeNew) confirmed unused — no runtime impact.
+
+### Update: 2026-03-22 14:50
+### claude-gc-mock-data — 2026-03-22 14:50
+seed_mock.py reviewed and fixed: removed 5 unused imports (Base, RatingVote, RVoteType, CommentVote, CVoteType); fixed --reset to recalculate supervisors.avg_overall_score, rating_count, and rebuild supervisor_rating_cache after cascade-deleting mock users. All model column names verified against actual SQLAlchemy models. No compilation errors, no logic bugs in the seeding path.
