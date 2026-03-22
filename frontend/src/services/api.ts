@@ -14,6 +14,7 @@ import type {
   SupervisorSearchResult,
   SchoolAnalytics,
   RankingsResponse,
+  OverviewStats,
 } from '@/types'
 
 
@@ -156,8 +157,16 @@ export const analyticsApi = {
   getSchool: (code: string) =>
     http.get<SchoolAnalytics>(`/analytics/school/${code}`),
 
-  getRankings: () =>
-    http.get<RankingsResponse>('/analytics/rankings'),
+  getRankings: (params?: {
+    dimension?: string
+    school_code?: string
+    province?: string
+    page?: number
+    page_size?: number
+    min_ratings?: number
+  }) => http.get<RankingsResponse>('/analytics/rankings', { params }),
+
+  getOverview: () => http.get<OverviewStats>('/analytics/overview'),
 }
 
 // ============================================================

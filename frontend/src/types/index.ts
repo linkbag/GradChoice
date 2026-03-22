@@ -122,6 +122,10 @@ export interface EditProposal {
   resolved_at: string | null
 }
 
+// ============================================================
+// Analytics types
+// ============================================================
+
 export interface ScoreBreakdown {
   avg_overall: number | null
   avg_academic: number | null
@@ -134,13 +138,39 @@ export interface ScoreBreakdown {
   verified_ratings: number
 }
 
+export interface PercentileRankings {
+  dept_percentile: number | null
+  school_percentile: number | null
+  province_percentile: number | null
+  national_percentile: number | null
+}
+
+export interface ScoreTrend {
+  month: string // e.g. "2024-01"
+  avg_overall: number
+  rating_count: number
+}
+
+export interface DepartmentStats {
+  department: string
+  avg_overall: number | null
+  rating_count: number
+  supervisor_count: number
+}
+
 export interface SupervisorAnalytics {
   supervisor_id: string
   supervisor_name: string
   school_name: string
+  department: string
   scores: ScoreBreakdown
+  verified_scores: ScoreBreakdown
   score_distribution: Record<string, number>
   comment_count: number
+  percentiles: PercentileRankings | null
+  score_trends: ScoreTrend[]
+  school_avg_scores: ScoreBreakdown
+  national_avg_scores: ScoreBreakdown
 }
 
 export interface SchoolAnalytics {
@@ -149,8 +179,20 @@ export interface SchoolAnalytics {
   province: string
   total_supervisors: number
   rated_supervisors: number
+  unrated_supervisors: number
   avg_overall_score: number | null
-  top_supervisors: Record<string, unknown>[]
+  avg_sub_scores: ScoreBreakdown
+  departments: DepartmentStats[]
+  total_ratings: number
+  recent_ratings: number
+  school_percentile: number | null
+  top_supervisors: {
+    supervisor_id: string
+    supervisor_name: string
+    department: string
+    avg_score: number
+    rating_count: number
+  }[]
 }
 
 export interface RankingEntry {
@@ -158,13 +200,26 @@ export interface RankingEntry {
   supervisor_id: string
   supervisor_name: string
   school_name: string
+  school_code: string
+  department: string
   avg_score: number
   rating_count: number
 }
 
 export interface RankingsResponse {
-  by_overall: RankingEntry[]
-  by_school: SchoolAnalytics[]
+  items: RankingEntry[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface OverviewStats {
+  total_supervisors: number
+  total_ratings: number
+  total_users: number
+  rated_supervisors: number
+  most_active_schools: { school_name: string; school_code: string; rating_count: number }[]
+  recent_ratings_30d: number
 }
 
 // ============================================================
