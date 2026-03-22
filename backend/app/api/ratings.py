@@ -1,12 +1,13 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.rating import Rating, RatingVote, VoteType
 from app.models.supervisor import Supervisor
 from app.schemas.rating import RatingCreate, RatingUpdate, RatingResponse, RatingListResponse, RatingVoteCreate
-from app.utils.auth import get_current_verified_user, get_optional_current_user
+from app.utils.auth import get_current_user, get_current_verified_user, get_optional_current_user
 
 router = APIRouter(prefix="/ratings", tags=["评价"])
 
@@ -29,13 +30,34 @@ def _to_response(rating: Rating, user_id: uuid.UUID | None, db: Session) -> Rati
     return r
 
 
+def _refresh_supervisor_cache(db: Session, sup: Supervisor, supervisor_id: uuid.UUID) -> None:
+    """Recompute and store all-user and verified-only score caches on the supervisor row."""
+    all_stats = db.query(
+        func.avg(Rating.overall_score).label("avg"),
+        func.count(Rating.id).label("cnt"),
+    ).filter(Rating.supervisor_id == supervisor_id).one()
+
+    verified_stats = db.query(
+        func.avg(Rating.overall_score).label("avg"),
+        func.count(Rating.id).label("cnt"),
+    ).filter(
+        Rating.supervisor_id == supervisor_id,
+        Rating.is_verified_rating.is_(True),
+    ).one()
+
+    sup.avg_overall_score = float(all_stats.avg) if all_stats.avg is not None else None
+    sup.rating_count = all_stats.cnt or 0
+    sup.verified_avg_overall_score = float(verified_stats.avg) if verified_stats.avg is not None else None
+    sup.verified_rating_count = verified_stats.cnt or 0
+
+
 @router.post("", response_model=RatingResponse, status_code=201)
 def create_rating(
     rating_in: RatingCreate,
-    current_user=Depends(get_current_verified_user),
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """提交导师评分（每位导师只能评一次）"""
+    """提交导师评分（每位导师只能评一次，无需邮箱认证）"""
     sup = db.query(Supervisor).filter(Supervisor.id == rating_in.supervisor_id).first()
     if not sup:
         raise HTTPException(status_code=404, detail="导师不存在")
@@ -60,16 +82,9 @@ def create_rating(
         score_ethics=rating_in.score_ethics,
     )
     db.add(rating)
-
-    # Update cached stats on supervisor
     db.flush()
-    from sqlalchemy import func
-    stats = db.query(
-        func.avg(Rating.overall_score).label("avg"),
-        func.count(Rating.id).label("cnt"),
-    ).filter(Rating.supervisor_id == rating_in.supervisor_id).one()
-    sup.avg_overall_score = float(stats.avg) if stats.avg else None
-    sup.rating_count = stats.cnt or 0
+
+    _refresh_supervisor_cache(db, sup, rating_in.supervisor_id)
 
     db.commit()
     db.refresh(rating)
@@ -109,6 +124,12 @@ def update_rating(
 
     for field, val in rating_update.model_dump(exclude_none=True).items():
         setattr(rating, field, val)
+    db.flush()
+
+    sup = db.query(Supervisor).filter(Supervisor.id == rating.supervisor_id).first()
+    if sup:
+        _refresh_supervisor_cache(db, sup, rating.supervisor_id)
+
     db.commit()
     db.refresh(rating)
     return _to_response(rating, current_user.id, db)
@@ -126,7 +147,15 @@ def delete_rating(
         raise HTTPException(status_code=404, detail="评分不存在")
     if rating.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="无权删除他人的评分")
+
+    supervisor_id = rating.supervisor_id
     db.delete(rating)
+    db.flush()
+
+    sup = db.query(Supervisor).filter(Supervisor.id == supervisor_id).first()
+    if sup:
+        _refresh_supervisor_cache(db, sup, supervisor_id)
+
     db.commit()
 
 
