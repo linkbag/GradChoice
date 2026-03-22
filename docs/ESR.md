@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-22 13:41*
+*Last updated: 2026-03-22 13:42*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -141,3 +141,8 @@ Edit proposals scaffold is clean: model, schema, router all correctly wired; fro
 ### Update: 2026-03-22 13:41
 ### claude-gc-ui-polish — 2026-03-22 13:41
 Fixed api.ts proposeNew endpoint (/supervisors → /edit-proposals). Committed builder HomePage 65+ change. TypeScript clean (0 errors). seed_tutors.py already fixed by prior reviewer.
+
+### Update: 2026-03-22 13:42
+### Integration Review — 2026-03-22 13:42
+**Subteams:** codex-gc-edit-proposals codex-gc-add-supervisor codex-gc-email-notify codex-gc-profile-public codex-gc-ui-polish
+**Result:** Integration round 1 passed with 1 fix applied. seed_tutors.py nullable guard added to prevent NOT NULL DB constraint violations when new MASTER file omits school_code/school_name/province/department columns. TypeScript build clean, Python imports clean, migration chain linear (0001-0005). No duplicate logic, no type conflicts, no routing conflicts. The gc-edit-proposals and gc-add-supervisor subteams produced auto-pass worklogs but no real backend implementation (all endpoints remain 501 stubs) — this is a feature completeness gap, not an integration conflict.
