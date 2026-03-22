@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-21 18:10*
+*Last updated: 2026-03-21 18:11*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -31,3 +31,7 @@
 ### Integration Review — 2026-03-21 18:10
 **Subteams:** claude-gc-scaffold
 **Result:** Integration review complete. 3 issues found and fixed: (1) ChatMessageResponse schema missing is_read field vs model, (2) frontend ChatMessage type missing is_read, (3) CommentUpdate schema defined but not imported/wired in comments API — added PUT and DELETE stub endpoints. All other areas clean: model/schema alignment correct, no circular imports, no utcnow usage, all DateTime columns timezone-aware, Docker/config SECRET_KEY has no default, @types/node in devDependencies, vite.config.ts path import correct, frontend types match backend schemas.
+
+### Update: 2026-03-21 18:11
+### claude-gc-chat — 2026-03-21 18:11
+Two bugs fixed: (1) get_messages was returning oldest N messages instead of newest N — users would see ancient history on chat open; fixed by sorting DESC then reversing. (2) formatGroupDate had a month-boundary bug in isYesterday check; fixed with epoch-based day diff. All 10 changed files reviewed. Logic, auth guards, rate limiting, schema validation, and frontend UI all look correct. N+1 query pattern in _build_chat_response is a known MVP trade-off.
