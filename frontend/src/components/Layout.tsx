@@ -1,12 +1,13 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
 import { zh } from '@/i18n/zh'
 
 export default function Layout() {
   const navigate = useNavigate()
-  const isLoggedIn = !!localStorage.getItem('access_token')
+  const { isLoggedIn, logout } = useAuth()
 
   const handleLogout = () => {
-    localStorage.removeItem('access_token')
+    logout()
     navigate('/login')
   }
 

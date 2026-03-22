@@ -1,23 +1,48 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
 import { authApi } from '@/services/api'
 import { zh } from '@/i18n/zh'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const { login, isLoggedIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isLoggedIn) navigate('/', { replace: true })
+  }, [isLoggedIn, navigate])
+
+  // Show success message from register redirect
+  useEffect(() => {
+    const state = location.state as { message?: string } | null
+    if (state?.message) setSuccess(state.message)
+  }, [location.state])
+
+  // Handle email verification via token in URL
+  useEffect(() => {
+    const token = searchParams.get('token')
+    if (!token) return
+    authApi.verifyEmail(token)
+      .then(() => setSuccess('邮箱验证成功！请登录。'))
+      .catch(() => setError('验证链接无效或已过期，请重新发送验证邮件。'))
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setSuccess(null)
     setLoading(true)
     try {
-      const res = await authApi.login(email, password)
-      localStorage.setItem('access_token', res.data.access_token)
-      navigate('/')
+      await login(email, password)
+      navigate('/', { replace: true })
     } catch {
       setError('邮箱或密码错误，请重试')
     } finally {
@@ -30,6 +55,12 @@ export default function LoginPage() {
       <div className="bg-white rounded-2xl border border-gray-200 p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">{zh.auth.login_title}</h1>
 
+        {success && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+            {success}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -40,19 +71,26 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {zh.auth.password_label}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700">
+                {zh.auth.password_label}
+              </label>
+              <Link to="/forgot-password" className="text-xs text-brand-600 hover:underline">
+                {zh.auth.forgot_password}
+              </Link>
+            </div>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>

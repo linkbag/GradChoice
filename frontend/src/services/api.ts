@@ -39,7 +39,10 @@ http.interceptors.response.use(
   (err) => {
     if (err.response?.status === 401) {
       localStorage.removeItem('access_token')
-      window.location.href = '/login'
+      localStorage.removeItem('refresh_token')
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(err)
   },
@@ -72,6 +75,15 @@ export const authApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
+
+  refresh: (refresh_token: string) =>
+    http.post<Token>('/auth/refresh', { refresh_token }),
+
+  forgotPassword: (email: string) =>
+    http.post('/auth/forgot-password', { email }),
+
+  resetPassword: (token: string, new_password: string) =>
+    http.post('/auth/reset-password', { token, new_password }),
 }
 
 // ============================================================
@@ -81,6 +93,10 @@ export const usersApi = {
   getMe: () => http.get<User>('/users/me'),
   updateMe: (data: Partial<Pick<User, 'display_name' | 'bio' | 'email_notifications_enabled'>>) =>
     http.put<User>('/users/me', data),
+  changePassword: (current_password: string, new_password: string) =>
+    http.post('/users/me/change-password', { current_password, new_password }),
+  getMyRatings: () => http.get<Rating[]>('/users/me/ratings'),
+  getMyComments: () => http.get<Comment[]>('/users/me/comments'),
   getProfile: (userId: string) => http.get<UserPublicProfile>(`/users/${userId}/profile`),
 }
 

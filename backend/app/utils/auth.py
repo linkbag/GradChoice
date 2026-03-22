@@ -28,8 +28,65 @@ def create_access_token(user_id: uuid.UUID, expires_delta: Optional[timedelta] =
     expire = datetime.utcnow() + (
         expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    payload = {"sub": str(user_id), "exp": expire}
+    payload = {"sub": str(user_id), "typ": "access", "exp": expire}
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def decode_access_token(token: str) -> Optional[TokenData]:
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+        return TokenData(user_id=user_id)
+    except JWTError:
+        return None
+
+
+def create_refresh_token(user_id: uuid.UUID) -> str:
+    expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    payload = {"sub": str(user_id), "typ": "refresh", "exp": expire}
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def decode_refresh_token(token: str) -> Optional[str]:
+    """Returns user_id string or None if invalid."""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("typ") != "refresh":
+            return None
+        return payload.get("sub")
+    except JWTError:
+        return None
+
+
+def create_email_token(email: str, token_type: str, expire_hours: int = 24) -> str:
+    expire = datetime.utcnow() + timedelta(hours=expire_hours)
+    payload = {"sub": email, "typ": token_type, "exp": expire}
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def decode_email_token(token: str, expected_type: str) -> str:
+    """Decodes an email-based token. Returns email or raises HTTPException."""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("typ") != expected_type:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="无效的令牌类型",
+            )
+        email = payload.get("sub")
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="令牌无效",
+            )
+        return email
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="令牌无效或已过期",
+        )
 
 
 def get_current_user(
