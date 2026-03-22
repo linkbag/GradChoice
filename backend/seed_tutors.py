@@ -165,11 +165,11 @@ def seed(xlsx_path: str, sheet: str, db_url: str, dry_run: bool = False):
 
         record = {
             "id": uuid.uuid4(),
-            "school_code": row["school_code"],
-            "school_name": row["school_name"],
-            "province": row["province"],
+            "school_code": clean(row.get("school_code")) or "",
+            "school_name": clean(row.get("school_name")) or "",
+            "province": clean(row.get("province")) or "",
             "name": row["name"],
-            "department": row["department"],
+            "department": clean(row.get("department")) or "",
             "title": clean(row.get("title")),
             "affiliated_unit": clean(row.get("affiliated_unit")),
             "webpage_url_1": clean(row.get("webpage_url_1"), max_len=500),
