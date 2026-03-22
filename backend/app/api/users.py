@@ -1,10 +1,11 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
 from app.schemas.user import UserMe, UserPublicProfile, UserUpdate
+from app.schemas.comment import CommentListResponse
 from app.utils.auth import get_current_user
 
 router = APIRouter(prefix="/users", tags=["用户"])
@@ -28,6 +29,27 @@ def update_me(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+
+@router.get("/me/comments", response_model=CommentListResponse)
+def get_my_comments(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """获取当前用户的评论列表"""
+    from app.models.comment import Comment
+    from app.api.comments import _build_response
+
+    q = db.query(Comment).filter(
+        Comment.user_id == current_user.id,
+        Comment.is_deleted.is_(False),
+    )
+    total = q.count()
+    items_raw = q.order_by(Comment.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
+    items = [_build_response(c, current_user.id, db) for c in items_raw]
+    return CommentListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get("/{user_id}/profile", response_model=UserPublicProfile)

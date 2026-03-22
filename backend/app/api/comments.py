@@ -99,6 +99,23 @@ def get_supervisor_comments(
     return CommentListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
+@router.get("/{comment_id}", response_model=CommentResponse)
+def get_comment(
+    comment_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_optional_current_user),
+):
+    """获取单条评论"""
+    comment = db.query(Comment).filter(
+        Comment.id == comment_id,
+        Comment.is_deleted.is_(False),
+    ).first()
+    if not comment:
+        raise HTTPException(status_code=404, detail="评论不存在")
+    user_id = current_user.id if current_user else None
+    return _build_response(comment, user_id, db)
+
+
 @router.put("/{comment_id}", response_model=CommentResponse)
 def update_comment(
     comment_id: uuid.UUID,

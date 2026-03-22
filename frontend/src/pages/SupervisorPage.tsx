@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { zh } from '@/i18n/zh'
 import { supervisorsApi, analyticsApi, ratingsApi, commentsApi } from '@/services/api'
@@ -78,7 +78,14 @@ function RatingCard({ rating }: { rating: Rating }) {
   )
 }
 
-function CommentCard({ comment }: { comment: Comment }) {
+interface CommentCardProps {
+  comment: Comment
+  isLoggedIn: boolean
+  onVote: (id: string, type: 'up' | 'down') => void
+  onReply: (id: string, authorName: string) => void
+}
+
+function CommentCard({ comment, isLoggedIn, onVote, onReply }: CommentCardProps) {
   return (
     <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
       <div className="flex items-center justify-between mb-2">
@@ -91,14 +98,41 @@ function CommentCard({ comment }: { comment: Comment }) {
               {zh.supervisor.verified_badge}
             </span>
           )}
+          {comment.is_edited && (
+            <span className="text-xs text-gray-400">（已编辑）</span>
+          )}
         </div>
         <span className="text-xs text-gray-400">{formatDate(comment.created_at)}</span>
       </div>
       <p className="text-sm text-gray-800 whitespace-pre-wrap">{comment.content}</p>
-      <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-        <span>👍 {comment.likes_count}</span>
-        <span>👎 {comment.dislikes_count}</span>
-        {comment.reply_count > 0 && <span>💬 {comment.reply_count} 条回复</span>}
+      <div className="flex items-center gap-3 mt-2 text-xs">
+        <button
+          onClick={() => onVote(comment.id, 'up')}
+          className={`flex items-center gap-1 transition-colors hover:text-teal-600 ${
+            comment.user_vote === 'up' ? 'text-teal-600 font-medium' : 'text-gray-400'
+          }`}
+          title={isLoggedIn ? '点赞' : '登录后点赞'}
+        >
+          👍 {comment.likes_count}
+        </button>
+        <button
+          onClick={() => onVote(comment.id, 'down')}
+          className={`flex items-center gap-1 transition-colors hover:text-red-500 ${
+            comment.user_vote === 'down' ? 'text-red-500 font-medium' : 'text-gray-400'
+          }`}
+          title={isLoggedIn ? '踩' : '登录后踩'}
+        >
+          👎 {comment.dislikes_count}
+        </button>
+        <button
+          onClick={() => onReply(comment.id, comment.author?.display_name || '匿名')}
+          className="text-gray-400 hover:text-teal-600 transition-colors"
+        >
+          回复
+        </button>
+        {comment.reply_count > 0 && (
+          <span className="text-gray-400">💬 {comment.reply_count} 条回复</span>
+        )}
       </div>
       {comment.replies?.length > 0 && (
         <div className="mt-3 space-y-2 pl-4 border-l-2 border-gray-200">
@@ -125,7 +159,24 @@ export default function SupervisorPage() {
   const [commentsTotal, setCommentsTotal] = useState(0)
   const [loading, setLoading] = useState(true)
 
+  // Comment creation
+  const [commentText, setCommentText] = useState('')
+  const [submittingComment, setSubmittingComment] = useState(false)
+  const [commentError, setCommentError] = useState<string | null>(null)
+
+  // Reply state
+  const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string } | null>(null)
+  const [replyText, setReplyText] = useState('')
+  const [submittingReply, setSubmittingReply] = useState(false)
+
   const isLoggedIn = !!localStorage.getItem('access_token')
+
+  const refreshComments = useCallback(async () => {
+    if (!id) return
+    const res = await commentsApi.getBySupervisor(id, { page_size: 20 })
+    setComments(res.data.items)
+    setCommentsTotal(res.data.total)
+  }, [id])
 
   useEffect(() => {
     if (!id) return
@@ -157,6 +208,71 @@ export default function SupervisorPage() {
     } else {
       navigate(`/supervisor/${id}/rate`)
     }
+  }
+
+  async function handleSubmitComment() {
+    if (!commentText.trim() || !id) return
+    if (!isLoggedIn) {
+      navigate('/login')
+      return
+    }
+    setSubmittingComment(true)
+    setCommentError(null)
+    try {
+      await commentsApi.create({ supervisor_id: id, content: commentText.trim() })
+      setCommentText('')
+      await refreshComments()
+    } catch (e: unknown) {
+      const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      setCommentError(detail || '发布失败，请重试')
+    } finally {
+      setSubmittingComment(false)
+    }
+  }
+
+  async function handleSubmitReply() {
+    if (!replyText.trim() || !id || !replyingTo) return
+    if (!isLoggedIn) {
+      navigate('/login')
+      return
+    }
+    setSubmittingReply(true)
+    try {
+      await commentsApi.create({
+        supervisor_id: id,
+        content: replyText.trim(),
+        parent_comment_id: replyingTo.id,
+      })
+      setReplyText('')
+      setReplyingTo(null)
+      await refreshComments()
+    } catch {
+      // silent — reply errors are non-critical
+    } finally {
+      setSubmittingReply(false)
+    }
+  }
+
+  async function handleVote(commentId: string, voteType: 'up' | 'down') {
+    if (!isLoggedIn) {
+      navigate('/login')
+      return
+    }
+    try {
+      await commentsApi.vote(commentId, voteType)
+      await refreshComments()
+    } catch {
+      // silent
+    }
+  }
+
+  function handleReply(commentId: string, authorName: string) {
+    if (!isLoggedIn) {
+      navigate('/login')
+      return
+    }
+    setReplyingTo({ id: commentId, authorName })
+    setReplyText('')
   }
 
   return (
@@ -301,23 +417,99 @@ export default function SupervisorPage() {
           )
         )}
 
-        {/* Comments section */}
-        {commentsTotal > 0 && (
-          <>
-            <h3 className="font-semibold text-gray-700 mb-4 mt-2">
-              讨论区
+        {/* Comments section — always visible */}
+        <div className="mt-6 pt-6 border-t border-gray-100">
+          <h3 className="font-semibold text-gray-700 mb-4">
+            讨论区
+            {commentsTotal > 0 && (
               <span className="ml-2 text-sm font-normal text-gray-400">{commentsTotal} 条</span>
-            </h3>
+            )}
+          </h3>
+
+          {/* Comment creation form */}
+          {isLoggedIn ? (
+            <div className="mb-6">
+              <textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="分享你对该导师的了解或问题…"
+                rows={3}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-teal-400 placeholder-gray-400"
+              />
+              {commentError && (
+                <p className="text-xs text-red-500 mt-1">{commentError}</p>
+              )}
+              <div className="flex justify-end mt-2">
+                <button
+                  onClick={handleSubmitComment}
+                  disabled={submittingComment || !commentText.trim()}
+                  className="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submittingComment ? '发布中…' : '发布'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-6 py-4 px-4 bg-gray-50 rounded-xl text-sm text-gray-500 text-center">
+              <Link to="/login" className="text-teal-600 hover:underline font-medium">登录</Link>
+              {' '}后参与讨论
+            </div>
+          )}
+
+          {/* Reply form */}
+          {replyingTo && (
+            <div className="mb-4 p-3 bg-teal-50 border border-teal-200 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-teal-700">回复 {replyingTo.authorName}</span>
+                <button
+                  onClick={() => setReplyingTo(null)}
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                >
+                  取消
+                </button>
+              </div>
+              <textarea
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder="输入回复…"
+                rows={2}
+                className="w-full border border-teal-200 rounded-lg px-3 py-2 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-teal-400 bg-white"
+                autoFocus
+              />
+              <div className="flex justify-end mt-2">
+                <button
+                  onClick={handleSubmitReply}
+                  disabled={submittingReply || !replyText.trim()}
+                  className="bg-teal-600 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submittingReply ? '回复中…' : '回复'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Comments list */}
+          {comments.length > 0 ? (
             <div className="space-y-4">
               {comments.map((c) => (
-                <CommentCard key={c.id} comment={c} />
+                <CommentCard
+                  key={c.id}
+                  comment={c}
+                  isLoggedIn={isLoggedIn}
+                  onVote={handleVote}
+                  onReply={handleReply}
+                />
               ))}
               {commentsTotal > comments.length && (
                 <p className="text-xs text-gray-400 text-center">显示前 {comments.length} 条，共 {commentsTotal} 条</p>
               )}
             </div>
-          </>
-        )}
+          ) : (
+            !loading && (
+              <p className="text-gray-400 text-sm text-center py-4">暂无讨论，来发起第一条吧</p>
+            )
+          )}
+        </div>
       </div>
     </div>
   )
