@@ -26,3 +26,8 @@
 ### Update: 2026-03-21 18:10
 ### claude-gc-auth — 2026-03-21 18:10
 4 issues fixed: (1) security bug — get_current_user now validates typ==access to prevent token type confusion; (2) APP_URL moved to settings from hardcoded constant; (3) silent exception swallow in register replaced with warning log; (4) duplicate pydantic dep removed from requirements.txt. No blocking issues remain.
+
+### Update: 2026-03-21 18:10
+### Integration Review — 2026-03-21 18:10
+**Subteams:** claude-gc-scaffold
+**Result:** Integration review complete. 3 issues found and fixed: (1) ChatMessageResponse schema missing is_read field vs model, (2) frontend ChatMessage type missing is_read, (3) CommentUpdate schema defined but not imported/wired in comments API — added PUT and DELETE stub endpoints. All other areas clean: model/schema alignment correct, no circular imports, no utcnow usage, all DateTime columns timezone-aware, Docker/config SECRET_KEY has no default, @types/node in devDependencies, vite.config.ts path import correct, frontend types match backend schemas.
