@@ -149,7 +149,9 @@ export default function SupervisorPage() {
   }, [id])
 
   const scores = analytics?.scores
+  const verifiedScores = analytics?.verified_scores
   const hasScores = scores != null && scores.total_ratings > 0
+  const hasVerifiedScores = verifiedScores != null && verifiedScores.total_ratings > 0
 
   function handleWriteReview() {
     if (!isLoggedIn) {
@@ -203,18 +205,31 @@ export default function SupervisorPage() {
 
             {hasScores ? (
               <>
-                <div className="flex items-end gap-2 mb-6">
-                  <span className="text-5xl font-bold text-teal-600">
-                    {scores!.avg_overall?.toFixed(2)}
-                  </span>
-                  <span className="text-gray-400 mb-1">/ 5.00</span>
-                  <span className="text-sm text-gray-400 mb-1 ml-2">综合评分</span>
+                <div className="flex flex-wrap items-end gap-4 mb-6">
+                  <div className="flex items-end gap-2">
+                    <span className="text-5xl font-bold text-teal-600">
+                      {scores!.avg_overall?.toFixed(2)}
+                    </span>
+                    <span className="text-gray-400 mb-1">/ 5.00</span>
+                    <span className="text-sm text-gray-400 mb-1 ml-1">综合评分</span>
+                  </div>
+                  {hasVerifiedScores && verifiedScores!.avg_overall != null && (
+                    <div className="flex items-end gap-1.5 bg-teal-50 border border-teal-100 rounded-xl px-3 py-1.5">
+                      <span className="text-2xl font-bold text-teal-700">
+                        {verifiedScores!.avg_overall.toFixed(2)}
+                      </span>
+                      <div className="mb-0.5">
+                        <div className="text-xs text-teal-600 font-medium leading-tight">认证学生</div>
+                        <div className="text-xs text-teal-500 leading-tight">({verifiedScores!.total_ratings} 条)</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <RadarChart
                   scores={scores!}
-                  schoolAvg={analytics!.school_avg_scores}
-                  nationalAvg={analytics!.national_avg_scores}
+                  schoolAvg={analytics!.school_avg_scores.avg_overall != null ? analytics!.school_avg_scores : undefined}
+                  nationalAvg={analytics!.national_avg_scores.avg_overall != null ? analytics!.national_avg_scores : undefined}
                 />
 
                 <div className="grid grid-cols-3 gap-3 mt-6">

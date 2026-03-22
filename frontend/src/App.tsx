@@ -12,6 +12,7 @@ import NotFoundPage from '@/pages/NotFoundPage'
 import RankingsPage from '@/pages/RankingsPage'
 import SchoolAnalyticsPage from '@/pages/SchoolAnalyticsPage'
 import RatePage from '@/pages/RatePage'
+import PublicProfilePage from '@/pages/PublicProfilePage'
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="inbox" element={<InboxPage />} />
           <Route path="about" element={<AboutPage />} />
+          <Route path="users/:userId/profile" element={<PublicProfilePage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

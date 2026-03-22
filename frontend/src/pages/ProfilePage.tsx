@@ -11,6 +11,9 @@ export default function ProfilePage() {
   const [nameDraft, setNameDraft] = useState('')
   const [nameSaving, setNameSaving] = useState(false)
 
+  // Email notifications toggle
+  const [togglingNotif, setTogglingNotif] = useState(false)
+
   // School email verification state
   const [schoolEmail, setSchoolEmail] = useState('')
   const [verificationCode, setVerificationCode] = useState('')
@@ -47,6 +50,19 @@ export default function ProfilePage() {
       // silently fail — keep editing state
     } finally {
       setNameSaving(false)
+    }
+  }
+
+  // ---------- Email notifications toggle ----------
+  const toggleNotifications = async () => {
+    setTogglingNotif(true)
+    try {
+      const res = await usersApi.updateMe({ email_notifications_enabled: !user.email_notifications_enabled })
+      setUser(res.data)
+    } catch {
+      // silently fail
+    } finally {
+      setTogglingNotif(false)
     }
   }
 
@@ -167,6 +183,31 @@ export default function ProfilePage() {
           <div>
             <p className="text-sm text-gray-500">邮箱</p>
             <p className="font-medium">{user.email}</p>
+          </div>
+
+          {/* 邮件通知 toggle */}
+          <div>
+            <p className="text-sm text-gray-500">邮件通知</p>
+            <div className="flex items-center gap-3 mt-1">
+              <button
+                role="switch"
+                aria-checked={user.email_notifications_enabled}
+                onClick={toggleNotifications}
+                disabled={togglingNotif}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 ${
+                  user.email_notifications_enabled ? 'bg-brand-600' : 'bg-gray-200'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                    user.email_notifications_enabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className="text-sm text-gray-600">
+                {user.email_notifications_enabled ? '已开启' : '已关闭'}
+              </span>
+            </div>
           </div>
 
           {/* 认证状态 */}
