@@ -5,6 +5,8 @@ import type { User } from '@/types'
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [savingNotif, setSavingNotif] = useState(false)
+  const [notifSaved, setNotifSaved] = useState(false)
 
   useEffect(() => {
     usersApi.getMe()
@@ -12,6 +14,24 @@ export default function ProfilePage() {
       .catch(() => setUser(null))
       .finally(() => setLoading(false))
   }, [])
+
+  const toggleNotifications = async () => {
+    if (!user || savingNotif) return
+    setSavingNotif(true)
+    setNotifSaved(false)
+    try {
+      const res = await usersApi.updateMe({
+        email_notifications_enabled: !user.email_notifications_enabled,
+      })
+      setUser(res.data)
+      setNotifSaved(true)
+      setTimeout(() => setNotifSaved(false), 2000)
+    } catch {
+      // silently ignore — user sees no change
+    } finally {
+      setSavingNotif(false)
+    }
+  }
 
   if (loading) return <div className="text-center py-20 text-gray-400">加载中…</div>
   if (!user) return <div className="text-center py-20 text-gray-400">请先登录</div>
@@ -52,6 +72,39 @@ export default function ProfilePage() {
         </div>
 
         {/* TODO: Edit profile form, my ratings, my comments */}
+
+        {/* Notification preferences */}
+        <div className="mt-8 pt-6 border-t border-gray-100">
+          <h2 className="font-semibold text-gray-800 mb-4">通知设置</h2>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-gray-700">私信邮件通知</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                开启后，当有新消息时将通过邮件通知您
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {notifSaved && (
+                <span className="text-xs text-green-600">已保存</span>
+              )}
+              <button
+                onClick={toggleNotifications}
+                disabled={savingNotif}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 ${
+                  user.email_notifications_enabled ? 'bg-brand-600' : 'bg-gray-200'
+                } ${savingNotif ? 'opacity-60 cursor-not-allowed' : ''}`}
+                role="switch"
+                aria-checked={user.email_notifications_enabled}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                    user.email_notifications_enabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

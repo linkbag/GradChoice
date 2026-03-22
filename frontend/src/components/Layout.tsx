@@ -1,9 +1,27 @@
+import { useEffect, useState } from 'react'
 import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { zh } from '@/i18n/zh'
+import { chatsApi } from '@/services/api'
 
 export default function Layout() {
   const navigate = useNavigate()
   const isLoggedIn = !!localStorage.getItem('access_token')
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  // Poll for unread count every 60 seconds when logged in
+  useEffect(() => {
+    if (!isLoggedIn) return
+
+    const fetchUnread = () => {
+      chatsApi.getUnreadCount()
+        .then((res) => setUnreadCount(res.data.unread_count))
+        .catch(() => {})
+    }
+
+    fetchUnread()
+    const interval = setInterval(fetchUnread, 60_000)
+    return () => clearInterval(interval)
+  }, [isLoggedIn])
 
   const handleLogout = () => {
     localStorage.removeItem('access_token')
@@ -36,8 +54,16 @@ export default function Layout() {
 
               {isLoggedIn ? (
                 <>
-                  <Link to="/inbox" className="text-sm text-gray-600 hover:text-brand-600 transition-colors">
+                  <Link
+                    to="/inbox"
+                    className="relative text-sm text-gray-600 hover:text-brand-600 transition-colors"
+                  >
                     {zh.nav.inbox}
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1.5 -right-3 bg-red-500 text-white text-[10px] rounded-full min-w-[1.1rem] h-[1.1rem] flex items-center justify-center px-0.5 leading-none">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
                   </Link>
                   <Link to="/profile" className="text-sm text-gray-600 hover:text-brand-600 transition-colors">
                     {zh.nav.profile}

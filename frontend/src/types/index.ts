@@ -94,7 +94,13 @@ export interface Chat {
   initiator_id: string
   recipient_id: string
   supervisor_id: string | null
+  // Computed fields from backend
+  other_user_id: string | null
+  other_user_display_name: string | null
+  supervisor_name: string | null
+  school_name: string | null
   last_message: string | null
+  last_message_at: string | null
   unread_count: number
   created_at: string
 }
@@ -106,6 +112,18 @@ export interface ChatMessage {
   content: string
   read_at: string | null
   created_at: string
+}
+
+export interface ChatMessagesResponse {
+  items: ChatMessage[]
+  total: number
+  page: number
+  page_size: number
+  has_more: boolean
+}
+
+export interface UnreadCountResponse {
+  unread_count: number
 }
 
 export interface EditProposal {

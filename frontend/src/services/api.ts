@@ -8,6 +8,8 @@ import type {
   Comment,
   Chat,
   ChatMessage,
+  ChatMessagesResponse,
+  UnreadCountResponse,
   EditProposal,
   Token,
   PaginatedResponse,
@@ -167,13 +169,23 @@ export const chatsApi = {
   create: (data: { recipient_id: string; supervisor_id?: string; initial_message: string }) =>
     http.post<Chat>('/chats', data),
 
-  list: () => http.get<Chat[]>('/chats'),
+  list: (params?: { page?: number; page_size?: number }) =>
+    http.get<Chat[]>('/chats', { params }),
 
-  getMessages: (chatId: string, params?: { page?: number; page_size?: number }) =>
-    http.get<PaginatedResponse<ChatMessage>>(`/chats/${chatId}/messages`, { params }),
+  get: (chatId: string) =>
+    http.get<Chat>(`/chats/${chatId}`),
+
+  getMessages: (chatId: string, params?: { page?: number; page_size?: number; before_id?: string }) =>
+    http.get<ChatMessagesResponse>(`/chats/${chatId}/messages`, { params }),
 
   sendMessage: (chatId: string, content: string) =>
     http.post<ChatMessage>(`/chats/${chatId}/messages`, { content }),
+
+  markRead: (chatId: string) =>
+    http.put(`/chats/${chatId}/read`),
+
+  getUnreadCount: () =>
+    http.get<UnreadCountResponse>('/chats/unread-count'),
 }
 
 // ============================================================
