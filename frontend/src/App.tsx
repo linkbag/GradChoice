@@ -11,6 +11,7 @@ import AboutPage from '@/pages/AboutPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import RankingsPage from '@/pages/RankingsPage'
 import SchoolAnalyticsPage from '@/pages/SchoolAnalyticsPage'
+import RatePage from '@/pages/RatePage'
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="supervisor/:id" element={<SupervisorPage />} />
+          <Route path="supervisor/:id/rate" element={<RatePage />} />
           <Route path="rankings" element={<RankingsPage />} />
           <Route path="school/:code/analytics" element={<SchoolAnalyticsPage />} />
           <Route path="login" element={<LoginPage />} />
