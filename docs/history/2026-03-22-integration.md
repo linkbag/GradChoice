@@ -732,3 +732,141 @@
   - Applied non-conflicting backend files (supervisors.py, comments.py, users.py) and frontend files (SearchPage.tsx, ProfilePage.tsx, PublicProfilePage.tsx, App.tsx) directly from their respective branches
   - Applied seed_mock.py from gc-mock-data (new file, no conflict)
 - **Remaining concerns:** None. All 9 changed files are on main. Build is clean. Route ordering in comments.py (GET /supervisor/{id} before GET /{id}) and users.py (GET /me/comments before GET /{user_id}/profile) preserved correctly from subteam implementations.
+
+---
+
+# Integration Log: GradChoice dual scores + anonymity
+**Project:** GradChoice
+**Subteams:** claude-gc-dual-scores claude-gc-anon-names
+**Started:** 2026-03-22 15:39:41
+
+## Subteam Summaries
+
+
+========================================
+## Subteam: claude-gc-dual-scores
+========================================
+# Work Log: claude-gc-dual-scores
+## Task: gc-dual-scores (GradChoice)
+## Branch: feat/gc-dual-scores
+---
+
+### [Step 1] Create migration 0006 for verified score cache columns
+- **Files changed:** `backend/alembic/versions/0006_add_verified_score_cols.py` (new)
+- **What:** Adds `verified_avg_overall_score` (Float, nullable) and `verified_rating_count` (Integer, default 0) to the supervisors table
+- **Why:** The supervisors table caches `avg_overall_score`/`rating_count` for fast lookup. Need parallel verified-only cache fields to support ranking/search by verified score.
+- **Decisions:** Used `server_default="0"` for verified_rating_count so existing rows are not null.
+
+### [Step 2] Update Supervisor model
+- **Files changed:** `backend/app/models/supervisor.py`
+- **What:** Added `verified_avg_overall_score: Mapped[float | None]` and `verified_rating_count: Mapped[int]` SQLAlchemy mapped columns
+- **Why:** Model must reflect DB schema for ORM writes to work.
+
+### [Step 3] Refactor ratings.py — remove verification gate + dual-cache refresh
+- **Files changed:** `backend/app/api/ratings.py`
+- **What:**
+  1. `POST /ratings` (`create_rating`): Changed dependency from `get_current_verified_user` → `get_current_user`. Any logged-in user can now submit a rating; `is_email_verified` is no longer required.
+  2. Extracted `_refresh_supervisor_cache(db, sup, supervisor_id)` helper that computes and stores all 4 cache fields (avg/count for all ratings AND for verified-only ratings) using two SQL aggregate queries.
+  3. `create_rating`: Calls `_refresh_supervisor_cache` after flush.
+  4. `update_rating`: Now also calls `_refresh_supervisor_cache` (previously didn't update cache at all — bug fix!).
+  5. `delete_rating`: Now also calls `_refresh_supervisor_cache` after delete flush (previously didn't update cache at all — bug fix!).
+  6. Added `from sqlalchemy import func` at module level (was inline import before).
+- **Why:** The two-score system requires both caches stay in sync. The verification gate was removed per task spec.
+- **Decisions:** `update_rating` and `delete_rating` still use `get_current_verified_user` (email verification still required for editing/deleting), only creation is open to all logged-in users.
+
+### [Step 4] Update SupervisorSearchResult schema
+- **Files changed:** `backend/app/schemas/supervisor.py`
+- **What:** Added `verified_avg_overall_score: Optional[float] = None` and `verified_rating_count: int = 0` to `SupervisorSearchResult`
+- **Why:** Exposes the new cache fields in list/search API responses so frontend can show verified scores in search results if desired.
+
+### [Step 5] Frontend — no changes needed
+- **SupervisorPage.tsx** already renders both scores (all-user avg and verified-only avg) from the analytics API (`analytics.scores` and `analytics.verified_scores`). This was pre-implemented.
+- **RatePage.tsx** auth guard only checks for `access_token` presence (not email verification), so the gate removal is transparent to the UI.
+
+## Summary
+- **Total files changed:** 4 (1 new migration + 3 modified)
+- **Key changes:**
+  - Removed `is_email_verified` gate from `POST /ratings` → any logged-in user can submit ratings
+  - Added `verified_avg_overall_score` + `verified_rating_count` to supervisors table (model + migration)
+  - Cache refresh helper now updates both all-user and verified-only aggregate caches on create/update/delete
+  - Bug fix: update_rating and delete_rating now properly refresh the supervisor cache (they didn't before)
+  - SupervisorSearchResult schema exposes both score fields
+- **Build status:** Python syntax OK. TypeScript compiler not installed but no frontend files changed.
+- **Known issues:** None. The analytics endpoint (`GET /analytics/supervisor/{id}`) already computed both scores live from DB — the supervisor table cache is an optimization for ranking/search, not the source of truth for the detail page.
+- **Integration notes:**
+  - Migration 0006 must run before the backend starts: `cd backend && SECRET_KEY=xxx python3 -m alembic upgrade head`
+  - The analytics API was already complete and returns both `scores` and `verified_scores` — SupervisorPage frontend was already using both.
+  - The `is_verified_rating` flag on each rating is still set correctly from `current_user.is_student_verified` at submission time — removing the email gate does NOT change who gets a "verified" badge on their rating.
+
+### Review+Fix Round 1
+- **Reviewer:** claude-gc-dual-scores-review-1
+- **Timestamp:** 2026-03-22 15:34:09
+- **Files reviewed:**
+  - `backend/alembic/versions/0006_add_verified_score_cols.py`
+  - `backend/app/api/ratings.py`
+  - `backend/app/models/supervisor.py`
+  - `backend/app/schemas/supervisor.py`
+  - `backend/app/utils/auth.py` (to verify get_current_user exists)
+  - `backend/app/services/analytics.py` (to verify verified_scores already computed live)
+- **Issues found:** None
+- **Fixes applied:** None needed
+- **Build status:** Python syntax: all 4 changed files pass `ast.parse` clean. No frontend changes.
+- **Remaining concerns:**
+  - Migration 0006 chains correctly from 0005 (only migration on any branch with that ID).
+  - `get_current_user` (line 37, auth.py) does NOT check email verification — correct for the open-gate design.
+  - `_refresh_supervisor_cache` uses `is not None` checks (not falsy) — correct, avoids treating 0.0 avg as None.
+  - Analytics service (`analytics.py` / `services/analytics.py`) already computes verified_scores live from DB; the new cache columns are an optimization layer only, not the source of truth for the detail page.
+  - `SupervisorResponse` (detail schema) omits the new cache fields intentionally — detail views use the analytics endpoint, not the cached columns.
+  - No other branch has a conflicting migration 0006.
+
+========================================
+## Subteam: claude-gc-anon-names
+========================================
+# Work Log: claude-gc-anon-names
+## Task: gc-anon-names (GradChoice)
+## Branch: feat/gc-anon-names
+---
+
+### [Step 1] Replace real-name generation with creative anonymous nicknames in seed_mock.py
+- **Files changed:** backend/seed_mock.py
+- **What:** Replaced `SURNAMES` + `GIVEN_NAMES` lists and `make_display_name()` with `NICKNAME_PREFIXES` + `NICKNAME_ANIMALS` lists, generating creative pseudonyms like "飞翔的熊猫", "快乐的河豚".
+- **Why:** Mock data was generating real-looking Chinese names (e.g. "王子涵") which could be mistaken for real users and doesn't reflect the anonymous nature of the platform. Creative animal-based nicknames are clearly pseudonymous, privacy-preserving, and fun.
+- **Decisions:** Used 30 adjective prefixes + 32 animal suffixes = 960 possible combinations, sufficient for 200 mock users. Format: "形容词+动物" (adjective+animal).
+
+### [Step 2] Add 认证学生 badge to comment reply authors in SupervisorPage.tsx
+- **Files changed:** frontend/src/pages/SupervisorPage.tsx
+- **What:** Added `认证学生` (verified student) badge to reply author display in the nested reply section inside CommentCard. Previously, reply authors showed name only with no badge even if `is_student_verified` was true.
+- **Why:** Badge was shown in RatingCard and top-level CommentCard but not in reply sub-cards — inconsistent UX. The `Comment.replies` type is `Comment[]` and each reply has `author: CommentAuthor | null` with `is_student_verified: boolean`, so the data was already there.
+- **Decisions:** Badge renders between name and "：" separator. Used same teal pill style (`bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full`) as the other badges for consistency. Added `mx-1` for spacing.
+
+## Summary
+- **Total files changed:** 2
+- **Key changes:**
+  - `backend/seed_mock.py`: New creative anonymous nickname system (prefix+animal), replacing surname+given-name combos
+  - `frontend/src/pages/SupervisorPage.tsx`: 认证学生 badge now shown on reply authors (was missing before)
+- **Build status:** Python syntax clean. TypeScript: node_modules not installed in worktree, but change is minimal/type-safe (uses existing `r.author?.is_student_verified` which TypeScript already knows is `boolean` from `CommentAuthor` interface).
+- **Known issues:** None
+- **Integration notes:** 
+  - Re-running `seed_mock.py --reset` will regenerate mock users with new anonymous nicknames
+  - Existing DB data from previous seed runs still has old real-looking names — need `--reset` flag to refresh
+  - Badge in replies is a pure UI addition; no backend/API changes needed
+
+### Review+Fix Round 1
+- **Reviewer:** claude-gc-anon-names-review-1
+- **Timestamp:** 2026-03-22 15:32:15
+- **Files reviewed:** backend/seed_mock.py, frontend/src/pages/SupervisorPage.tsx, frontend/src/i18n/zh.ts, frontend/src/types/index.ts
+- **Issues found:** None
+- **Fixes applied:** None needed
+- **Build status:** Python syntax clean (ast.parse). TypeScript: zh.supervisor.verified_badge exists in zh.ts; CommentAuthor interface has is_student_verified: boolean in types/index.ts — type-safe. No tsc run (no node_modules in worktree) but change is minimal and references existing typed fields.
+- **Remaining concerns:** None. 960 nickname combinations (30×32) is sufficient for 200 mock users with no collision risk. make_email() correctly ignores display_name content (uses mock_user_{idx:04d} prefix), so Chinese characters cause no issues. Badge in reply section correctly mirrors CommentCard pattern using zh.supervisor.verified_badge i18n key.
+
+---
+## Integration Review
+
+### Integration Round 1 (dual-scores + anon-names)
+- **Timestamp:** 2026-03-22 15:39:46
+- **Cross-team conflicts found:** None — branches touch completely disjoint file sets. gc-dual-scores: backend only (ratings.py, supervisor model/schema, migration 0006). gc-anon-names: seed_mock.py + SupervisorPage.tsx reply badge.
+- **Duplicated code merged:** None
+- **Build verified:** Python syntax: all 5 changed files pass ast.parse clean. TypeScript tsc --noEmit: exit 0, no errors.
+- **Fixes applied:** None needed — clean merge via `git merge` with no conflicts on both branches.
+- **Remaining concerns:** Migration 0006 must be run before next backend start (`alembic upgrade head`). Existing mock data with old real-looking names needs `--reset` flag to refresh with new anonymous nicknames.
