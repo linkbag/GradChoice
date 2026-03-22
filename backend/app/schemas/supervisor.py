@@ -39,6 +39,7 @@ class SupervisorResponse(SupervisorBase):
 
 class SupervisorSearchResult(BaseModel):
     id: uuid.UUID
+    school_code: str
     school_name: str
     province: str
     name: str

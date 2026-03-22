@@ -41,6 +41,7 @@ class RatingResponse(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
     supervisor_id: uuid.UUID
+    display_name: Optional[str] = None
     is_verified_rating: bool
     overall_score: float
     score_academic: Optional[float] = None
@@ -56,6 +57,13 @@ class RatingResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class RatingListResponse(BaseModel):
+    items: list[RatingResponse]
+    total: int
+    page: int
+    page_size: int
 
 
 class RatingVoteCreate(BaseModel):
