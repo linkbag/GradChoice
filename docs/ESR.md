@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-22 13:45*
+*Last updated: 2026-03-22 13:48*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -150,3 +150,8 @@ Fixed api.ts proposeNew endpoint (/supervisors → /edit-proposals). Committed b
 ### Update: 2026-03-22 13:45
 ### claude-gc-profile-public — 2026-03-22 13:45
 Fixed backend CommentResponse schema missing author/replies fields. CommentCard was showing anonymous for all users and no verified badges. Added CommentAuthorResponse, is_deleted, is_edited, replies to schema; updated _build_response to populate author from user relationship and inline up to 10 replies. tsc+vite build clean. Only remaining known gap: /supervisor/:id/rate route needs a future RatePage task.
+
+### Update: 2026-03-22 13:48
+### Integration Review — 2026-03-22 13:48
+**Subteams:** claude-gc-edit-proposals claude-gc-add-supervisor claude-gc-email-notify claude-gc-profile-public claude-gc-ui-polish
+**Result:** No cross-team conflicts. TypeScript build clean (tsc --noEmit exit 0). Backend app imports clean. SupervisorPage, api.ts, types/index.ts, comment schema, and seed_tutors.py changes from parallel subteams are non-overlapping. Known feature gaps: edit-proposals endpoints are 501 stubs, /supervisor/:id/rate route not yet implemented, editProposalsApi.getMine has no backend route but is dead code.
