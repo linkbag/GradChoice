@@ -55,16 +55,19 @@ except Exception:
 # Corpus
 # ─────────────────────────────────────────────
 
-SURNAMES = [
-    "王", "李", "张", "刘", "陈", "杨", "赵", "黄", "周", "吴",
-    "徐", "孙", "胡", "朱", "高", "林", "何", "郭", "马", "罗",
-    "梁", "宋", "郑", "谢", "韩", "唐", "冯", "于", "董", "萧",
+# Anonymous creative nicknames: adjective/verb prefix + animal suffix
+# Format: "飞翔的熊猫" — clearly pseudonymous, fun, privacy-preserving
+NICKNAME_PREFIXES = [
+    "飞翔的", "快乐的", "神秘的", "奔跑的", "微笑的", "沉默的", "思考的", "闪亮的",
+    "跳跃的", "好奇的", "勇敢的", "优雅的", "淡定的", "聪明的", "温柔的", "活泼的",
+    "认真的", "低调的", "随性的", "努力的", "睿智的", "开心的", "可爱的", "超级",
+    "爱学习的", "夜晚的", "清晨的", "星光下的", "云端的", "向阳的",
 ]
-GIVEN_NAMES = [
-    "子涵", "宇轩", "浩然", "思远", "雨晴", "诗涵", "若曦", "梓萱",
-    "睿泽", "晓峰", "嘉宝", "欣悦", "明轩", "文博", "雅琪", "心悦",
-    "俊杰", "紫薇", "天翔", "梦琪", "志远", "芷涵", "宸宇", "雅楠",
-    "昊天", "婉婷", "泽宇", "静怡", "弘毅", "乐瑶", "鸿儒", "冰清",
+NICKNAME_ANIMALS = [
+    "熊猫", "河豚", "章鱼", "松鼠", "鸭子", "猫头鹰", "狐狸", "兔子",
+    "乌龟", "海豚", "企鹅", "鲸鱼", "考拉", "麋鹿", "仙鹤", "蜂鸟",
+    "水獭", "浣熊", "刺猬", "蜥蜴", "北极熊", "袋鼠", "羊驼", "鸵鸟",
+    "金鱼", "柴犬", "橘猫", "雪豹", "火烈鸟", "长颈鹿", "犀牛", "河马",
 ]
 
 EDU_DOMAINS = [
@@ -178,9 +181,9 @@ def skewed_score(mean: float, std: float = 0.6) -> float:
 
 
 def make_display_name() -> str:
-    surname = random.choice(SURNAMES)
-    given = random.choice(GIVEN_NAMES)
-    return surname + given
+    prefix = random.choice(NICKNAME_PREFIXES)
+    animal = random.choice(NICKNAME_ANIMALS)
+    return prefix + animal
 
 
 def make_email(display_name: str, idx: int) -> str:

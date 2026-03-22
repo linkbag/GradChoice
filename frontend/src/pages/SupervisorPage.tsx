@@ -138,7 +138,13 @@ function CommentCard({ comment, isLoggedIn, onVote, onReply }: CommentCardProps)
         <div className="mt-3 space-y-2 pl-4 border-l-2 border-gray-200">
           {comment.replies.map((r) => (
             <div key={r.id} className="text-sm">
-              <span className="font-medium text-gray-600">{r.author?.display_name || '匿名'}：</span>
+              <span className="font-medium text-gray-600">{r.author?.display_name || '匿名'}</span>
+              {r.author?.is_student_verified && (
+                <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full mx-1">
+                  {zh.supervisor.verified_badge}
+                </span>
+              )}
+              <span className="text-gray-600">：</span>
               <span className="text-gray-700">{r.content}</span>
             </div>
           ))}
