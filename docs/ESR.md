@@ -133,3 +133,7 @@ Fixed clean() defined inside for-loop (moved outside), added missing fallback co
 ### Update: 2026-03-22 13:39
 ### claude-gc-profile-public — 2026-03-22 13:39
 Builder committed no code (only docs). Implemented full public ratings+comments display on SupervisorPage: RatingCard, CommentCard, live API fetches, Write Review button with auth-aware navigation. tsc and vite build both pass clean.
+
+### Update: 2026-03-22 13:39
+### claude-gc-edit-proposals — 2026-03-22 13:39
+Edit proposals scaffold is clean: model, schema, router all correctly wired; frontend types and api.ts compile without errors; vite build passes. All backend endpoints are intentional 501 stubs (scaffolded, not yet implemented). Minor dead code: editProposalsApi.getMine() in api.ts has no backend route, but no pages call it so no runtime impact.
