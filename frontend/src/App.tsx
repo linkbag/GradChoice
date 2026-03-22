@@ -9,6 +9,8 @@ import ProfilePage from '@/pages/ProfilePage'
 import InboxPage from '@/pages/InboxPage'
 import AboutPage from '@/pages/AboutPage'
 import NotFoundPage from '@/pages/NotFoundPage'
+import RankingsPage from '@/pages/RankingsPage'
+import SchoolAnalyticsPage from '@/pages/SchoolAnalyticsPage'
 
 export default function App() {
   return (
@@ -18,6 +20,8 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="supervisor/:id" element={<SupervisorPage />} />
+          <Route path="rankings" element={<RankingsPage />} />
+          <Route path="school/:code/analytics" element={<SchoolAnalyticsPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
           <Route path="profile" element={<ProfilePage />} />

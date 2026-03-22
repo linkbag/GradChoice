@@ -9,6 +9,7 @@ export const zh = {
     profile: '我的主页',
     inbox: '私信',
     logout: '退出登录',
+    rankings: '排行榜',
   },
   home: {
     hero_title: '研选 GradChoice',

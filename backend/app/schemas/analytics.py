@@ -15,13 +15,39 @@ class ScoreBreakdown(BaseModel):
     verified_ratings: int = 0
 
 
+class PercentileRankings(BaseModel):
+    dept_percentile: Optional[float] = None
+    school_percentile: Optional[float] = None
+    province_percentile: Optional[float] = None
+    national_percentile: Optional[float] = None
+
+
+class ScoreTrend(BaseModel):
+    month: str  # e.g. "2024-01"
+    avg_overall: float
+    rating_count: int
+
+
+class DepartmentStats(BaseModel):
+    department: str
+    avg_overall: Optional[float] = None
+    rating_count: int = 0
+    supervisor_count: int = 0
+
+
 class SupervisorAnalytics(BaseModel):
     supervisor_id: uuid.UUID
     supervisor_name: str
     school_name: str
+    department: str
     scores: ScoreBreakdown
-    score_distribution: dict[str, int] = {}  # e.g. {"5": 10, "4": 5, ...}
+    verified_scores: ScoreBreakdown
+    score_distribution: dict[str, int] = {}
     comment_count: int = 0
+    percentiles: Optional[PercentileRankings] = None
+    score_trends: list[ScoreTrend] = []
+    school_avg_scores: ScoreBreakdown = ScoreBreakdown()
+    national_avg_scores: ScoreBreakdown = ScoreBreakdown()
 
 
 class SchoolAnalytics(BaseModel):
@@ -30,7 +56,13 @@ class SchoolAnalytics(BaseModel):
     province: str
     total_supervisors: int
     rated_supervisors: int
+    unrated_supervisors: int = 0
     avg_overall_score: Optional[float] = None
+    avg_sub_scores: ScoreBreakdown = ScoreBreakdown()
+    departments: list[DepartmentStats] = []
+    total_ratings: int = 0
+    recent_ratings: int = 0
+    school_percentile: Optional[float] = None
     top_supervisors: list[dict] = []
 
 
@@ -39,10 +71,23 @@ class RankingEntry(BaseModel):
     supervisor_id: uuid.UUID
     supervisor_name: str
     school_name: str
+    school_code: str
+    department: str
     avg_score: float
     rating_count: int
 
 
 class RankingsResponse(BaseModel):
-    by_overall: list[RankingEntry] = []
-    by_school: list[SchoolAnalytics] = []
+    items: list[RankingEntry] = []
+    total: int = 0
+    page: int = 1
+    page_size: int = 20
+
+
+class OverviewStats(BaseModel):
+    total_supervisors: int = 0
+    total_ratings: int = 0
+    total_users: int = 0
+    rated_supervisors: int = 0
+    most_active_schools: list[dict] = []
+    recent_ratings_30d: int = 0
