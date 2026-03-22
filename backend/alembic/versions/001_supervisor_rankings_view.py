@@ -1,13 +1,13 @@
 """Create supervisor_rankings materialized view
 
-Revision ID: 001
-Revises:
+Revision ID: 0003
+Revises: 0002
 Create Date: 2026-03-21
 """
 from alembic import op
 
-revision = "001"
-down_revision = None
+revision = "0003"
+down_revision = "0002"
 branch_labels = None
 depends_on = None
 

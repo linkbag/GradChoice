@@ -46,6 +46,7 @@ export interface Supervisor {
 
 export interface SupervisorSearchResult {
   id: string
+  school_code: string
   school_name: string
   province: string
   name: string
@@ -55,10 +56,68 @@ export interface SupervisorSearchResult {
   rating_count: number
 }
 
+export interface RecentComment {
+  id: string
+  content: string
+  likes_count: number
+  created_at: string
+}
+
+export interface SupervisorDetail extends Supervisor {
+  avg_overall: number | null
+  avg_academic: number | null
+  avg_mentoring: number | null
+  avg_wellbeing: number | null
+  avg_stipend: number | null
+  avg_resources: number | null
+  avg_ethics: number | null
+  rating_count: number
+  verified_rating_count: number
+  verified_avg_overall: number | null
+  rating_distribution: Record<string, number>
+  recent_comments: RecentComment[]
+}
+
+// ── School directory ──────────────────────────────────────────
+
+export interface SchoolListItem {
+  school_code: string
+  school_name: string
+  province: string
+  supervisor_count: number
+  rated_supervisor_count: number
+  avg_overall_score: number | null
+}
+
+export interface SchoolListResponse {
+  items: SchoolListItem[]
+  total: number
+}
+
+export interface ProvinceListItem {
+  province: string
+  school_count: number
+  supervisor_count: number
+}
+
+export interface DepartmentGroup {
+  department: string
+  supervisors: SupervisorSearchResult[]
+}
+
+export interface SchoolSupervisorsResponse {
+  school_code: string
+  school_name: string
+  province: string
+  total_count: number
+  departments: DepartmentGroup[]
+}
+
 export interface Rating {
   id: string
   user_id: string
   supervisor_id: string
+  display_name: string
   is_verified_rating: boolean
   overall_score: number
   score_academic: number | null
@@ -74,17 +133,61 @@ export interface Rating {
   updated_at: string
 }
 
+export interface RatingListResponse {
+  items: Rating[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface SupervisorRatingCache {
+  supervisor_id: string
+  all_avg_overall: number | null
+  all_avg_academic: number | null
+  all_avg_mentoring: number | null
+  all_avg_wellbeing: number | null
+  all_avg_stipend: number | null
+  all_avg_resources: number | null
+  all_avg_ethics: number | null
+  verified_avg_overall: number | null
+  verified_avg_academic: number | null
+  verified_avg_mentoring: number | null
+  verified_avg_wellbeing: number | null
+  verified_avg_stipend: number | null
+  verified_avg_resources: number | null
+  verified_avg_ethics: number | null
+  all_count: number
+  verified_count: number
+  distribution_1: number
+  distribution_2: number
+  distribution_3: number
+  distribution_4: number
+  distribution_5: number
+  updated_at: string | null
+}
+
+export type FlagReason = '虚假信息' | '恶意攻击' | '垃圾信息' | '隐私泄露' | '其他'
+
+export interface CommentAuthor {
+  id: string
+  display_name: string | null
+  is_student_verified: boolean
+}
+
 export interface Comment {
   id: string
-  user_id: string
   supervisor_id: string
   parent_comment_id: string | null
   content: string
+  is_deleted: boolean
+  is_edited: boolean
   likes_count: number
   dislikes_count: number
   is_flagged: boolean
   user_vote: VoteType | null
   reply_count: number
+  author: CommentAuthor | null
+  replies: Comment[]
   created_at: string
   updated_at: string
 }
@@ -94,7 +197,13 @@ export interface Chat {
   initiator_id: string
   recipient_id: string
   supervisor_id: string | null
+  // Computed fields populated by backend
+  other_user_id: string | null
+  other_user_display_name: string | null
+  supervisor_name: string | null
+  school_name: string | null
   last_message: string | null
+  last_message_at: string | null
   unread_count: number
   created_at: string
 }
@@ -104,8 +213,21 @@ export interface ChatMessage {
   chat_id: string
   sender_id: string
   content: string
+  is_read: boolean
   read_at: string | null
   created_at: string
+}
+
+export interface ChatMessagesResponse {
+  items: ChatMessage[]
+  total: number
+  page: number
+  page_size: number
+  has_more: boolean
+}
+
+export interface UnreadCountResponse {
+  unread_count: number
 }
 
 export interface EditProposal {
@@ -238,4 +360,5 @@ export interface PaginatedResponse<T> {
 export interface Token {
   access_token: string
   token_type: string
+  refresh_token?: string
 }
