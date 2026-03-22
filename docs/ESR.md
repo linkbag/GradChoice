@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-22 13:42*
+*Last updated: 2026-03-22 13:45*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -146,3 +146,7 @@ Fixed api.ts proposeNew endpoint (/supervisors → /edit-proposals). Committed b
 ### Integration Review — 2026-03-22 13:42
 **Subteams:** codex-gc-edit-proposals codex-gc-add-supervisor codex-gc-email-notify codex-gc-profile-public codex-gc-ui-polish
 **Result:** Integration round 1 passed with 1 fix applied. seed_tutors.py nullable guard added to prevent NOT NULL DB constraint violations when new MASTER file omits school_code/school_name/province/department columns. TypeScript build clean, Python imports clean, migration chain linear (0001-0005). No duplicate logic, no type conflicts, no routing conflicts. The gc-edit-proposals and gc-add-supervisor subteams produced auto-pass worklogs but no real backend implementation (all endpoints remain 501 stubs) — this is a feature completeness gap, not an integration conflict.
+
+### Update: 2026-03-22 13:45
+### claude-gc-profile-public — 2026-03-22 13:45
+Fixed backend CommentResponse schema missing author/replies fields. CommentCard was showing anonymous for all users and no verified badges. Added CommentAuthorResponse, is_deleted, is_edited, replies to schema; updated _build_response to populate author from user relationship and inline up to 10 replies. tsc+vite build clean. Only remaining known gap: /supervisor/:id/rate route needs a future RatePage task.
