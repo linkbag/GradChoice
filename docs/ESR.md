@@ -180,3 +180,7 @@ Review passed — reviewer fixed issues (commit: bf216f2 docs: auto-update ESR +
 ### Update: 2026-03-22 14:41
 ### claude-gc-mock-data — 2026-03-22 14:41
 Builder produced zero code — feat/gc-mock-data branch is identical to main. No mock data feature was implemented. No regressions, no build errors, nothing to fix.
+
+### Update: 2026-03-22 14:41
+### claude-gc-feature-verify — 2026-03-22 14:41
+No builder code changes — verification pass only. Vite build clean (901 modules), tsc --noEmit clean, all Python API modules import OK, no 501 stubs remain, all i18n keys present, RatePage route wired correctly. Pre-existing dead-code (editProposalsApi.getMine, supervisorsApi.proposeNew) confirmed unused — no runtime impact.
