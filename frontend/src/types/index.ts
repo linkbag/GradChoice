@@ -59,6 +59,7 @@ export interface Rating {
   id: string
   user_id: string
   supervisor_id: string
+  display_name: string
   is_verified_rating: boolean
   overall_score: number
   score_academic: number | null
@@ -72,6 +73,39 @@ export interface Rating {
   user_vote: VoteType | null
   created_at: string
   updated_at: string
+}
+
+export interface RatingListResponse {
+  items: Rating[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface SupervisorRatingCache {
+  supervisor_id: string
+  all_avg_overall: number | null
+  all_avg_academic: number | null
+  all_avg_mentoring: number | null
+  all_avg_wellbeing: number | null
+  all_avg_stipend: number | null
+  all_avg_resources: number | null
+  all_avg_ethics: number | null
+  verified_avg_overall: number | null
+  verified_avg_academic: number | null
+  verified_avg_mentoring: number | null
+  verified_avg_wellbeing: number | null
+  verified_avg_stipend: number | null
+  verified_avg_resources: number | null
+  verified_avg_ethics: number | null
+  all_count: number
+  verified_count: number
+  distribution_1: number
+  distribution_2: number
+  distribution_3: number
+  distribution_4: number
+  distribution_5: number
+  updated_at: string | null
 }
 
 export interface Comment {

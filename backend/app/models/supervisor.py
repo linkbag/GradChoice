@@ -33,6 +33,7 @@ class Supervisor(Base):
 
     # Relationships
     ratings: Mapped[list["Rating"]] = relationship("Rating", back_populates="supervisor")  # noqa: F821
+    rating_cache: Mapped["SupervisorRatingCache | None"] = relationship("SupervisorRatingCache", back_populates="supervisor", uselist=False)  # noqa: F821
     comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="supervisor")  # noqa: F821
     chats: Mapped[list["Chat"]] = relationship("Chat", back_populates="supervisor")  # noqa: F821
     edit_proposals: Mapped[list["EditProposal"]] = relationship("EditProposal", back_populates="supervisor")  # noqa: F821

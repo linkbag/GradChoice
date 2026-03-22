@@ -4,7 +4,7 @@ from typing import Optional
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
@@ -65,3 +65,24 @@ def get_current_verified_user(current_user=Depends(get_current_user)):
             detail="请先验证您的邮箱",
         )
     return current_user
+
+
+def get_optional_current_user(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Return the current user if a valid Bearer token is provided, else None."""
+    from app.models.user import User
+
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+    token = auth_header.split(" ", 1)[1]
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id: str = payload.get("sub")
+        if not user_id:
+            return None
+        return db.query(User).filter(User.id == uuid.UUID(user_id)).first()
+    except JWTError:
+        return None

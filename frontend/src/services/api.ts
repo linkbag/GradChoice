@@ -5,6 +5,8 @@ import type {
   Supervisor,
   SupervisorAnalytics,
   Rating,
+  RatingListResponse,
+  SupervisorRatingCache,
   Comment,
   Chat,
   ChatMessage,
@@ -115,11 +117,37 @@ export const ratingsApi = {
     score_ethics?: number
   }) => http.post<Rating>('/ratings', data),
 
-  getBySupervisor: (supervisorId: string, params?: { page?: number; page_size?: number }) =>
-    http.get<Rating[]>(`/ratings/supervisor/${supervisorId}`, { params }),
+  getBySupervisor: (
+    supervisorId: string,
+    params?: {
+      page?: number
+      page_size?: number
+      sort?: 'newest' | 'oldest' | 'highest' | 'lowest' | 'most_helpful'
+      verified_only?: boolean
+    },
+  ) => http.get<RatingListResponse>(`/ratings/supervisor/${supervisorId}`, { params }),
 
-  update: (id: string, data: Partial<Omit<Rating, 'id' | 'user_id' | 'supervisor_id' | 'is_verified_rating' | 'created_at' | 'updated_at' | 'upvotes' | 'downvotes' | 'user_vote'>>) =>
-    http.put<Rating>(`/ratings/${id}`, data),
+  getSummary: (supervisorId: string) =>
+    http.get<SupervisorRatingCache>(`/ratings/supervisor/${supervisorId}/summary`),
+
+  getMine: (params?: { page?: number; page_size?: number }) =>
+    http.get<RatingListResponse>('/ratings/mine', { params }),
+
+  update: (
+    id: string,
+    data: Partial<
+      Pick<
+        Rating,
+        | 'overall_score'
+        | 'score_academic'
+        | 'score_mentoring'
+        | 'score_wellbeing'
+        | 'score_stipend'
+        | 'score_resources'
+        | 'score_ethics'
+      >
+    >,
+  ) => http.put<Rating>(`/ratings/${id}`, data),
 
   delete: (id: string) => http.delete(`/ratings/${id}`),
 

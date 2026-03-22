@@ -1,6 +1,7 @@
 from app.models.user import User
 from app.models.supervisor import Supervisor
 from app.models.rating import Rating, RatingVote
+from app.models.supervisor_rating_cache import SupervisorRatingCache
 from app.models.comment import Comment, CommentVote
 from app.models.chat import Chat, ChatMessage
 from app.models.edit_proposal import EditProposal
@@ -10,6 +11,7 @@ __all__ = [
     "Supervisor",
     "Rating",
     "RatingVote",
+    "SupervisorRatingCache",
     "Comment",
     "CommentVote",
     "Chat",
