@@ -6,6 +6,7 @@ import type {
   SupervisorAnalytics,
   Rating,
   Comment,
+  FlagReason,
   Chat,
   ChatMessage,
   EditProposal,
@@ -134,16 +135,30 @@ export const commentsApi = {
   create: (data: { supervisor_id: string; content: string; parent_comment_id?: string }) =>
     http.post<Comment>('/comments', data),
 
-  getBySupervisor: (supervisorId: string, params?: { page?: number; page_size?: number }) =>
-    http.get<PaginatedResponse<Comment>>(`/comments/supervisor/${supervisorId}`, { params }),
+  getBySupervisor: (
+    supervisorId: string,
+    params?: {
+      page?: number
+      page_size?: number
+      sort?: 'newest' | 'oldest' | 'most_liked' | 'most_discussed'
+    },
+  ) => http.get<PaginatedResponse<Comment>>(`/comments/supervisor/${supervisorId}`, { params }),
+
+  get: (commentId: string) => http.get<Comment>(`/comments/${commentId}`),
 
   getReplies: (commentId: string) =>
     http.get<Comment[]>(`/comments/${commentId}/replies`),
 
+  update: (id: string, content: string) =>
+    http.put<Comment>(`/comments/${id}`, { content }),
+
+  delete: (id: string) => http.delete(`/comments/${id}`),
+
   vote: (id: string, vote_type: 'up' | 'down') =>
     http.post(`/comments/${id}/vote`, { vote_type }),
 
-  flag: (id: string) => http.post(`/comments/${id}/flag`),
+  flag: (id: string, reason: FlagReason, detail?: string) =>
+    http.post(`/comments/${id}/flag`, { reason, detail }),
 }
 
 // ============================================================

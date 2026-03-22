@@ -14,6 +14,7 @@ from app.schemas.user import TokenData
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 
 def hash_password(password: str) -> str:
@@ -65,3 +66,23 @@ def get_current_verified_user(current_user=Depends(get_current_user)):
             detail="请先验证您的邮箱",
         )
     return current_user
+
+
+def get_optional_user(
+    token: Optional[str] = Depends(oauth2_scheme_optional),
+    db: Session = Depends(get_db),
+):
+    """Return the current user if a valid token is provided, otherwise return None."""
+    from app.models.user import User
+
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+        user = db.query(User).filter(User.id == uuid.UUID(user_id)).first()
+        return user
+    except JWTError:
+        return None

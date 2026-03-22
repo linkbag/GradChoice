@@ -74,17 +74,28 @@ export interface Rating {
   updated_at: string
 }
 
+export type FlagReason = '虚假信息' | '恶意攻击' | '垃圾信息' | '隐私泄露' | '其他'
+
+export interface CommentAuthor {
+  id: string
+  display_name: string | null
+  is_student_verified: boolean
+}
+
 export interface Comment {
   id: string
-  user_id: string
   supervisor_id: string
   parent_comment_id: string | null
   content: string
+  is_deleted: boolean
+  is_edited: boolean
   likes_count: number
   dislikes_count: number
   is_flagged: boolean
   user_vote: VoteType | null
   reply_count: number
+  author: CommentAuthor | null
+  replies: Comment[]
   created_at: string
   updated_at: string
 }

@@ -29,8 +29,11 @@ class Comment(Base):
         UUID(as_uuid=True), ForeignKey("comments.id", ondelete="CASCADE"), nullable=True, index=True
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_edited: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     likes_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     dislikes_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    flag_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_flagged: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
@@ -43,6 +46,7 @@ class Comment(Base):
     parent: Mapped["Comment | None"] = relationship("Comment", back_populates="replies", remote_side="Comment.id")
     replies: Mapped[list["Comment"]] = relationship("Comment", back_populates="parent")
     votes: Mapped[list["CommentVote"]] = relationship("CommentVote", back_populates="comment")
+    flags: Mapped[list["CommentFlag"]] = relationship("CommentFlag", back_populates="comment")  # noqa: F821
 
 
 class CommentVote(Base):
