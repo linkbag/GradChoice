@@ -6,14 +6,14 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.comment import Comment, CommentVote, VoteType
 from app.schemas.comment import (
-    CommentCreate, CommentUpdate, CommentResponse, CommentVoteCreate, CommentListResponse
+    CommentCreate, CommentUpdate, CommentResponse, CommentAuthorResponse, CommentVoteCreate, CommentListResponse
 )
 from app.utils.auth import get_current_verified_user, get_optional_current_user
 
 router = APIRouter(prefix="/comments", tags=["评论"])
 
 
-def _build_response(comment: Comment, user_id: uuid.UUID | None, db: Session) -> CommentResponse:
+def _build_response(comment: Comment, user_id: uuid.UUID | None, db: Session, include_replies: bool = True) -> CommentResponse:
     vote = None
     if user_id:
         v = db.query(CommentVote).filter(
@@ -25,9 +25,28 @@ def _build_response(comment: Comment, user_id: uuid.UUID | None, db: Session) ->
         Comment.parent_comment_id == comment.id,
         Comment.is_deleted.is_(False),
     ).scalar() or 0
+
+    author = None
+    if comment.user:
+        author = CommentAuthorResponse(
+            id=comment.user.id,
+            display_name=comment.user.display_name,
+            is_student_verified=comment.user.is_student_verified,
+        )
+
+    replies = []
+    if include_replies and reply_count > 0:
+        raw_replies = db.query(Comment).filter(
+            Comment.parent_comment_id == comment.id,
+            Comment.is_deleted.is_(False),
+        ).order_by(Comment.created_at.asc()).limit(10).all()
+        replies = [_build_response(r, user_id, db, include_replies=False) for r in raw_replies]
+
     data = CommentResponse.model_validate(comment)
     data.user_vote = vote
     data.reply_count = reply_count
+    data.author = author
+    data.replies = replies
     return data
 
 
