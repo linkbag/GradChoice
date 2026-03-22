@@ -151,17 +151,30 @@ def list_supervisors(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     school_code: Optional[str] = None,
+    school_name: Optional[str] = None,
     province: Optional[str] = None,
+    department: Optional[str] = None,
+    sort_by: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
     """获取导师列表（支持分页和过滤）"""
     q = db.query(Supervisor)
     if school_code:
         q = q.filter(Supervisor.school_code == school_code)
+    if school_name:
+        q = q.filter(Supervisor.school_name == school_name)
     if province:
         q = q.filter(Supervisor.province == province)
+    if department:
+        q = q.filter(Supervisor.department == department)
     total = q.count()
-    items = q.order_by(Supervisor.school_name, Supervisor.name).offset((page - 1) * page_size).limit(page_size).all()
+    if sort_by == "rating":
+        q = q.order_by(Supervisor.avg_overall_score.desc().nullslast(), Supervisor.rating_count.desc())
+    elif sort_by == "rating_count":
+        q = q.order_by(Supervisor.rating_count.desc(), Supervisor.name)
+    else:
+        q = q.order_by(Supervisor.school_name, Supervisor.name)
+    items = q.offset((page - 1) * page_size).limit(page_size).all()
     return SupervisorListResponse(items=items, total=total, page=page, page_size=page_size)
 
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { zh } from '@/i18n/zh'
 import { supervisorsApi } from '@/services/api'
@@ -9,6 +9,7 @@ const PAGE_SIZE = 20
 
 export default function SearchPage() {
   const [query, setQuery] = useState('')
+  const [activeQuery, setActiveQuery] = useState('') // last submitted search term
   const [province, setProvince] = useState('')
   const [schoolName, setSchoolName] = useState('')
   const [results, setResults] = useState<SupervisorSearchResult[]>([])
@@ -16,11 +17,12 @@ export default function SearchPage() {
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [searched, setSearched] = useState(false)
 
-  // Filter options
   const [provinceOptions, setProvinceOptions] = useState<string[]>([])
   const [schoolOptions, setSchoolOptions] = useState<string[]>([])
+
+  // Skip filter-change effect on first render (initial load uses mount effect)
+  const isFirstRender = useRef(true)
 
   useEffect(() => {
     Promise.all([
@@ -32,20 +34,32 @@ export default function SearchPage() {
     }).catch(() => {})
   }, [])
 
-  const doSearch = useCallback(async (pageNum: number, append: boolean) => {
-    if (!query.trim()) return
-    if (append) {
-      setLoadingMore(true)
-    } else {
-      setLoading(true)
-    }
+  async function fetchData(
+    pageNum: number,
+    append: boolean,
+    q: string,
+    prov: string,
+    school: string,
+  ) {
+    if (append) setLoadingMore(true)
+    else setLoading(true)
     try {
-      const res = await supervisorsApi.search(query, {
-        province: province || undefined,
-        school_name: schoolName || undefined,
-        page: pageNum,
-        page_size: PAGE_SIZE,
-      })
+      let res
+      if (q) {
+        res = await supervisorsApi.search(q, {
+          province: prov || undefined,
+          school_name: school || undefined,
+          page: pageNum,
+          page_size: PAGE_SIZE,
+        })
+      } else {
+        res = await supervisorsApi.list({
+          province: prov || undefined,
+          school_name: school || undefined,
+          page: pageNum,
+          page_size: PAGE_SIZE,
+        })
+      }
       if (append) {
         setResults((prev) => [...prev, ...res.data.items])
       } else {
@@ -53,7 +67,6 @@ export default function SearchPage() {
       }
       setTotal(res.data.total)
       setPage(pageNum)
-      setSearched(true)
     } catch {
       if (!append) {
         setResults([])
@@ -63,15 +76,33 @@ export default function SearchPage() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [query, province, schoolName])
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    doSearch(1, false)
   }
 
-  const handleLoadMore = () => {
-    doSearch(page + 1, true)
+  // Initial load — show all supervisors (browse mode)
+  useEffect(() => {
+    fetchData(1, false, '', '', '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Auto-reload when province or school filter changes (skip first render)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    fetchData(1, false, activeQuery, province, schoolName)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [province, schoolName])
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault()
+    const q = query.trim()
+    setActiveQuery(q)
+    fetchData(1, false, q, province, schoolName)
+  }
+
+  function handleLoadMore() {
+    fetchData(page + 1, true, activeQuery, province, schoolName)
   }
 
   const hasMore = results.length < total
@@ -98,7 +129,7 @@ export default function SearchPage() {
         </button>
       </form>
 
-      {/* Filters */}
+      {/* Filters — changing either triggers an auto-reload */}
       <div className="flex gap-3 mb-8">
         <AutocompleteInput
           options={provinceOptions}
@@ -116,46 +147,59 @@ export default function SearchPage() {
         />
       </div>
 
+      {/* Result count */}
+      {total > 0 && !loading && (
+        <p className="text-sm text-gray-500 mb-4">
+          {activeQuery ? zh.search.result_count(total) : `共 ${total} 位导师`}
+        </p>
+      )}
+
+      {/* Loading indicator */}
+      {loading && (
+        <p className="text-gray-400 text-center py-12">加载中…</p>
+      )}
+
+      {/* Empty state */}
+      {results.length === 0 && !loading && (
+        <p className="text-gray-400 text-center py-12">
+          {activeQuery ? zh.search.no_results : '暂无导师数据'}
+        </p>
+      )}
+
       {/* Results */}
-      {total > 0 && (
-        <p className="text-sm text-gray-500 mb-4">{zh.search.result_count(total)}</p>
+      {!loading && (
+        <div className="space-y-4">
+          {results.map((s) => (
+            <Link
+              key={s.id}
+              to={`/supervisor/${s.id}`}
+              className="block bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="font-bold text-gray-900">{s.name}</h2>
+                  <p className="text-sm text-gray-600 mt-0.5">
+                    {s.school_name} · {s.department}
+                  </p>
+                  {s.title && <p className="text-xs text-gray-400 mt-0.5">{s.title}</p>}
+                </div>
+                <div className="text-right shrink-0 ml-4">
+                  {s.avg_overall_score != null ? (
+                    <span className="text-2xl font-bold text-brand-600">
+                      {s.avg_overall_score.toFixed(1)}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 text-sm">暂无评分</span>
+                  )}
+                  <p className="text-xs text-gray-400">{zh.supervisor.rating_count(s.rating_count)}</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
       )}
 
-      {results.length === 0 && !loading && searched && (
-        <p className="text-gray-400 text-center py-12">{zh.search.no_results}</p>
-      )}
-
-      <div className="space-y-4">
-        {results.map((s) => (
-          <Link
-            key={s.id}
-            to={`/supervisor/${s.id}`}
-            className="block bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="font-bold text-gray-900">{s.name}</h2>
-                <p className="text-sm text-gray-600 mt-0.5">
-                  {s.school_name} · {s.department}
-                </p>
-                {s.title && <p className="text-xs text-gray-400 mt-0.5">{s.title}</p>}
-              </div>
-              <div className="text-right shrink-0 ml-4">
-                {s.avg_overall_score != null ? (
-                  <span className="text-2xl font-bold text-brand-600">
-                    {s.avg_overall_score.toFixed(1)}
-                  </span>
-                ) : (
-                  <span className="text-gray-400 text-sm">暂无评分</span>
-                )}
-                <p className="text-xs text-gray-400">{zh.supervisor.rating_count(s.rating_count)}</p>
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      {/* Load More */}
+      {/* Load more */}
       {hasMore && !loading && (
         <div className="flex justify-center mt-8">
           <button
