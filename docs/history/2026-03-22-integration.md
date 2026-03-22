@@ -335,3 +335,72 @@
   1. `/edit-proposals/mine` route missing from backend; `editProposalsApi.getMine` in api.ts is dead code (no pages call it). Feature gap, not a conflict.
   2. All edit-proposals endpoints remain 501 stubs (gc-edit-proposals produced only schema scaffolding).
   3. `/supervisor/:id/rate` route does not exist in frontend (RatePage not implemented) — known from gc-profile-public round 2.
+
+---
+
+# Integration Log: GradChoice remaining features
+**Project:** GradChoice
+**Subteams:** claude-gc-proposals-impl claude-gc-rate-page
+**Started:** 2026-03-22 14:31:44
+
+## Subteam Summaries
+
+
+========================================
+## Subteam: claude-gc-proposals-impl
+========================================
+# Work Log: claude-gc-proposals-impl
+## Task: Agent claude-gc-proposals-impl completed task: gc-proposals-impl (GradChoice)
+---
+### Builder Phase
+- **Started:** 2026-03-22 14:25:02
+- **Completed:** 2026-03-22 14:25:02
+- **Status:** Builder finished. Awaiting review.
+
+### Review+Fix Round 1
+- **Reviewer:** claude-gc-proposals-impl-review-1
+- **Timestamp:** 2026-03-22 14:25:06
+- **Files reviewed:** backend/app/api/edit_proposals.py, backend/app/models/edit_proposal.py, backend/app/schemas/edit_proposal.py, backend/app/models/supervisor.py, backend/app/models/user.py, frontend/src/services/api.ts, frontend/src/types/index.ts
+- **Issues found:** Builder produced an empty worklog — zero implementation. All 4 endpoints were 501 stubs. Required full implementation of the edit-proposals feature.
+- **Fixes applied:** Implemented all 4 endpoints in backend/app/api/edit_proposals.py:
+  - POST /edit-proposals: validates field allowlist, checks supervisor existence, creates proposal
+  - GET /edit-proposals/pending: requires is_student_verified, excludes own proposals and already-reviewed ones, paginated
+  - POST /edit-proposals/{id}/review: 2-reviewer system — reject-fast (one reject → rejected), apply-on-double-approve (both approve → apply changes + create/update supervisor); guards for: not proposer, not double-reviewer, status=pending
+  - GET /edit-proposals/{id}: public detail endpoint
+  - _apply_proposal() helper: updates supervisor fields on approve (field allowlist) or creates new supervisor if supervisor_id is null
+- **Build status:** Python imports clean (OK). TypeScript tsc --noEmit: no errors.
+- **Remaining concerns:**
+  - editProposalsApi.getMine() in frontend/src/services/api.ts has no backend route — it's dead code (noted in prior integration review, not a new issue)
+  - No unit tests for the 2-reviewer state machine — integrator should be aware
+  - New-supervisor proposals via _apply_proposal require all 5 required fields in proposed_data; if any are missing the creation is silently skipped (logged nowhere) — acceptable for MVP
+
+========================================
+## Subteam: claude-gc-rate-page
+========================================
+# Work Log: claude-gc-rate-page
+## Task: Agent claude-gc-rate-page completed task: gc-rate-page (GradChoice)
+---
+### Builder Phase
+- **Started:** 2026-03-22 14:25:08
+- **Completed:** 2026-03-22 14:25:08
+- **Status:** Builder finished. Awaiting review.
+
+### Review+Fix Round 1
+- **Reviewer:** claude-gc-rate-page-review-1
+- **Timestamp:** 2026-03-22 14:25:11
+- **Files reviewed:** frontend/src/pages/RatePage.tsx (created), frontend/src/App.tsx (route added)
+- **Issues found:** Builder produced zero code — worklog was empty, no commits. The /supervisor/:id/rate route was missing entirely (confirmed by integration review notes). Implemented the full RatePage from scratch.
+- **Fixes applied:** Created RatePage.tsx with star-picker UI for overall score (required) and 6 optional sub-dimensions (academic/mentoring/wellbeing/stipend/resources/ethics). Auth guard redirects to /login if unauthenticated. Handles 409 duplicate-rating error, generic API errors, supervisor name display, and success redirect. Added route to App.tsx. TypeScript check: clean (tsc --noEmit exit 0).
+- **Build status:** tsc --noEmit passes with no errors
+- **Remaining concerns:** None. Backend POST /ratings endpoint was already fully implemented. Frontend form submits to ratingsApi.create() which is already wired. No backend changes needed.
+
+---
+## Integration Review
+
+### Integration Round 2 (claude-gc-proposals-impl + claude-gc-rate-page)
+- **Timestamp:** 2026-03-22 14:31:46
+- **Cross-team conflicts found:** None
+- **Duplicated code merged:** Minor: `supervisorsApi.proposeNew` and `editProposalsApi.create` both call POST /edit-proposals — `proposeNew` is dead code (never called), so no runtime collision. `editProposalsApi.getMine` also dead code (no backend route exists and not called). Both noted but harmless.
+- **Build verified:** TypeScript — PASS (tsc --noEmit: no output, exit 0). Python imports — PASS (SECRET_KEY=test python3 -c "from app.api import edit_proposals; print('OK')" → OK).
+- **Fixes applied:** None needed — all files are consistent and non-conflicting.
+- **Remaining concerns:** (1) `editProposalsApi.getMine` in api.ts calls `/edit-proposals/mine` which has no backend route — dead code, will 404 if ever called. (2) `supervisorsApi.proposeNew` is dead code duplicate of `editProposalsApi.create`. Both are pre-existing issues from prior rounds, not introduced by these subteams.

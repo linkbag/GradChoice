@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-22 14:28*
+*Last updated: 2026-03-22 14:33*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -159,3 +159,12 @@ Fixed backend CommentResponse schema missing author/replies fields. CommentCard 
 ### Update: 2026-03-22 14:28
 ### claude-gc-rate-page — 2026-03-22 14:28
 Builder produced no code; reviewer implemented RatePage.tsx from scratch + App.tsx route. Star-picker form for overall (required) + 6 optional sub-scores, auth guard, 409 duplicate handling, success redirect. tsc --noEmit clean.
+
+### Update: 2026-03-22 14:28
+### claude-gc-proposals-impl — 2026-03-22 14:28
+Builder left all 4 edit-proposals endpoints as 501 stubs. Reviewer implemented them fully: create (field allowlist + supervisor existence check), pending list (student-verified gate + self-exclusion), review (2-reviewer state machine with reject-fast and apply-on-double-approve), and detail fetch. Python imports clean, TypeScript tsc clean.
+
+### Update: 2026-03-22 14:33
+### Integration Review — 2026-03-22 14:33
+**Subteams:** claude-gc-proposals-impl claude-gc-rate-page
+**Result:** No cross-team conflicts found. edit_proposals.py (backend) and RatePage.tsx (frontend) are fully non-overlapping. App.tsx route /supervisor/:id/rate is correctly wired and SupervisorPage already navigates to it. TypeScript build clean (tsc --noEmit exit 0). Python imports clean with SECRET_KEY set. EditProposalResponse schema matches EditProposal TypeScript type exactly. i18n score_labels used by RatePage all present. Minor pre-existing dead-code: editProposalsApi.getMine (no backend route) and supervisorsApi.proposeNew (duplicate of editProposalsApi.create) — neither called anywhere, no runtime impact.
