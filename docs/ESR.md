@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-22 14:50*
+*Last updated: 2026-03-22 14:53*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -188,3 +188,11 @@ No builder code changes — verification pass only. Vite build clean (901 module
 ### Update: 2026-03-22 14:50
 ### claude-gc-mock-data — 2026-03-22 14:50
 seed_mock.py reviewed and fixed: removed 5 unused imports (Base, RatingVote, RVoteType, CommentVote, CVoteType); fixed --reset to recalculate supervisors.avg_overall_score, rating_count, and rebuild supervisor_rating_cache after cascade-deleting mock users. All model column names verified against actual SQLAlchemy models. No compilation errors, no logic bugs in the seeding path.
+
+### Update: 2026-03-22 14:50
+### claude-gc-feature-verify — 2026-03-22 14:50
+All 4 changes reviewed and verified correct. Radar chart null-guard, dual scores badge, email toggle, and PublicProfilePage all match their intended design, type-check cleanly, and connect to confirmed backend endpoints. Vite build and tsc --noEmit both pass. No fixes needed.
+
+### Update: 2026-03-22 14:53
+### claude-gc-fix-search — 2026-03-22 14:53
+All changes clean. Backend list_supervisors correctly adds school_name/department/sort_by params with nullslast ordering. SearchPage browse-first UX is correct — isFirstRender ref prevents double-fetch, activeQuery threads correctly through filter changes, loadingMore vs loading separation is correct. SupervisorPage edit-proposal form types match API. TypeScript build exit 0.
