@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel
 
-from app.models.comment import VoteType
+# Inline enum to avoid importing from models (prevents circular imports)
+VoteType = Literal["up", "down"]
 
 
 class CommentCreate(BaseModel):

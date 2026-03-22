@@ -23,7 +23,8 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql://gradchoice:gradchoice_dev@db:5432/gradchoice
-      SECRET_KEY: ${SECRET_KEY:-changeme-replace-in-production}
+      # SECRET_KEY must be set in the host environment or a .env file — no default allowed
+      SECRET_KEY: ${SECRET_KEY}
       DEBUG: "true"
     depends_on:
       db:

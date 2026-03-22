@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel, field_validator
 
-from app.models.rating import VoteType
+# Inline enum to avoid importing from models (prevents circular imports)
+VoteType = Literal["up", "down"]
 
 
 class RatingCreate(BaseModel):

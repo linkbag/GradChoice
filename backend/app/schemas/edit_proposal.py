@@ -1,9 +1,11 @@
 import uuid
 from datetime import datetime
-from typing import Optional, Any
+from typing import Any, Literal, Optional
 from pydantic import BaseModel
 
-from app.models.edit_proposal import ProposalStatus, ReviewDecision
+# Inline enums to avoid importing from models (prevents circular imports)
+ProposalStatus = Literal["pending", "approved", "rejected"]
+ReviewDecision = Literal["approve", "reject"]
 
 
 class EditProposalCreate(BaseModel):

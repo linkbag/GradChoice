@@ -1,6 +1,6 @@
 import uuid
-from datetime import datetime
-from sqlalchemy import DateTime, ForeignKey, Text
+from datetime import datetime, timezone
+from sqlalchemy import Boolean, DateTime, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -22,13 +22,21 @@ class Chat(Base):
     supervisor_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("supervisors.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
     # Relationships
     initiator: Mapped["User"] = relationship("User", back_populates="initiated_chats", foreign_keys=[initiator_id])  # noqa: F821
     recipient: Mapped["User"] = relationship("User", back_populates="received_chats", foreign_keys=[recipient_id])  # noqa: F821
     supervisor: Mapped["Supervisor | None"] = relationship("Supervisor", back_populates="chats")  # noqa: F821
     messages: Mapped[list["ChatMessage"]] = relationship("ChatMessage", back_populates="chat")
+
+    # Transient fields — populated by API layer; not stored in DB
+    last_message = None  # type: ignore[assignment]
+    unread_count = 0  # type: ignore[assignment]
 
 
 class ChatMessage(Base):
@@ -44,8 +52,13 @@ class ChatMessage(Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)  # encrypted at rest
-    read_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
     # Relationships
     chat: Mapped["Chat"] = relationship("Chat", back_populates="messages")

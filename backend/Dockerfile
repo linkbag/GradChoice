@@ -14,4 +14,5 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Production entrypoint — no --reload. Use the compose volume mount for live reload in dev.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel, EmailStr
 
-from app.models.user import VerificationType
+# Inline the enum values to avoid importing from models (prevents circular imports)
+VerificationType = Literal["none", "email_edu", "student_id"]
 
 
 class UserBase(BaseModel):

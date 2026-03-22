@@ -1,6 +1,6 @@
 import uuid
-from datetime import datetime
-from sqlalchemy import String, DateTime, UniqueConstraint
+from datetime import datetime, timezone
+from sqlalchemy import DateTime, Float, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -26,9 +26,19 @@ class Supervisor(Base):
     webpage_url_1: Mapped[str | None] = mapped_column(String(500), nullable=True)
     webpage_url_2: Mapped[str | None] = mapped_column(String(500), nullable=True)
     webpage_url_3: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    # Cached aggregate stats — updated after each rating write
+    avg_overall_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    rating_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
     )
 
     # Relationships

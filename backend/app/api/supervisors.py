@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas.supervisor import SupervisorResponse, SupervisorListResponse, SupervisorCreate
+from app.schemas.supervisor import SupervisorResponse, SupervisorListResponse
 from app.schemas.edit_proposal import EditProposalCreate, EditProposalResponse
 from app.utils.auth import get_current_verified_user
 

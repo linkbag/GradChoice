@@ -1,6 +1,6 @@
 import uuid
-from datetime import datetime
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Numeric, UniqueConstraint, Enum as SAEnum
+from datetime import datetime, timezone
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, UniqueConstraint, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 import enum
@@ -36,15 +36,29 @@ class Rating(Base):
     score_stipend: Mapped[float | None] = mapped_column(Numeric(3, 2), nullable=True)
     score_resources: Mapped[float | None] = mapped_column(Numeric(3, 2), nullable=True)
     score_ethics: Mapped[float | None] = mapped_column(Numeric(3, 2), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    # Denormalized vote counts — updated by vote endpoint
+    upvotes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    downvotes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
     )
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="ratings")  # noqa: F821
     supervisor: Mapped["Supervisor"] = relationship("Supervisor", back_populates="ratings")  # noqa: F821
     votes: Mapped[list["RatingVote"]] = relationship("RatingVote", back_populates="rating")
+
+    # Transient field — populated by API layer; not stored in DB
+    # Use __allow_unmapped__ style: plain class attr, no Mapped annotation
+    user_vote = None  # type: ignore[assignment]
 
 
 class RatingVote(Base):
@@ -63,7 +77,11 @@ class RatingVote(Base):
         UUID(as_uuid=True), ForeignKey("ratings.id", ondelete="CASCADE"), nullable=False, index=True
     )
     vote_type: Mapped[VoteType] = mapped_column(SAEnum(VoteType), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="rating_votes")  # noqa: F821

@@ -6,8 +6,8 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://gradchoice:gradchoice_dev@localhost:5432/gradchoice"
 
-    # JWT
-    SECRET_KEY: str = "changeme-use-a-secure-random-key-in-production"
+    # JWT — SECRET_KEY has no default; must be set via environment variable
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 

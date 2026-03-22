@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text, UniqueConstraint, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -32,9 +32,16 @@ class Comment(Base):
     likes_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     dislikes_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_flagged: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
     )
 
     # Relationships
@@ -43,6 +50,10 @@ class Comment(Base):
     parent: Mapped["Comment | None"] = relationship("Comment", back_populates="replies", remote_side="Comment.id")
     replies: Mapped[list["Comment"]] = relationship("Comment", back_populates="parent")
     votes: Mapped[list["CommentVote"]] = relationship("CommentVote", back_populates="comment")
+
+    # Transient fields — populated by API layer; not stored in DB
+    user_vote = None  # type: ignore[assignment]
+    reply_count = 0  # type: ignore[assignment]
 
 
 class CommentVote(Base):
@@ -61,7 +72,11 @@ class CommentVote(Base):
         UUID(as_uuid=True), ForeignKey("comments.id", ondelete="CASCADE"), nullable=False, index=True
     )
     vote_type: Mapped[VoteType] = mapped_column(SAEnum(VoteType), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="comment_votes")  # noqa: F821

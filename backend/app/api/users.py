@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas.user import UserMe, UserPublicProfile, UserUpdate
-from app.utils.auth import get_current_user, get_current_verified_user
+from app.utils.auth import get_current_user
 
 router = APIRouter(prefix="/users", tags=["用户"])
 
