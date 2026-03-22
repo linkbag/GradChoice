@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-21 18:11*
+*Last updated: 2026-03-21 18:15*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -35,3 +35,7 @@
 ### Update: 2026-03-21 18:11
 ### claude-gc-chat — 2026-03-21 18:11
 Two bugs fixed: (1) get_messages was returning oldest N messages instead of newest N — users would see ancient history on chat open; fixed by sorting DESC then reversing. (2) formatGroupDate had a month-boundary bug in isYesterday check; fixed with epoch-based day diff. All 10 changed files reviewed. Logic, auth guards, rate limiting, schema validation, and frontend UI all look correct. N+1 query pattern in _build_chat_response is a known MVP trade-off.
+
+### Update: 2026-03-21 18:15
+### claude-gc-comments — 2026-03-21 18:15
+7 issues found and fixed: (1) remote_side string annotation bug causing SQLAlchemy startup failure, (2) flagged comments leaking content in API responses, (3) 401 interceptor redirecting on public-page optional-auth probe, (4) stale editContent state after successful edit, (5) CommentCard action guards missing is_flagged check, (6) dead SortOrder class removed, (7) Alembic migration created for new columns and comment_flags table.
