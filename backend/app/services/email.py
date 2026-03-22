@@ -7,8 +7,9 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Base URL for email links — override via env in production
-_APP_URL = "https://gradchoice.cn"
+def _app_url() -> str:
+    """Return APP_URL from settings so it can be overridden via env."""
+    return settings.APP_URL
 
 
 def _send_email(to: str, subject: str, html_body: str) -> None:
@@ -41,7 +42,7 @@ def _send_email(to: str, subject: str, html_body: str) -> None:
 
 
 def send_verification_email(to: str, token: str) -> None:
-    verify_url = f"{_APP_URL}/verify-email?token={token}"
+    verify_url = f"{_app_url()}/verify-email?token={token}"
     subject = "【研选 GradChoice】验证您的邮箱"
     body = f"""
 <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#333">
@@ -66,7 +67,7 @@ def send_verification_email(to: str, token: str) -> None:
 
 
 def send_password_reset_email(to: str, token: str) -> None:
-    reset_url = f"{_APP_URL}/reset-password?token={token}"
+    reset_url = f"{_app_url()}/reset-password?token={token}"
     subject = "【研选 GradChoice】重置您的密码"
     body = f"""
 <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#333">
@@ -91,7 +92,7 @@ def send_password_reset_email(to: str, token: str) -> None:
 
 
 def send_chat_notification_email(to: str, sender_name: str, message_preview: str) -> None:
-    inbox_url = f"{_APP_URL}/inbox"
+    inbox_url = f"{_app_url()}/inbox"
     preview = message_preview[:200] + ("…" if len(message_preview) > 200 else "")
     subject = f"【研选 GradChoice】您收到了来自 {sender_name} 的新消息"
     body = f"""
@@ -110,7 +111,7 @@ def send_chat_notification_email(to: str, sender_name: str, message_preview: str
   <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
   <p style="color:#999;font-size:12px">
     如需关闭邮件通知，请前往
-    <a href="{_APP_URL}/profile" style="color:#4f46e5">个人设置</a>
+    <a href="{_app_url()}/profile" style="color:#4f46e5">个人设置</a>
     关闭邮件通知选项。
   </p>
 </div>

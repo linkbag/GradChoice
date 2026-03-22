@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     # App
     APP_NAME: str = "研选 GradChoice"
+    APP_URL: str = "https://gradchoice.cn"
     DEBUG: bool = False
     ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 

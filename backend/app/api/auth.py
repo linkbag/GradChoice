@@ -1,6 +1,9 @@
+import logging
 import os
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request
+
+logger = logging.getLogger(__name__)
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -65,8 +68,8 @@ def register(request: Request, user_in: UserCreate, db: Session = Depends(get_db
             expire_hours=settings.EMAIL_TOKEN_EXPIRE_HOURS,
         )
         send_verification_email(user.email, token)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Failed to send verification email to %s: %s", user.email, exc)
 
     return user
 
