@@ -31,6 +31,7 @@ class ChatMessageResponse(BaseModel):
     chat_id: uuid.UUID
     sender_id: uuid.UUID
     content: str
+    is_read: bool = False
     read_at: Optional[datetime] = None
     created_at: datetime
 

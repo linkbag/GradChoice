@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas.comment import CommentCreate, CommentResponse, CommentVoteCreate, CommentListResponse
+from app.schemas.comment import CommentCreate, CommentUpdate, CommentResponse, CommentVoteCreate, CommentListResponse
 from app.utils.auth import get_current_verified_user
 
 router = APIRouter(prefix="/comments", tags=["评论"])
@@ -29,6 +29,29 @@ def get_supervisor_comments(
 ):
     """获取导师的所有评论（顶层）"""
     # TODO: implement — return only top-level comments, include reply_count
+    raise HTTPException(status_code=501, detail="待实现")
+
+
+@router.put("/{comment_id}", response_model=CommentResponse)
+def update_comment(
+    comment_id: uuid.UUID,
+    comment_update: CommentUpdate,
+    current_user=Depends(get_current_verified_user),
+    db: Session = Depends(get_db),
+):
+    """修改自己的评论"""
+    # TODO: implement — only owner can update
+    raise HTTPException(status_code=501, detail="待实现")
+
+
+@router.delete("/{comment_id}", status_code=204)
+def delete_comment(
+    comment_id: uuid.UUID,
+    current_user=Depends(get_current_verified_user),
+    db: Session = Depends(get_db),
+):
+    """删除自己的评论"""
+    # TODO: implement — only owner can delete
     raise HTTPException(status_code=501, detail="待实现")
 
 
