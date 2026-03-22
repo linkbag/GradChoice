@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-21 18:15*
+*Last updated: 2026-03-21 18:17*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -43,3 +43,7 @@ Two bugs fixed: (1) get_messages was returning oldest N messages instead of newe
 ### Update: 2026-03-21 18:15
 ### claude-gc-analytics — 2026-03-21 18:15
 Analytics feature reviewed. Two issues found and fixed: (1) missing ScoreBreakdown import in SupervisorPage.tsx (TypeScript compilation error), (2) no validation of the dimension query param in /analytics/rankings endpoint (now returns 422 for invalid dimensions). SQL injection protection is correct via VALID_DIMENSIONS dict. All schemas align with service output. All new components (RadarChart, DistributionChart, PercentileDisplay) are clean. Note: materialized view 001_supervisor_rankings_view.py is created but unused by the service — dead code but not a bug.
+
+### Update: 2026-03-21 18:17
+### claude-gc-supervisors — 2026-03-21 18:17
+Review passed with 3 bugs fixed: (1) removed unused `import random` in edit_proposals.py, (2) replaced deprecated `datetime.utcnow()` calls with timezone-aware `datetime.now(timezone.utc)` in 3 places, (3) removed broken `<Link to="/propose-supervisor">` navigation (route not in App.tsx) and cleaned up resulting unused variable. All routers correctly registered in main.py. Schema/type alignment between backend Pydantic models and frontend TypeScript types is clean. No circular imports, no SQL injection vectors. Dead code `build_supervisor_search_query` in services/supervisor.py is unused but harmless.
