@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-22 15:07*
+*Last updated: 2026-03-22 15:35*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -205,3 +205,7 @@ All changes verified clean. GET /comments/{comment_id} and GET /users/me/comment
 ### Integration Review — 2026-03-22 15:07
 **Subteams:** claude-gc-fix-search claude-gc-fix-comments claude-gc-mock-data claude-gc-feature-verify
 **Result:** Integration round 1 complete. One cross-team conflict resolved: SupervisorPage.tsx was modified by 3 parallel branches (gc-fix-search, gc-fix-comments, gc-feature-verify) all diverging from the same base. Performed 3-way manual merge combining suggest-edit form, full comment flow (creation/voting/replies), and dual scores/radar-null-guard. All 8 non-conflicting files applied directly from their respective branches. TypeScript tsc --noEmit: clean. Python syntax: clean. Committed to main as 8384171.
+
+### Update: 2026-03-22 15:35
+### claude-gc-anon-names — 2026-03-22 15:35
+Both changes are clean: seed_mock.py correctly replaces real-name lists with 30 prefixes × 32 animals = 960 anonymous nicknames (>200 users, no collision risk); make_email() is unaffected since it uses indexed mock_ prefix. SupervisorPage.tsx reply badge uses existing zh.supervisor.verified_badge i18n key and CommentAuthor.is_student_verified (boolean, typed) — mirrors CommentCard pattern exactly. No logic bugs, no missing imports, no security issues.
