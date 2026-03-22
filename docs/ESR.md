@@ -172,3 +172,7 @@ Builder left all 4 edit-proposals endpoints as 501 stubs. Reviewer implemented t
 ### Update: 2026-03-22 14:40
 ### claude-gc-fix-search — 2026-03-22 14:40
 Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
+
+### Update: 2026-03-22 14:40
+### claude-gc-fix-comments — 2026-03-22 14:40
+Review passed — reviewer fixed issues (commit: bf216f2 docs: auto-update ESR + persist worklog for claude-gc-fix-search)
