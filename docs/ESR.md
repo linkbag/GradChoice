@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-21 18:18*
+*Last updated: 2026-03-21 18:31*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -51,3 +51,8 @@ Review passed with 3 bugs fixed: (1) removed unused `import random` in edit_prop
 ### Update: 2026-03-21 18:18
 ### claude-gc-ratings — 2026-03-21 18:18
 gc-ratings feature reviewed and fixed. 5 issues found and fixed: (1) datetime.utcnow() replaced with datetime.now(timezone.utc) across 6 backend files; (2) DateTime columns missing timezone=True in supervisor.py and supervisor_rating_cache.py; (3) alembic migration 001 missing upvotes/downvotes columns present in Rating model; (4) ChatMessage.is_read field dropped from frontend types (regression of integration review 1); (5) SVG linearGradient ID collisions in RatingForm/RatingCard fixed with React useId(). All endpoints are real implementations (not 501 stubs), logic is sound, no circular imports, schema/model/type alignment is correct after fixes. Remaining low-priority concerns: get_optional_current_user uses Request injection (works, minor OpenAPI cosmetic issue); denormalized upvotes/downvotes on Rating model are always 0 (live-computed from votes table — no correctness bug but dead DB columns).
+
+### Update: 2026-03-21 18:31
+### Integration Review — 2026-03-21 18:31
+**Subteams:** claude-gc-auth claude-gc-supervisors claude-gc-ratings claude-gc-comments claude-gc-analytics claude-gc-chat
+**Result:** 5 cross-subteam conflicts found and fixed: (1) ChatMessage.is_read regression restored (analytics merge overwrote prior fix), (2) duplicate optional auth functions unified (get_optional_current_user + get_optional_user alias, idiomatic OAuth2 approach), (3) Alembic multiple-heads crisis resolved — canonical chain created: 0001_initial_schema (all tables + pg_trgm + rating_cache), 0002_add_comment_flags, 0003_supervisor_rankings_view, (4) types/index.ts forward-merged with all type additions from all 6 branches to prevent merge-time TypeScript conflicts, (5) services/api.ts forward-merged with all missing methods and corrected signatures.
