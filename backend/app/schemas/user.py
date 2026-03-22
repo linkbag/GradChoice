@@ -1,10 +1,14 @@
+import enum
 import uuid
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Optional
 from pydantic import BaseModel, EmailStr
 
-# Inline the enum values to avoid importing from models (prevents circular imports)
-VerificationType = Literal["none", "email_edu", "student_id"]
+
+class VerificationType(str, enum.Enum):
+    none = "none"
+    email_edu = "email_edu"
+    student_id = "student_id"
 
 
 class UserBase(BaseModel):
@@ -41,11 +45,21 @@ class UserMe(BaseModel):
     is_email_verified: bool
     is_student_verified: bool
     verification_type: VerificationType
+    school_email: Optional[str] = None
+    school_email_verified: bool = False
     email_notifications_enabled: bool
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class SendVerificationRequest(BaseModel):
+    school_email: EmailStr
+
+
+class VerifySchoolEmailRequest(BaseModel):
+    code: str
 
 
 class Token(BaseModel):

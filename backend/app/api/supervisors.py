@@ -57,6 +57,16 @@ def list_provinces(db: Session = Depends(get_db)):
     ]
 
 
+@router.get("/school-names")
+def list_school_names(db: Session = Depends(get_db)):
+    """获取所有院校名称（去重，用于前端筛选下拉）"""
+    rows = db.query(
+        Supervisor.school_name,
+        Supervisor.school_code,
+    ).distinct().order_by(Supervisor.school_name).all()
+    return [{"school_name": r.school_name, "school_code": r.school_code} for r in rows]
+
+
 @router.get("/school/{school_code}")
 def list_school_supervisors(
     school_code: str,
@@ -112,6 +122,7 @@ def search_supervisors(
     q: str = Query(..., min_length=1, description="搜索关键词"),
     province: Optional[str] = None,
     school_code: Optional[str] = None,
+    school_name: Optional[str] = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -128,6 +139,8 @@ def search_supervisors(
         query = query.filter(Supervisor.province == province)
     if school_code:
         query = query.filter(Supervisor.school_code == school_code)
+    if school_name:
+        query = query.filter(Supervisor.school_name == school_name)
     total = query.count()
     items = query.order_by(Supervisor.name).offset((page - 1) * page_size).limit(page_size).all()
     return SupervisorListResponse(items=items, total=total, page=page, page_size=page_size)

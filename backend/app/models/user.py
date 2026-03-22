@@ -29,6 +29,10 @@ class User(Base):
     verification_type: Mapped[VerificationType] = mapped_column(
         SAEnum(VerificationType), default=VerificationType.none, nullable=False
     )
+    school_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    school_email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    verification_code: Mapped[str | None] = mapped_column(String(6), nullable=True)
+    verification_code_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     student_id_file_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     email_notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

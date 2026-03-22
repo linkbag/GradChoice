@@ -1,10 +1,13 @@
+import random
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User, VerificationType
-from app.schemas.user import UserCreate, UserMe, Token
+from app.schemas.user import UserCreate, UserMe, Token, SendVerificationRequest, VerifySchoolEmailRequest
 from app.utils.auth import (
     hash_password, verify_password, create_access_token,
     get_current_user,
@@ -99,3 +102,57 @@ def refresh_token(current_user: User = Depends(get_current_user)):
 def get_me(current_user: User = Depends(get_current_user)):
     """获取当前用户信息"""
     return current_user
+
+
+@router.post("/send-verification")
+def send_verification(
+    body: SendVerificationRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """发送学校邮箱验证码（本地开发：验证码打印到控制台）"""
+    email = body.school_email.lower()
+    if not (email.endswith(".edu") or email.endswith(".edu.cn") or email.endswith(".org")):
+        raise HTTPException(status_code=400, detail="仅支持 .edu / .edu.cn / .org 邮箱")
+
+    code = f"{random.randint(0, 999999):06d}"
+    current_user.school_email = email
+    current_user.school_email_verified = False
+    current_user.verification_code = code
+    current_user.verification_code_expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
+    db.commit()
+
+    # LOCAL DEV: print code to console instead of sending email
+    print(f"\n{'='*50}")
+    print(f"  验证码 for {email}: {code}")
+    print(f"  (15 分钟内有效)")
+    print(f"{'='*50}\n")
+
+    return {"message": "验证码已发送，请查看邮箱"}
+
+
+@router.post("/verify-school-email")
+def verify_school_email(
+    body: VerifySchoolEmailRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """验证学校邮箱验证码"""
+    if not current_user.verification_code or not current_user.verification_code_expires_at:
+        raise HTTPException(status_code=400, detail="请先发送验证码")
+
+    if datetime.now(timezone.utc) > current_user.verification_code_expires_at:
+        raise HTTPException(status_code=400, detail="验证码已过期，请重新发送")
+
+    if body.code != current_user.verification_code:
+        raise HTTPException(status_code=400, detail="验证码错误")
+
+    current_user.school_email_verified = True
+    current_user.is_student_verified = True
+    current_user.verification_type = VerificationType.email_edu
+    current_user.verification_code = None
+    current_user.verification_code_expires_at = None
+    db.commit()
+    db.refresh(current_user)
+
+    return {"message": "学校邮箱验证成功"}

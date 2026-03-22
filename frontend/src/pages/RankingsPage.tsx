@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { analyticsApi } from '@/services/api'
-import type { RankingEntry } from '@/types'
+import { analyticsApi, supervisorsApi } from '@/services/api'
+import type { RankingEntry, ProvinceListItem } from '@/types'
+import AutocompleteInput from '@/components/AutocompleteInput'
 
 type Dimension = 'overall' | 'academic' | 'mentoring' | 'wellbeing' | 'stipend' | 'resources' | 'ethics'
 
@@ -20,11 +21,28 @@ const PAGE_SIZE = 20
 export default function RankingsPage() {
   const [dimension, setDimension] = useState<Dimension>('overall')
   const [province, setProvince] = useState('')
+  const [schoolName, setSchoolName] = useState('')
   const [schoolCode, setSchoolCode] = useState('')
   const [page, setPage] = useState(1)
   const [items, setItems] = useState<RankingEntry[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
+
+  // Filter options
+  const [provinceOptions, setProvinceOptions] = useState<string[]>([])
+  const [schoolOptions, setSchoolOptions] = useState<{ school_name: string; school_code: string }[]>([])
+  const [schoolNameOptions, setSchoolNameOptions] = useState<string[]>([])
+
+  useEffect(() => {
+    Promise.all([
+      supervisorsApi.getProvinces(),
+      supervisorsApi.getSchoolNames(),
+    ]).then(([provRes, schoolRes]) => {
+      setProvinceOptions(provRes.data.map((p: ProvinceListItem) => p.province))
+      setSchoolOptions(schoolRes.data)
+      setSchoolNameOptions(schoolRes.data.map((s: { school_name: string }) => s.school_name))
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     setLoading(true)
@@ -55,7 +73,16 @@ export default function RankingsPage() {
     setPage(1)
   }
 
-  function handleFilterChange() {
+  function handleProvinceChange(v: string) {
+    setProvince(v)
+    setPage(1)
+  }
+
+  function handleSchoolNameChange(v: string) {
+    setSchoolName(v)
+    // Look up the school_code from the school name
+    const match = schoolOptions.find((s) => s.school_name === v)
+    setSchoolCode(match ? match.school_code : '')
     setPage(1)
   }
 
@@ -95,25 +122,19 @@ export default function RankingsPage() {
 
       {/* Filters */}
       <div className="flex gap-3 mb-5">
-        <input
-          type="text"
-          placeholder="按省份筛选（如：北京）"
+        <AutocompleteInput
+          options={provinceOptions}
           value={province}
-          onChange={(e) => {
-            setProvince(e.target.value)
-            handleFilterChange()
-          }}
-          className="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
+          onChange={handleProvinceChange}
+          placeholder="按省份筛选"
+          className="flex-1"
         />
-        <input
-          type="text"
-          placeholder="按院校代码筛选"
-          value={schoolCode}
-          onChange={(e) => {
-            setSchoolCode(e.target.value)
-            handleFilterChange()
-          }}
-          className="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
+        <AutocompleteInput
+          options={schoolNameOptions}
+          value={schoolName}
+          onChange={handleSchoolNameChange}
+          placeholder="按院校名称筛选"
+          className="flex-1"
         />
       </div>
 

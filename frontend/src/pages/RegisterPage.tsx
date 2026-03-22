@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { authApi } from '@/services/api'
 import { zh } from '@/i18n/zh'
+import axios from 'axios'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -14,12 +15,46 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+
+    if (password.length < 8) {
+      setError('密码长度至少为 8 个字符')
+      return
+    }
+
     setLoading(true)
     try {
       await authApi.register(email, password, displayName || undefined)
-      navigate('/login', { state: { message: '注册成功！请检查您的邮箱以完成验证。' } })
-    } catch {
-      setError('注册失败，该邮箱可能已被注册')
+      const isEdu = email.endsWith('.edu.cn')
+      navigate('/login', {
+        state: {
+          message: isEdu
+            ? '注册成功！您的 .edu.cn 邮箱已自动完成验证，请登录。'
+            : '注册成功！请登录。',
+        },
+      })
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const detail = err.response?.data?.detail
+        if (typeof detail === 'string') {
+          setError(detail)
+        } else if (err.response?.status === 422) {
+          // Validation error — extract first message
+          const errors = err.response?.data?.detail
+          if (Array.isArray(errors) && errors.length > 0) {
+            const field = errors[0].loc?.slice(-1)[0] || ''
+            const msg = errors[0].msg || '输入格式有误'
+            setError(field ? `${field}: ${msg}` : msg)
+          } else {
+            setError('输入格式有误，请检查各项信息')
+          }
+        } else if (!err.response) {
+          setError('无法连接到服务器，请检查网络或稍后重试')
+        } else {
+          setError(`注册失败（${err.response.status}）`)
+        }
+      } else {
+        setError('注册失败，请稍后重试')
+      }
     } finally {
       setLoading(false)
     }
@@ -42,6 +77,9 @@ export default function RegisterPage() {
               required
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
+            <p className="text-xs text-gray-400 mt-1">
+              使用 .edu.cn 邮箱注册可自动完成学生身份认证
+            </p>
           </div>
 
           <div>
@@ -56,6 +94,7 @@ export default function RegisterPage() {
               minLength={8}
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
+            <p className="text-xs text-gray-400 mt-1">至少 8 个字符</p>
           </div>
 
           <div>
@@ -70,7 +109,11 @@ export default function RegisterPage() {
             />
           </div>
 
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
 
           <button
             type="submit"

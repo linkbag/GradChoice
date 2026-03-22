@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { authApi } from '@/services/api'
 import { zh } from '@/i18n/zh'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const successMessage = (location.state as { message?: string })?.message || null
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -29,6 +31,12 @@ export default function LoginPage() {
     <div className="max-w-md mx-auto px-4 py-20">
       <div className="bg-white rounded-2xl border border-gray-200 p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">{zh.auth.login_title}</h1>
+
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700 mb-4">
+            {successMessage}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

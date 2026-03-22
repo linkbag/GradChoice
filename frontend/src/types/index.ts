@@ -15,6 +15,8 @@ export interface User {
   is_email_verified: boolean
   is_student_verified: boolean
   verification_type: VerificationType
+  school_email: string | null
+  school_email_verified: boolean
   email_notifications_enabled: boolean
   created_at: string
   updated_at: string

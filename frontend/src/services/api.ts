@@ -98,6 +98,12 @@ export const authApi = {
 
   refresh: (refresh_token: string) =>
     http.post<Token>('/auth/refresh', { refresh_token }),
+
+  sendVerification: (school_email: string) =>
+    http.post<{ message: string }>('/auth/send-verification', { school_email }),
+
+  verifySchoolEmail: (code: string) =>
+    http.post<{ message: string }>('/auth/verify-school-email', { code }),
 }
 
 // ============================================================
@@ -140,7 +146,7 @@ export const supervisorsApi = {
     sort_by?: string
   }) => http.get<PaginatedResponse<SupervisorSearchResult>>('/supervisors', { params }),
 
-  search: (q: string, params?: { province?: string; school_code?: string; page?: number; page_size?: number }) =>
+  search: (q: string, params?: { province?: string; school_code?: string; school_name?: string; page?: number; page_size?: number }) =>
     http.get<PaginatedResponse<SupervisorSearchResult>>('/supervisors/search', { params: { q, ...params } }),
 
   get: (id: string) => http.get<SupervisorDetail>(`/supervisors/${id}`),
@@ -152,6 +158,9 @@ export const supervisorsApi = {
     http.get<SchoolListResponse>('/supervisors/schools', { params }),
 
   getProvinces: () => http.get<ProvinceListItem[]>('/supervisors/provinces'),
+
+  getSchoolNames: () =>
+    http.get<{ school_name: string; school_code: string }[]>('/supervisors/school-names'),
 
   getSchoolSupervisors: (school_code: string) =>
     http.get<SchoolSupervisorsResponse>(`/supervisors/school/${school_code}`),

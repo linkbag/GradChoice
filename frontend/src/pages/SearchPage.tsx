@@ -1,37 +1,87 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { zh } from '@/i18n/zh'
 import { supervisorsApi } from '@/services/api'
-import type { SupervisorSearchResult } from '@/types'
+import type { SupervisorSearchResult, ProvinceListItem } from '@/types'
+import AutocompleteInput from '@/components/AutocompleteInput'
+
+const PAGE_SIZE = 20
 
 export default function SearchPage() {
   const [query, setQuery] = useState('')
+  const [province, setProvince] = useState('')
+  const [schoolName, setSchoolName] = useState('')
   const [results, setResults] = useState<SupervisorSearchResult[]>([])
   const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [searched, setSearched] = useState(false)
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Filter options
+  const [provinceOptions, setProvinceOptions] = useState<string[]>([])
+  const [schoolOptions, setSchoolOptions] = useState<string[]>([])
+
+  useEffect(() => {
+    Promise.all([
+      supervisorsApi.getProvinces(),
+      supervisorsApi.getSchoolNames(),
+    ]).then(([provRes, schoolRes]) => {
+      setProvinceOptions(provRes.data.map((p: ProvinceListItem) => p.province))
+      setSchoolOptions(schoolRes.data.map((s: { school_name: string }) => s.school_name))
+    }).catch(() => {})
+  }, [])
+
+  const doSearch = useCallback(async (pageNum: number, append: boolean) => {
     if (!query.trim()) return
-    setLoading(true)
+    if (append) {
+      setLoadingMore(true)
+    } else {
+      setLoading(true)
+    }
     try {
-      const res = await supervisorsApi.search(query, { page: 1, page_size: 20 })
-      setResults(res.data.items)
+      const res = await supervisorsApi.search(query, {
+        province: province || undefined,
+        school_name: schoolName || undefined,
+        page: pageNum,
+        page_size: PAGE_SIZE,
+      })
+      if (append) {
+        setResults((prev) => [...prev, ...res.data.items])
+      } else {
+        setResults(res.data.items)
+      }
       setTotal(res.data.total)
+      setPage(pageNum)
+      setSearched(true)
     } catch {
-      setResults([])
-      setTotal(0)
+      if (!append) {
+        setResults([])
+        setTotal(0)
+      }
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
+  }, [query, province, schoolName])
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    doSearch(1, false)
   }
+
+  const handleLoadMore = () => {
+    doSearch(page + 1, true)
+  }
+
+  const hasMore = results.length < total
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">搜索导师</h1>
 
       {/* Search form */}
-      <form onSubmit={handleSearch} className="flex gap-3 mb-8">
+      <form onSubmit={handleSearch} className="flex gap-3 mb-4">
         <input
           type="text"
           value={query}
@@ -48,12 +98,30 @@ export default function SearchPage() {
         </button>
       </form>
 
+      {/* Filters */}
+      <div className="flex gap-3 mb-8">
+        <AutocompleteInput
+          options={provinceOptions}
+          value={province}
+          onChange={setProvince}
+          placeholder="按省份筛选"
+          className="flex-1"
+        />
+        <AutocompleteInput
+          options={schoolOptions}
+          value={schoolName}
+          onChange={setSchoolName}
+          placeholder="按院校名称筛选"
+          className="flex-1"
+        />
+      </div>
+
       {/* Results */}
       {total > 0 && (
         <p className="text-sm text-gray-500 mb-4">{zh.search.result_count(total)}</p>
       )}
 
-      {results.length === 0 && !loading && query && (
+      {results.length === 0 && !loading && searched && (
         <p className="text-gray-400 text-center py-12">{zh.search.no_results}</p>
       )}
 
@@ -86,6 +154,19 @@ export default function SearchPage() {
           </Link>
         ))}
       </div>
+
+      {/* Load More */}
+      {hasMore && !loading && (
+        <div className="flex justify-center mt-8">
+          <button
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+            className="px-6 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 hover:border-brand-300 hover:text-brand-700 transition-colors disabled:opacity-50"
+          >
+            {loadingMore ? '加载中…' : `加载更多（已显示 ${results.length} / ${total}）`}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
