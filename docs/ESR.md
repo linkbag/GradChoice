@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-21 18:17*
+*Last updated: 2026-03-21 18:18*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -47,3 +47,7 @@ Analytics feature reviewed. Two issues found and fixed: (1) missing ScoreBreakdo
 ### Update: 2026-03-21 18:17
 ### claude-gc-supervisors — 2026-03-21 18:17
 Review passed with 3 bugs fixed: (1) removed unused `import random` in edit_proposals.py, (2) replaced deprecated `datetime.utcnow()` calls with timezone-aware `datetime.now(timezone.utc)` in 3 places, (3) removed broken `<Link to="/propose-supervisor">` navigation (route not in App.tsx) and cleaned up resulting unused variable. All routers correctly registered in main.py. Schema/type alignment between backend Pydantic models and frontend TypeScript types is clean. No circular imports, no SQL injection vectors. Dead code `build_supervisor_search_query` in services/supervisor.py is unused but harmless.
+
+### Update: 2026-03-21 18:18
+### claude-gc-ratings — 2026-03-21 18:18
+gc-ratings feature reviewed and fixed. 5 issues found and fixed: (1) datetime.utcnow() replaced with datetime.now(timezone.utc) across 6 backend files; (2) DateTime columns missing timezone=True in supervisor.py and supervisor_rating_cache.py; (3) alembic migration 001 missing upvotes/downvotes columns present in Rating model; (4) ChatMessage.is_read field dropped from frontend types (regression of integration review 1); (5) SVG linearGradient ID collisions in RatingForm/RatingCard fixed with React useId(). All endpoints are real implementations (not 501 stubs), logic is sound, no circular imports, schema/model/type alignment is correct after fixes. Remaining low-priority concerns: get_optional_current_user uses Request injection (works, minor OpenAPI cosmetic issue); denormalized upvotes/downvotes on Rating model are always 0 (live-computed from votes table — no correctness bug but dead DB columns).
