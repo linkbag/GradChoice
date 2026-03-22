@@ -31,11 +31,10 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from app.database import Base  # noqa: E402
 from app.models.user import User, VerificationType  # noqa: E402
 from app.models.supervisor import Supervisor  # noqa: E402
-from app.models.rating import Rating, RatingVote, VoteType as RVoteType  # noqa: E402
-from app.models.comment import Comment, CommentVote, VoteType as CVoteType  # noqa: E402
+from app.models.rating import Rating  # noqa: E402
+from app.models.comment import Comment  # noqa: E402
 from app.models.chat import Chat, ChatMessage  # noqa: E402
 
 try:
@@ -218,6 +217,99 @@ def seed(db_url: str, dry_run: bool, reset: bool):
             session.execute(
                 text("DELETE FROM users WHERE email LIKE '%@mock.%'")
             )
+            session.commit()
+            # Recalculate supervisor stats after cascade-deleting ratings
+            session.execute(text("""
+                UPDATE supervisors s
+                SET
+                    avg_overall_score = sub.avg_score,
+                    rating_count = sub.cnt
+                FROM (
+                    SELECT supervisor_id,
+                           ROUND(AVG(overall_score)::numeric, 2) AS avg_score,
+                           COUNT(*) AS cnt
+                    FROM ratings
+                    GROUP BY supervisor_id
+                ) sub
+                WHERE s.id = sub.supervisor_id
+            """))
+            # Zero out supervisors that now have no ratings
+            session.execute(text("""
+                UPDATE supervisors
+                SET avg_overall_score = NULL, rating_count = 0
+                WHERE id NOT IN (SELECT DISTINCT supervisor_id FROM ratings)
+                  AND rating_count > 0
+            """))
+            # Rebuild supervisor_rating_cache for supervisors that still have ratings
+            try:
+                session.execute(text("""
+                    DELETE FROM supervisor_rating_cache
+                    WHERE supervisor_id NOT IN (SELECT DISTINCT supervisor_id FROM ratings)
+                """))
+                session.execute(text("""
+                    INSERT INTO supervisor_rating_cache (
+                        supervisor_id,
+                        all_avg_overall, all_avg_academic, all_avg_mentoring,
+                        all_avg_wellbeing, all_avg_stipend, all_avg_resources, all_avg_ethics,
+                        verified_avg_overall, verified_avg_academic, verified_avg_mentoring,
+                        verified_avg_wellbeing, verified_avg_stipend, verified_avg_resources, verified_avg_ethics,
+                        all_count, verified_count,
+                        distribution_1, distribution_2, distribution_3, distribution_4, distribution_5,
+                        updated_at
+                    )
+                    SELECT
+                        supervisor_id,
+                        ROUND(AVG(overall_score)::numeric, 2),
+                        ROUND(AVG(score_academic)::numeric, 2),
+                        ROUND(AVG(score_mentoring)::numeric, 2),
+                        ROUND(AVG(score_wellbeing)::numeric, 2),
+                        ROUND(AVG(score_stipend)::numeric, 2),
+                        ROUND(AVG(score_resources)::numeric, 2),
+                        ROUND(AVG(score_ethics)::numeric, 2),
+                        ROUND(AVG(CASE WHEN is_verified_rating THEN overall_score END)::numeric, 2),
+                        ROUND(AVG(CASE WHEN is_verified_rating THEN score_academic END)::numeric, 2),
+                        ROUND(AVG(CASE WHEN is_verified_rating THEN score_mentoring END)::numeric, 2),
+                        ROUND(AVG(CASE WHEN is_verified_rating THEN score_wellbeing END)::numeric, 2),
+                        ROUND(AVG(CASE WHEN is_verified_rating THEN score_stipend END)::numeric, 2),
+                        ROUND(AVG(CASE WHEN is_verified_rating THEN score_resources END)::numeric, 2),
+                        ROUND(AVG(CASE WHEN is_verified_rating THEN score_ethics END)::numeric, 2),
+                        COUNT(*),
+                        SUM(CASE WHEN is_verified_rating THEN 1 ELSE 0 END),
+                        SUM(CASE WHEN overall_score < 1.5 THEN 1 ELSE 0 END),
+                        SUM(CASE WHEN overall_score >= 1.5 AND overall_score < 2.5 THEN 1 ELSE 0 END),
+                        SUM(CASE WHEN overall_score >= 2.5 AND overall_score < 3.5 THEN 1 ELSE 0 END),
+                        SUM(CASE WHEN overall_score >= 3.5 AND overall_score < 4.5 THEN 1 ELSE 0 END),
+                        SUM(CASE WHEN overall_score >= 4.5 THEN 1 ELSE 0 END),
+                        NOW()
+                    FROM ratings
+                    GROUP BY supervisor_id
+                    ON CONFLICT (supervisor_id) DO UPDATE SET
+                        all_avg_overall       = EXCLUDED.all_avg_overall,
+                        all_avg_academic      = EXCLUDED.all_avg_academic,
+                        all_avg_mentoring     = EXCLUDED.all_avg_mentoring,
+                        all_avg_wellbeing     = EXCLUDED.all_avg_wellbeing,
+                        all_avg_stipend       = EXCLUDED.all_avg_stipend,
+                        all_avg_resources     = EXCLUDED.all_avg_resources,
+                        all_avg_ethics        = EXCLUDED.all_avg_ethics,
+                        verified_avg_overall  = EXCLUDED.verified_avg_overall,
+                        verified_avg_academic = EXCLUDED.verified_avg_academic,
+                        verified_avg_mentoring= EXCLUDED.verified_avg_mentoring,
+                        verified_avg_wellbeing= EXCLUDED.verified_avg_wellbeing,
+                        verified_avg_stipend  = EXCLUDED.verified_avg_stipend,
+                        verified_avg_resources= EXCLUDED.verified_avg_resources,
+                        verified_avg_ethics   = EXCLUDED.verified_avg_ethics,
+                        all_count             = EXCLUDED.all_count,
+                        verified_count        = EXCLUDED.verified_count,
+                        distribution_1        = EXCLUDED.distribution_1,
+                        distribution_2        = EXCLUDED.distribution_2,
+                        distribution_3        = EXCLUDED.distribution_3,
+                        distribution_4        = EXCLUDED.distribution_4,
+                        distribution_5        = EXCLUDED.distribution_5,
+                        updated_at            = EXCLUDED.updated_at
+                """))
+            except Exception as e:
+                session.rollback()
+                print(f"  (supervisor_rating_cache 清理跳过: {e})")
             session.commit()
         print("  清理完成。")
         session.close()
