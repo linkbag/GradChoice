@@ -29,6 +29,8 @@ class Supervisor(Base):
     # Cached aggregate stats — updated after each rating write
     avg_overall_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     rating_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    verified_avg_overall_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    verified_rating_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
