@@ -6,11 +6,11 @@ seed_tutors.py — 从 XLSX 文件导入导师数据到 GradChoice 数据库
     python seed_tutors.py [--xlsx PATH] [--db-url URL] [--dry-run]
 
 默认 XLSX 文件:
-    /mnt/d/Startup projects/cn-grad-units/tutors/all_tutors_with_links_partial.xlsx
+    /mnt/d/Startup projects/cn-grad-units/MASTER_ALL_90HEI_TUTORS.xlsx
 
-Sheet: 自划线导师+网页
-列 (10): 院校代码, 院校, 省份, 导师姓名, 导师院系/单位, 职级, 合作/挂名单位,
-         相关网页1, 相关网页2, 相关网页3
+Sheet: 全部导师(90校)
+必要列: 导师姓名 (name)
+可选列: 院校代码, 院校, 省份, 导师院系/单位, 职级, 合作/挂名单位, 相关网页/相关网页1-3
 """
 
 import argparse
@@ -30,8 +30,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from app.models.supervisor import Supervisor
 from app.database import Base
 
-DEFAULT_XLSX = "/mnt/d/Startup projects/cn-grad-units/tutors/all_tutors_with_links_partial.xlsx"
-DEFAULT_SHEET = "自划线导师+网页"
+DEFAULT_XLSX = "/mnt/d/Startup projects/cn-grad-units/MASTER_ALL_90HEI_TUTORS.xlsx"
+DEFAULT_SHEET = "全部导师(90校)"
 DEFAULT_DB_URL = os.getenv(
     "DATABASE_URL",
     "postgresql://gradchoice:gradchoice_dev@localhost:5432/gradchoice"
@@ -48,9 +48,10 @@ COLUMN_MAP = {
     "相关网页1":     "webpage_url_1",
     "相关网页2":     "webpage_url_2",
     "相关网页3":     "webpage_url_3",
+    "相关网页":      "webpage_url_1",   # single URL column in new MASTER file
 }
 
-REQUIRED_COLS = {"school_code", "school_name", "province", "name", "department"}
+REQUIRED_COLS = {"name"}
 
 BATCH_SIZE = 1000
 
@@ -61,8 +62,9 @@ def load_xlsx(path: str, sheet: str) -> "pd.DataFrame":
     df.columns = [c.strip() for c in df.columns]
     # Rename columns
     df = df.rename(columns={k: v for k, v in COLUMN_MAP.items() if k in df.columns})
-    # Ensure all optional columns exist
-    for col in ("title", "affiliated_unit", "webpage_url_1", "webpage_url_2", "webpage_url_3"):
+    # Ensure all potentially-accessed columns exist (avoid KeyError for missing fields)
+    for col in ("school_code", "school_name", "province", "department",
+                "title", "affiliated_unit", "webpage_url_1", "webpage_url_2", "webpage_url_3"):
         if col not in df.columns:
             df[col] = None
     print(f"  读取到 {len(df)} 行，列: {list(df.columns)}")
@@ -120,7 +122,7 @@ def seed(xlsx_path: str, sheet: str, db_url: str, dry_run: bool = False):
     print("加载已有数据的唯一键...")
     existing = set(
         session.execute(
-            text("SELECT school_code, name, department FROM supervisors")
+            text("SELECT COALESCE(school_code,''), name, COALESCE(department,'') FROM supervisors")
         ).fetchall()
     )
     print(f"  数据库中已有 {len(existing)} 条记录")
@@ -130,6 +132,19 @@ def seed(xlsx_path: str, sheet: str, db_url: str, dry_run: bool = False):
     per_school: dict = defaultdict(int)
 
     batch: list = []
+
+    def clean(val, max_len=None):
+        """Convert pandas NaN/NaT/None to None for SQLAlchemy."""
+        if val is None:
+            return None
+        if isinstance(val, float) and pd.isna(val):
+            return None
+        s = str(val).strip()
+        if not s or s.lower() in ("nan", "none", "null"):
+            return None
+        if max_len and len(s) > max_len:
+            s = s[:max_len]
+        return s
 
     def flush_batch():
         nonlocal total_inserted
@@ -142,7 +157,7 @@ def seed(xlsx_path: str, sheet: str, db_url: str, dry_run: bool = False):
         batch.clear()
 
     for _, row in df.iterrows():
-        key = (row["school_code"], row["name"], row["department"])
+        key = (row["school_code"] or "", row["name"], row.get("department") or "")
         if key in existing:
             total_skipped += 1
             continue
@@ -155,11 +170,11 @@ def seed(xlsx_path: str, sheet: str, db_url: str, dry_run: bool = False):
             "province": row["province"],
             "name": row["name"],
             "department": row["department"],
-            "title": row.get("title"),
-            "affiliated_unit": row.get("affiliated_unit"),
-            "webpage_url_1": row.get("webpage_url_1"),
-            "webpage_url_2": row.get("webpage_url_2"),
-            "webpage_url_3": row.get("webpage_url_3"),
+            "title": clean(row.get("title")),
+            "affiliated_unit": clean(row.get("affiliated_unit")),
+            "webpage_url_1": clean(row.get("webpage_url_1"), max_len=500),
+            "webpage_url_2": clean(row.get("webpage_url_2"), max_len=500),
+            "webpage_url_3": clean(row.get("webpage_url_3"), max_len=500),
             "avg_overall_score": None,
             "rating_count": 0,
         }
