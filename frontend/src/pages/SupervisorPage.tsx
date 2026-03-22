@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { zh } from '@/i18n/zh'
-import { supervisorsApi, analyticsApi, ratingsApi, commentsApi } from '@/services/api'
+import { supervisorsApi, analyticsApi, ratingsApi, commentsApi, editProposalsApi } from '@/services/api'
 import type { Supervisor, SupervisorAnalytics, ScoreBreakdown, Rating, Comment } from '@/types'
 import RadarChart from '@/components/RadarChart'
 import DistributionChart from '@/components/DistributionChart'
@@ -126,6 +126,33 @@ export default function SupervisorPage() {
   const [loading, setLoading] = useState(true)
 
   const isLoggedIn = !!localStorage.getItem('access_token')
+
+  // Suggest-edit form state
+  const [showEditForm, setShowEditForm] = useState(false)
+  const [editFields, setEditFields] = useState({ title: '', affiliated_unit: '', webpage_url_1: '', webpage_url_2: '', webpage_url_3: '' })
+  const [editSubmitting, setEditSubmitting] = useState(false)
+  const [editDone, setEditDone] = useState(false)
+
+  async function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!supervisor) return
+    const proposed_data: Record<string, string> = {}
+    for (const [k, v] of Object.entries(editFields)) {
+      if (v.trim()) proposed_data[k] = v.trim()
+    }
+    if (Object.keys(proposed_data).length === 0) return
+    setEditSubmitting(true)
+    try {
+      await editProposalsApi.create({ supervisor_id: supervisor.id, proposed_data })
+      setEditDone(true)
+      setShowEditForm(false)
+      setEditFields({ title: '', affiliated_unit: '', webpage_url_1: '', webpage_url_2: '', webpage_url_3: '' })
+    } catch {
+      // ignore — user will see nothing happened
+    } finally {
+      setEditSubmitting(false)
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -277,13 +304,71 @@ export default function SupervisorPage() {
               </span>
             )}
           </h2>
-          <button
-            onClick={handleWriteReview}
-            className="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-teal-700 transition-colors"
-          >
-            {zh.supervisor.write_review}
-          </button>
+          <div className="flex items-center gap-2">
+            {isLoggedIn && supervisor && (
+              <button
+                onClick={() => { setShowEditForm((v) => !v); setEditDone(false) }}
+                className="text-xs text-gray-400 hover:text-teal-600 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                建议修改信息
+              </button>
+            )}
+            <button
+              onClick={handleWriteReview}
+              className="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-teal-700 transition-colors"
+            >
+              {zh.supervisor.write_review}
+            </button>
+          </div>
         </div>
+
+        {/* Inline suggest-edit form */}
+        {showEditForm && (
+          <form onSubmit={handleEditSubmit} className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+            <p className="text-xs text-gray-500 mb-2">
+              填写需要修改的字段（留空的字段不会被修改），提交后由两位认证学生审核通过才会生效。
+            </p>
+            {[
+              { key: 'title', label: '职称' },
+              { key: 'affiliated_unit', label: '所属单位' },
+              { key: 'webpage_url_1', label: '主页链接 1' },
+              { key: 'webpage_url_2', label: '主页链接 2' },
+              { key: 'webpage_url_3', label: '主页链接 3' },
+            ].map(({ key, label }) => (
+              <div key={key} className="flex items-center gap-3">
+                <label className="text-xs text-gray-500 w-24 shrink-0">{label}</label>
+                <input
+                  type="text"
+                  value={editFields[key as keyof typeof editFields]}
+                  onChange={(e) => setEditFields((prev) => ({ ...prev, [key]: e.target.value }))}
+                  placeholder={supervisor?.[key as keyof Supervisor] as string || ''}
+                  className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
+                />
+              </div>
+            ))}
+            <div className="flex gap-2 pt-1">
+              <button
+                type="submit"
+                disabled={editSubmitting}
+                className="bg-teal-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-teal-700 transition-colors disabled:opacity-50"
+              >
+                {editSubmitting ? '提交中…' : '提交修改建议'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowEditForm(false)}
+                className="text-sm text-gray-400 hover:text-gray-600 px-3 py-1.5"
+              >
+                取消
+              </button>
+            </div>
+          </form>
+        )}
+
+        {editDone && (
+          <p className="text-sm text-teal-600 mb-4">修改建议已提交，感谢你的贡献！</p>
+        )}
+
 
         {/* Ratings list */}
         {ratings.length > 0 ? (
