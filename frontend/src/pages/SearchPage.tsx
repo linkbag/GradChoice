@@ -27,7 +27,6 @@ export default function SearchPage() {
   const [schools, setSchools] = useState<SchoolListItem[]>([])
 
   const PAGE_SIZE = 20
-  const isLoggedIn = !!localStorage.getItem('access_token')
 
   // Load province list once
   useEffect(() => {
@@ -174,18 +173,7 @@ export default function SearchPage() {
             </button>
           )}
 
-          {isLoggedIn && (
-            <div className="pt-4 border-t border-gray-100">
-              <Link
-                to="/propose-supervisor"
-                className="block text-center text-xs bg-gray-50 border border-gray-200 text-gray-600 px-3 py-2 rounded-lg hover:bg-brand-50 hover:border-brand-300 hover:text-brand-700 transition-colors"
-              >
-                没有找到？
-                <br />
-                添加导师
-              </Link>
-            </div>
-          )}
+          {/* TODO: link to propose-supervisor page once implemented */}
         </aside>
 
         {/* Results */}
@@ -197,14 +185,7 @@ export default function SearchPage() {
           {results.length === 0 && !loading && (query || province || schoolCode) && (
             <div className="text-center py-16">
               <p className="text-gray-400 mb-4">{zh.search.no_results}</p>
-              {isLoggedIn && (
-                <Link
-                  to="/propose-supervisor"
-                  className="inline-block text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors"
-                >
-                  没有找到？添加导师
-                </Link>
-              )}
+              {/* TODO: add propose-supervisor link once that page is implemented */}
             </div>
           )}
 

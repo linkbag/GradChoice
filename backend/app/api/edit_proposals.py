@@ -1,6 +1,5 @@
 import uuid
-import random
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -160,15 +159,15 @@ def review_proposal(
     if d1 is not None and d2 is not None:
         if d1 == ReviewDecision.approve and d2 == ReviewDecision.approve:
             ep.status = ProposalStatus.approved
-            ep.resolved_at = datetime.utcnow()
+            ep.resolved_at = datetime.now(timezone.utc)
             _apply_proposal(db, ep)
         else:
             ep.status = ProposalStatus.rejected
-            ep.resolved_at = datetime.utcnow()
+            ep.resolved_at = datetime.now(timezone.utc)
     elif action.decision == ReviewDecision.reject:
         # Immediate rejection on first reject (one veto is enough)
         ep.status = ProposalStatus.rejected
-        ep.resolved_at = datetime.utcnow()
+        ep.resolved_at = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(ep)
