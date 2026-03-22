@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-22 13:36*
+*Last updated: 2026-03-22 13:37*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -125,3 +125,7 @@ Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indi
 ### Update: 2026-03-22 13:36
 ### claude-gc-add-supervisor — 2026-03-22 13:36
 Review passed — reviewer found no issues (work log updated, no fixes needed)
+
+### Update: 2026-03-22 13:37
+### claude-gc-email-notify — 2026-03-22 13:37
+Fixed clean() defined inside for-loop (moved outside), added missing fallback columns for school_code/school_name/province/department in load_xlsx, updated docstring. No remaining issues.
