@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-22 14:33*
+*Last updated: 2026-03-22 14:40*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -168,3 +168,7 @@ Builder left all 4 edit-proposals endpoints as 501 stubs. Reviewer implemented t
 ### Integration Review — 2026-03-22 14:33
 **Subteams:** claude-gc-proposals-impl claude-gc-rate-page
 **Result:** No cross-team conflicts found. edit_proposals.py (backend) and RatePage.tsx (frontend) are fully non-overlapping. App.tsx route /supervisor/:id/rate is correctly wired and SupervisorPage already navigates to it. TypeScript build clean (tsc --noEmit exit 0). Python imports clean with SECRET_KEY set. EditProposalResponse schema matches EditProposal TypeScript type exactly. i18n score_labels used by RatePage all present. Minor pre-existing dead-code: editProposalsApi.getMine (no backend route) and supervisorsApi.proposeNew (duplicate of editProposalsApi.create) — neither called anywhere, no runtime impact.
+
+### Update: 2026-03-22 14:40
+### claude-gc-fix-search — 2026-03-22 14:40
+Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
