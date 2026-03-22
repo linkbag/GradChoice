@@ -304,13 +304,14 @@ def get_messages(
 
     total = query.count()
 
-    messages = (
+    # Fetch newest page_size messages (DESC), then reverse so display is ASC (oldest→newest).
+    # This ensures the chat opens showing the most recent messages, not the oldest.
+    messages = list(reversed(
         query
-        .order_by(ChatMessage.created_at.asc())
-        .offset((page - 1) * page_size)
+        .order_by(ChatMessage.created_at.desc())
         .limit(page_size)
         .all()
-    )
+    ))
 
     # Mark messages sent by other user as read
     now = datetime.utcnow()
@@ -325,7 +326,7 @@ def get_messages(
         ).update({"read_at": now}, synchronize_session=False)
         db.commit()
 
-    has_more = total > page * page_size
+    has_more = total > page_size
 
     return ChatMessagesResponse(
         items=[ChatMessageResponse.model_validate(m) for m in messages],

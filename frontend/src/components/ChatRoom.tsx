@@ -16,16 +16,11 @@ function formatMessageTime(dateStr: string): string {
 function formatGroupDate(dateStr: string): string {
   const date = new Date(dateStr)
   const now = new Date()
-  const isToday =
-    date.getDate() === now.getDate() &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear()
-  if (isToday) return '今天'
-  const isYesterday =
-    date.getDate() === now.getDate() - 1 &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear()
-  if (isYesterday) return '昨天'
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const diffDays = Math.round((todayStart.getTime() - dateStart.getTime()) / (1000 * 60 * 60 * 24))
+  if (diffDays === 0) return '今天'
+  if (diffDays === 1) return '昨天'
   return date.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })
 }
 
