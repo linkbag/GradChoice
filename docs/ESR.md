@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-22 13:39*
+*Last updated: 2026-03-22 13:41*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -137,3 +137,7 @@ Builder committed no code (only docs). Implemented full public ratings+comments 
 ### Update: 2026-03-22 13:39
 ### claude-gc-edit-proposals — 2026-03-22 13:39
 Edit proposals scaffold is clean: model, schema, router all correctly wired; frontend types and api.ts compile without errors; vite build passes. All backend endpoints are intentional 501 stubs (scaffolded, not yet implemented). Minor dead code: editProposalsApi.getMine() in api.ts has no backend route, but no pages call it so no runtime impact.
+
+### Update: 2026-03-22 13:41
+### claude-gc-ui-polish — 2026-03-22 13:41
+Fixed api.ts proposeNew endpoint (/supervisors → /edit-proposals). Committed builder HomePage 65+ change. TypeScript clean (0 errors). seed_tutors.py already fixed by prior reviewer.
