@@ -39,3 +39,7 @@ Two bugs fixed: (1) get_messages was returning oldest N messages instead of newe
 ### Update: 2026-03-21 18:15
 ### claude-gc-comments — 2026-03-21 18:15
 7 issues found and fixed: (1) remote_side string annotation bug causing SQLAlchemy startup failure, (2) flagged comments leaking content in API responses, (3) 401 interceptor redirecting on public-page optional-auth probe, (4) stale editContent state after successful edit, (5) CommentCard action guards missing is_flagged check, (6) dead SortOrder class removed, (7) Alembic migration created for new columns and comment_flags table.
+
+### Update: 2026-03-21 18:15
+### claude-gc-analytics — 2026-03-21 18:15
+Analytics feature reviewed. Two issues found and fixed: (1) missing ScoreBreakdown import in SupervisorPage.tsx (TypeScript compilation error), (2) no validation of the dimension query param in /analytics/rankings endpoint (now returns 422 for invalid dimensions). SQL injection protection is correct via VALID_DIMENSIONS dict. All schemas align with service output. All new components (RadarChart, DistributionChart, PercentileDisplay) are clean. Note: materialized view 001_supervisor_rankings_view.py is created but unused by the service — dead code but not a bug.
