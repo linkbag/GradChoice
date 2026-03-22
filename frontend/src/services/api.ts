@@ -152,7 +152,7 @@ export const supervisorsApi = {
   get: (id: string) => http.get<SupervisorDetail>(`/supervisors/${id}`),
 
   proposeNew: (proposed_data: Record<string, unknown>) =>
-    http.post<EditProposal>('/supervisors', { supervisor_id: null, proposed_data }),
+    http.post<EditProposal>('/edit-proposals', { supervisor_id: null, proposed_data }),
 
   getSchools: (params?: { province?: string }) =>
     http.get<SchoolListResponse>('/supervisors/schools', { params }),
