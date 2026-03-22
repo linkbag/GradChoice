@@ -3,6 +3,7 @@ import type {
   User,
   UserPublicProfile,
   Supervisor,
+  SupervisorDetail,
   SupervisorAnalytics,
   Rating,
   Comment,
@@ -13,6 +14,9 @@ import type {
   PaginatedResponse,
   SupervisorSearchResult,
   SchoolAnalytics,
+  SchoolListResponse,
+  SchoolSupervisorsResponse,
+  ProvinceListItem,
   RankingsResponse,
 } from '@/types'
 
@@ -88,16 +92,32 @@ export const usersApi = {
 // Supervisors
 // ============================================================
 export const supervisorsApi = {
-  list: (params?: { page?: number; page_size?: number; school_code?: string; province?: string }) =>
-    http.get<PaginatedResponse<SupervisorSearchResult>>('/supervisors', { params }),
+  list: (params?: {
+    page?: number
+    page_size?: number
+    school_code?: string
+    school_name?: string
+    province?: string
+    department?: string
+    title?: string
+    sort_by?: string
+  }) => http.get<PaginatedResponse<SupervisorSearchResult>>('/supervisors', { params }),
 
   search: (q: string, params?: { province?: string; school_code?: string; page?: number; page_size?: number }) =>
     http.get<PaginatedResponse<SupervisorSearchResult>>('/supervisors/search', { params: { q, ...params } }),
 
-  get: (id: string) => http.get<Supervisor>(`/supervisors/${id}`),
+  get: (id: string) => http.get<SupervisorDetail>(`/supervisors/${id}`),
 
   proposeNew: (proposed_data: Record<string, unknown>) =>
     http.post<EditProposal>('/supervisors', { supervisor_id: null, proposed_data }),
+
+  getSchools: (params?: { province?: string }) =>
+    http.get<SchoolListResponse>('/supervisors/schools', { params }),
+
+  getProvinces: () => http.get<ProvinceListItem[]>('/supervisors/provinces'),
+
+  getSchoolSupervisors: (school_code: string) =>
+    http.get<SchoolSupervisorsResponse>(`/supervisors/school/${school_code}`),
 }
 
 // ============================================================
@@ -190,4 +210,7 @@ export const editProposalsApi = {
     http.post<EditProposal>(`/edit-proposals/${id}/review`, { decision, comment }),
 
   get: (id: string) => http.get<EditProposal>(`/edit-proposals/${id}`),
+
+  getMine: (params?: { page?: number; page_size?: number }) =>
+    http.get<PaginatedResponse<EditProposal>>('/edit-proposals/mine', { params }),
 }

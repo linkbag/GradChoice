@@ -44,8 +44,31 @@ export interface Supervisor {
   updated_at: string
 }
 
+export interface RecentComment {
+  id: string
+  content: string
+  likes_count: number
+  created_at: string
+}
+
+export interface SupervisorDetail extends Supervisor {
+  avg_overall: number | null
+  avg_academic: number | null
+  avg_mentoring: number | null
+  avg_wellbeing: number | null
+  avg_stipend: number | null
+  avg_resources: number | null
+  avg_ethics: number | null
+  rating_count: number
+  verified_rating_count: number
+  verified_avg_overall: number | null
+  rating_distribution: Record<string, number>
+  recent_comments: RecentComment[]
+}
+
 export interface SupervisorSearchResult {
   id: string
+  school_code: string
   school_name: string
   province: string
   name: string
@@ -53,6 +76,41 @@ export interface SupervisorSearchResult {
   title: string | null
   avg_overall_score: number | null
   rating_count: number
+}
+
+// ── School directory ──────────────────────────────────────────
+
+export interface SchoolListItem {
+  school_code: string
+  school_name: string
+  province: string
+  supervisor_count: number
+  rated_supervisor_count: number
+  avg_overall_score: number | null
+}
+
+export interface SchoolListResponse {
+  items: SchoolListItem[]
+  total: number
+}
+
+export interface ProvinceListItem {
+  province: string
+  school_count: number
+  supervisor_count: number
+}
+
+export interface DepartmentGroup {
+  department: string
+  supervisors: SupervisorSearchResult[]
+}
+
+export interface SchoolSupervisorsResponse {
+  school_code: string
+  school_name: string
+  province: string
+  total_count: number
+  departments: DepartmentGroup[]
 }
 
 export interface Rating {
