@@ -1,8 +1,22 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { zh } from '@/i18n/zh'
+import { analyticsApi } from '@/services/api'
+import type { OverviewStats } from '@/types'
 
 export default function HomePage() {
   const principles = zh.home.principles
+  const [stats, setStats] = useState<OverviewStats | null>(null)
+
+  useEffect(() => {
+    analyticsApi.getOverview().then((res) => setStats(res.data)).catch(() => {})
+  }, [])
+
+  const statItems = [
+    { label: '收录导师', value: stats ? stats.total_supervisors.toLocaleString() : '—' },
+    { label: '用户评价', value: stats ? stats.total_ratings.toLocaleString() : '—' },
+    { label: '覆盖院校', value: stats ? (stats.most_active_schools?.length > 0 ? '33+' : '—') : '—' },
+  ]
 
   return (
     <div>
@@ -38,14 +52,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Stats placeholder */}
+      {/* Stats */}
       <section className="bg-brand-50 py-12">
         <div className="max-w-4xl mx-auto px-4 grid grid-cols-3 gap-8 text-center">
-          {[
-            { label: '收录导师', value: '—' },
-            { label: '用户评价', value: '—' },
-            { label: '覆盖院校', value: '—' },
-          ].map((stat) => (
+          {statItems.map((stat) => (
             <div key={stat.label}>
               <div className="text-3xl font-bold text-brand-700">{stat.value}</div>
               <div className="text-sm text-gray-600 mt-1">{stat.label}</div>

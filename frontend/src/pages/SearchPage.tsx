@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { zh } from '@/i18n/zh'
+import { supervisorsApi } from '@/services/api'
 import type { SupervisorSearchResult } from '@/types'
 
 export default function SearchPage() {
@@ -14,7 +15,10 @@ export default function SearchPage() {
     if (!query.trim()) return
     setLoading(true)
     try {
-      // TODO: call supervisorsApi.search(query)
+      const res = await supervisorsApi.search(query, { page: 1, page_size: 20 })
+      setResults(res.data.items)
+      setTotal(res.data.total)
+    } catch {
       setResults([])
       setTotal(0)
     } finally {

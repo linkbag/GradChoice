@@ -1,26 +1,28 @@
 #!/usr/bin/env python3
 """
-seed_tutors.py — 导入导师 CSV 数据到 GradChoice 数据库
+seed_tutors.py — 从 XLSX 文件导入导师数据到 GradChoice 数据库
 
 用法:
-    python seed_tutors.py [--csv-dir PATH] [--db-url URL] [--dry-run]
+    python seed_tutors.py [--xlsx PATH] [--db-url URL] [--dry-run]
 
-默认 CSV 目录: /mnt/d/Startup projects/cn-grad-units/tutors/
+默认 XLSX 文件:
+    /mnt/d/Startup projects/cn-grad-units/tutors/all_tutors_with_links_partial.xlsx
 
-CSV 文件期望列:
-    院校代码, 院校, 省份, 导师姓名, 导师院系/单位, 职级, 合作/挂名单位
+Sheet: 自划线导师+网页
+列 (10): 院校代码, 院校, 省份, 导师姓名, 导师院系/单位, 职级, 合作/挂名单位,
+         相关网页1, 相关网页2, 相关网页3
 """
 
 import argparse
 import sys
 import os
+import uuid
 from pathlib import Path
 from collections import defaultdict
 
 import pandas as pd
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import IntegrityError
 
 # Add backend/ to sys.path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -28,160 +30,180 @@ sys.path.insert(0, str(Path(__file__).parent))
 from app.models.supervisor import Supervisor
 from app.database import Base
 
-DEFAULT_CSV_DIR = "/mnt/d/Startup projects/cn-grad-units/tutors/"
+DEFAULT_XLSX = "/mnt/d/Startup projects/cn-grad-units/tutors/all_tutors_with_links_partial.xlsx"
+DEFAULT_SHEET = "自划线导师+网页"
 DEFAULT_DB_URL = os.getenv(
     "DATABASE_URL",
     "postgresql://gradchoice:gradchoice_dev@localhost:5432/gradchoice"
 )
 
-# Map CSV column names → model field names
 COLUMN_MAP = {
-    "院校代码": "school_code",
-    "院校":    "school_name",
-    "省份":    "province",
-    "导师姓名": "name",
+    "院校代码":      "school_code",
+    "院校":         "school_name",
+    "省份":         "province",
+    "导师姓名":      "name",
     "导师院系/单位": "department",
-    "职级":    "title",
+    "职级":         "title",
     "合作/挂名单位": "affiliated_unit",
+    "相关网页1":     "webpage_url_1",
+    "相关网页2":     "webpage_url_2",
+    "相关网页3":     "webpage_url_3",
 }
 
-REQUIRED_COLS = {"院校代码", "院校", "省份", "导师姓名", "导师院系/单位"}
+REQUIRED_COLS = {"school_code", "school_name", "province", "name", "department"}
+
+BATCH_SIZE = 1000
 
 
-def load_csv(path: Path) -> pd.DataFrame:
-    """Load a CSV, detect encoding, return DataFrame."""
-    for encoding in ("utf-8", "utf-8-sig", "gbk", "gb18030"):
-        try:
-            df = pd.read_csv(path, encoding=encoding, dtype=str)
-            return df
-        except UnicodeDecodeError:
-            continue
-    raise ValueError(f"无法解码文件: {path}")
-
-
-def normalize_df(df: pd.DataFrame) -> pd.DataFrame:
-    """Strip whitespace, rename columns, fill NaN."""
+def load_xlsx(path: str, sheet: str) -> "pd.DataFrame":
+    print(f"读取文件: {path}  (Sheet: {sheet})")
+    df = pd.read_excel(path, sheet_name=sheet, dtype=str, engine="openpyxl")
     df.columns = [c.strip() for c in df.columns]
-    missing = REQUIRED_COLS - set(df.columns)
-    if missing:
-        raise ValueError(f"缺少必要列: {missing}")
-    df = df.rename(columns=COLUMN_MAP)
-    # Fill optional fields
-    for col in ("title", "affiliated_unit"):
+    # Rename columns
+    df = df.rename(columns={k: v for k, v in COLUMN_MAP.items() if k in df.columns})
+    # Ensure all optional columns exist
+    for col in ("title", "affiliated_unit", "webpage_url_1", "webpage_url_2", "webpage_url_3"):
         if col not in df.columns:
             df[col] = None
-        else:
-            df[col] = df[col].where(df[col].notna(), None)
-    # Strip strings
-    for col in df.columns:
-        if df[col].dtype == object:
-            df[col] = df[col].str.strip()
+    print(f"  读取到 {len(df)} 行，列: {list(df.columns)}")
     return df
 
 
-def seed(csv_dir: str, db_url: str, dry_run: bool = False):
-    csv_path = Path(csv_dir)
-    if not csv_path.exists():
-        print(f"[错误] CSV 目录不存在: {csv_path}")
+def normalize(df: "pd.DataFrame") -> "pd.DataFrame":
+    # Replace 'nan' and empty strings with None
+    df = df.where(df.notna(), None)
+    NA_STRINGS = {"nan", "NaN", "None", "none", "NULL", "null", ""}
+    for col in df.columns:
+        if df[col].dtype == object:
+            df[col] = df[col].str.strip()
+            df[col] = df[col].where(~df[col].isin(NA_STRINGS), None)
+    # Convert school_code: strip trailing .0 from numeric reads
+    if "school_code" in df.columns:
+        def fix_code(x):
+            if x is None:
+                return None
+            x = str(x).strip()
+            if x.endswith(".0"):
+                x = x[:-2]
+            return x if x else None
+        df["school_code"] = df["school_code"].apply(fix_code)
+    return df
+
+
+def seed(xlsx_path: str, sheet: str, db_url: str, dry_run: bool = False):
+    # Load data
+    df = load_xlsx(xlsx_path, sheet)
+    df = normalize(df)
+
+    # Validate required columns
+    missing = REQUIRED_COLS - set(df.columns)
+    if missing:
+        print(f"[错误] 缺少必要列: {missing}")
         sys.exit(1)
 
-    csv_files = sorted(csv_path.glob("*.csv"))
-    if not csv_files:
-        print(f"[警告] 目录中未找到 CSV 文件: {csv_path}")
-        return
+    # Drop rows missing required fields
+    before = len(df)
+    df = df.dropna(subset=list(REQUIRED_COLS))
+    dropped = before - len(df)
+    if dropped:
+        print(f"  跳过 {dropped} 行（缺少必要字段）")
 
-    print(f"找到 {len(csv_files)} 个 CSV 文件")
+    print(f"  有效数据: {len(df)} 行")
 
+    # Connect to DB
     engine = create_engine(db_url, pool_pre_ping=True)
-    Base.metadata.create_all(engine)  # ensure tables exist
+    Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    stats = defaultdict(lambda: {"inserted": 0, "skipped": 0, "errors": 0})
+    # Load existing unique keys to detect duplicates
+    print("加载已有数据的唯一键...")
+    existing = set(
+        session.execute(
+            text("SELECT school_code, name, department FROM supervisors")
+        ).fetchall()
+    )
+    print(f"  数据库中已有 {len(existing)} 条记录")
+
     total_inserted = 0
     total_skipped = 0
+    per_school: dict = defaultdict(int)
 
-    for csv_file in csv_files:
-        print(f"\n处理: {csv_file.name}")
-        try:
-            df = load_csv(csv_file)
-            df = normalize_df(df)
-        except Exception as e:
-            print(f"  [跳过] 加载失败: {e}")
-            continue
+    batch: list = []
 
-        school_name = df["school_name"].iloc[0] if len(df) > 0 else csv_file.stem
-
-        for _, row in df.iterrows():
-            # Skip rows with missing required fields
-            if not all([row.get("school_code"), row.get("name"), row.get("department")]):
-                stats[school_name]["errors"] += 1
-                continue
-
-            supervisor = Supervisor(
-                school_code=row["school_code"],
-                school_name=row["school_name"],
-                province=row["province"],
-                name=row["name"],
-                department=row["department"],
-                title=row.get("title"),
-                affiliated_unit=row.get("affiliated_unit"),
-            )
-
-            if dry_run:
-                stats[school_name]["inserted"] += 1
-                continue
-
-            try:
-                session.add(supervisor)
-                session.flush()
-                stats[school_name]["inserted"] += 1
-            except IntegrityError:
-                session.rollback()
-                stats[school_name]["skipped"] += 1
-            except Exception as e:
-                session.rollback()
-                stats[school_name]["errors"] += 1
-                print(f"  [错误] {row.get('name')}: {e}")
-
+    def flush_batch():
+        nonlocal total_inserted
+        if not batch:
+            return
         if not dry_run:
+            session.bulk_insert_mappings(Supervisor, batch)
             session.commit()
+        total_inserted += len(batch)
+        batch.clear()
 
-        s = stats[school_name]
-        total_inserted += s["inserted"]
-        total_skipped += s["skipped"]
-        print(
-            f"  {school_name}: 新增 {s['inserted']}，跳过 {s['skipped']}（重复），错误 {s['errors']}"
-        )
+    for _, row in df.iterrows():
+        key = (row["school_code"], row["name"], row["department"])
+        if key in existing:
+            total_skipped += 1
+            continue
+        existing.add(key)
 
+        record = {
+            "id": uuid.uuid4(),
+            "school_code": row["school_code"],
+            "school_name": row["school_name"],
+            "province": row["province"],
+            "name": row["name"],
+            "department": row["department"],
+            "title": row.get("title"),
+            "affiliated_unit": row.get("affiliated_unit"),
+            "webpage_url_1": row.get("webpage_url_1"),
+            "webpage_url_2": row.get("webpage_url_2"),
+            "webpage_url_3": row.get("webpage_url_3"),
+            "avg_overall_score": None,
+            "rating_count": 0,
+        }
+        batch.append(record)
+        per_school[row["school_name"]] += 1
+
+        if len(batch) >= BATCH_SIZE:
+            flush_batch()
+            print(f"  已插入 {total_inserted} 条...")
+
+    flush_batch()
     session.close()
+
     print(f"\n{'[模拟运行] ' if dry_run else ''}完成！")
     print(f"总计新增: {total_inserted}")
-    print(f"总计跳过: {total_skipped}")
-
-    # Per-school summary
-    print("\n各院校摘要:")
-    for school, s in sorted(stats.items()):
-        if s["inserted"] > 0:
-            print(f"  {school}: {s['inserted']} 位导师")
+    print(f"总计跳过（重复）: {total_skipped}")
+    print(f"\n各院校摘要（新增≥1条，前30所）:")
+    for school, count in sorted(per_school.items(), key=lambda x: -x[1])[:30]:
+        print(f"  {school}: {count} 位导师")
+    if len(per_school) > 30:
+        print(f"  ...（共 {len(per_school)} 所院校）")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="导入导师 CSV 数据")
+    parser = argparse.ArgumentParser(description="从 XLSX 导入导师数据")
     parser.add_argument(
-        "--csv-dir",
-        default=os.getenv("TUTOR_CSV_DIR", DEFAULT_CSV_DIR),
-        help="CSV 文件目录"
+        "--xlsx",
+        default=os.getenv("TUTOR_XLSX", DEFAULT_XLSX),
+        help="XLSX 文件路径",
+    )
+    parser.add_argument(
+        "--sheet",
+        default=DEFAULT_SHEET,
+        help="Sheet 名称",
     )
     parser.add_argument(
         "--db-url",
         default=DEFAULT_DB_URL,
-        help="PostgreSQL 连接字符串"
+        help="PostgreSQL 连接字符串",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="模拟运行，不写入数据库"
+        help="模拟运行，不写入数据库",
     )
     args = parser.parse_args()
-    seed(args.csv_dir, args.db_url, args.dry_run)
+    seed(args.xlsx, args.sheet, args.db_url, args.dry_run)

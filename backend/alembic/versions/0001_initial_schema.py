@@ -59,6 +59,8 @@ def upgrade() -> None:
         sa.Column("webpage_url_1", sa.String(500), nullable=True),
         sa.Column("webpage_url_2", sa.String(500), nullable=True),
         sa.Column("webpage_url_3", sa.String(500), nullable=True),
+        sa.Column("avg_overall_score", sa.Float, nullable=True),
+        sa.Column("rating_count", sa.Integer, nullable=False, server_default="0"),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.UniqueConstraint("school_code", "name", "department", name="uq_supervisor_school_name_dept"),
@@ -187,6 +189,7 @@ def upgrade() -> None:
         sa.Column("chat_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("chats.id", ondelete="CASCADE"), nullable=False),
         sa.Column("sender_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("content", sa.Text, nullable=False),
+        sa.Column("is_read", sa.Boolean, nullable=False, server_default="false"),
         sa.Column("read_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
