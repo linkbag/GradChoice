@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-22 15:35*
+*Last updated: 2026-03-22 15:38*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -209,3 +209,7 @@ All changes verified clean. GET /comments/{comment_id} and GET /users/me/comment
 ### Update: 2026-03-22 15:35
 ### claude-gc-anon-names — 2026-03-22 15:35
 Both changes are clean: seed_mock.py correctly replaces real-name lists with 30 prefixes × 32 animals = 960 anonymous nicknames (>200 users, no collision risk); make_email() is unaffected since it uses indexed mock_ prefix. SupervisorPage.tsx reply badge uses existing zh.supervisor.verified_badge i18n key and CommentAuthor.is_student_verified (boolean, typed) — mirrors CommentCard pattern exactly. No logic bugs, no missing imports, no security issues.
+
+### Update: 2026-03-22 15:38
+### claude-gc-dual-scores — 2026-03-22 15:38
+All changes are correct and complete. Migration 0006 chains from 0005, _refresh_supervisor_cache helper correctly updates all 4 cache fields (avg/count × all + verified) using is not None checks, create_rating properly uses get_current_user (open gate), update_rating/delete_rating flush before cache refresh ensuring correct aggregate queries, is_verified_rating still set from is_student_verified at creation. No syntax errors, no dead code, no security issues.
