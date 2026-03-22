@@ -2,7 +2,6 @@ import axios from 'axios'
 import type {
   User,
   UserPublicProfile,
-  Supervisor,
   SupervisorDetail,
   SupervisorAnalytics,
   Rating,
