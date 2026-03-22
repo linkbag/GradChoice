@@ -39,8 +39,9 @@ export default function ProfilePage() {
   const saveName = async () => {
     setNameSaving(true)
     try {
-      const res = await usersApi.updateMe({ display_name: nameDraft || null })
-      setUser(res.data)
+      await usersApi.updateMe({ display_name: nameDraft || null })
+      const updatedUser = await usersApi.getMe()
+      setUser(updatedUser.data)
       setEditingName(false)
     } catch {
       // silently fail — keep editing state
