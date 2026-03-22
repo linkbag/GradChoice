@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-21 18:31*
+*Last updated: 2026-03-22 11:39*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -56,3 +56,7 @@ gc-ratings feature reviewed and fixed. 5 issues found and fixed: (1) datetime.ut
 ### Integration Review — 2026-03-21 18:31
 **Subteams:** claude-gc-auth claude-gc-supervisors claude-gc-ratings claude-gc-comments claude-gc-analytics claude-gc-chat
 **Result:** 5 cross-subteam conflicts found and fixed: (1) ChatMessage.is_read regression restored (analytics merge overwrote prior fix), (2) duplicate optional auth functions unified (get_optional_current_user + get_optional_user alias, idiomatic OAuth2 approach), (3) Alembic multiple-heads crisis resolved — canonical chain created: 0001_initial_schema (all tables + pg_trgm + rating_cache), 0002_add_comment_flags, 0003_supervisor_rankings_view, (4) types/index.ts forward-merged with all type additions from all 6 branches to prevent merge-time TypeScript conflicts, (5) services/api.ts forward-merged with all missing methods and corrected signatures.
+
+### Update: 2026-03-22 11:39
+### codex-gc-edit-username — 2026-03-22 11:39
+Review passed — reviewer fixed issues (commit: 90626f9 fix: schema fixes, bcrypt pin, migration guard, docker-compose default secret)
