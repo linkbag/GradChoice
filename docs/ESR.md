@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-22 13:37*
+*Last updated: 2026-03-22 13:39*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -129,3 +129,7 @@ Review passed — reviewer found no issues (work log updated, no fixes needed)
 ### Update: 2026-03-22 13:37
 ### claude-gc-email-notify — 2026-03-22 13:37
 Fixed clean() defined inside for-loop (moved outside), added missing fallback columns for school_code/school_name/province/department in load_xlsx, updated docstring. No remaining issues.
+
+### Update: 2026-03-22 13:39
+### claude-gc-profile-public — 2026-03-22 13:39
+Builder committed no code (only docs). Implemented full public ratings+comments display on SupervisorPage: RatingCard, CommentCard, live API fetches, Write Review button with auth-aware navigation. tsc and vite build both pass clean.
