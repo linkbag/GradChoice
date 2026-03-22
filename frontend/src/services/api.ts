@@ -1,4 +1,11 @@
 import axios from 'axios'
+
+// Augment axios config with custom fields used by interceptors
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    skipAuthRedirect?: boolean
+  }
+}
 import type {
   User,
   UserPublicProfile,
@@ -34,13 +41,16 @@ http.interceptors.request.use((config) => {
   return config
 })
 
-// Redirect to /login on 401
+// Redirect to /login on 401, unless the request opts out via skipAuthRedirect
 http.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
       localStorage.removeItem('access_token')
-      window.location.href = '/login'
+      // Allow callers to opt out of the redirect (e.g. optional-auth probes)
+      if (!err.config?.skipAuthRedirect) {
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(err)
   },
@@ -80,6 +90,7 @@ export const authApi = {
 // ============================================================
 export const usersApi = {
   getMe: () => http.get<User>('/users/me'),
+  getMeOptional: () => http.get<User>('/users/me', { skipAuthRedirect: true }),
   updateMe: (data: Partial<Pick<User, 'display_name' | 'bio' | 'email_notifications_enabled'>>) =>
     http.put<User>('/users/me', data),
   getProfile: (userId: string) => http.get<UserPublicProfile>(`/users/${userId}/profile`),

@@ -58,12 +58,13 @@ def build_comment_response(
     """Build a CommentResponse from an ORM Comment, including nested replies up to max_depth."""
     user_vote = get_user_vote(comment.id, current_user_id, db)
 
-    # Sanitize content: if deleted, replace content
-    display_content = "(该评论已删除)" if comment.is_deleted else comment.content
+    # Sanitize content: hide content for deleted or auto-hidden (flagged) comments
+    hidden = comment.is_deleted or comment.is_flagged
+    display_content = "(该评论已删除)" if comment.is_deleted else ("(该评论因违规已被隐藏)" if comment.is_flagged else comment.content)
 
     # Build author info (always anonymous — never expose email)
     author = None
-    if comment.user and not comment.is_deleted:
+    if comment.user and not hidden:
         author = CommentAuthor(
             id=comment.user.id,
             display_name=comment.user.display_name,

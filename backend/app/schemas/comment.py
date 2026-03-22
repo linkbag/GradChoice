@@ -77,13 +77,6 @@ class FlagCreate(BaseModel):
     detail: Optional[str] = None
 
 
-class SortOrder(str):
-    newest = "newest"
-    oldest = "oldest"
-    most_liked = "most_liked"
-    most_discussed = "most_discussed"
-
-
 class CommentListResponse(BaseModel):
     items: list[CommentResponse]
     total: int

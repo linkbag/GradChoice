@@ -43,7 +43,7 @@ class Comment(Base):
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="comments", foreign_keys=[user_id])  # noqa: F821
     supervisor: Mapped["Supervisor"] = relationship("Supervisor", back_populates="comments")  # noqa: F821
-    parent: Mapped["Comment | None"] = relationship("Comment", back_populates="replies", remote_side="Comment.id")
+    parent: Mapped["Comment | None"] = relationship("Comment", back_populates="replies", remote_side=[id])
     replies: Mapped[list["Comment"]] = relationship("Comment", back_populates="parent")
     votes: Mapped[list["CommentVote"]] = relationship("CommentVote", back_populates="comment")
     flags: Mapped[list["CommentFlag"]] = relationship("CommentFlag", back_populates="comment")  # noqa: F821

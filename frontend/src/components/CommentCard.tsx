@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { commentsApi } from '@/services/api'
 import type { Comment } from '@/types'
 import CommentForm from './CommentForm'
@@ -42,6 +42,13 @@ export default function CommentCard({
   const [showReplyForm, setShowReplyForm] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editContent, setEditContent] = useState(comment.content)
+
+  // Keep edit buffer in sync with the latest comment content when not actively editing
+  useEffect(() => {
+    if (!editing) {
+      setEditContent(comment.content)
+    }
+  }, [comment.content, editing])
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
   const [showFlagModal, setShowFlagModal] = useState(false)
@@ -49,9 +56,10 @@ export default function CommentCard({
 
   const isOwn = currentUserId != null && comment.author?.id === currentUserId
   const isDeleted = comment.is_deleted
+  const isHidden = comment.is_deleted || comment.is_flagged
   // Edit window: check if created within 24h (client-side approximation)
   const createdAt = new Date(comment.created_at)
-  const canEdit = isOwn && !isDeleted && Date.now() - createdAt.getTime() < 24 * 60 * 60 * 1000
+  const canEdit = isOwn && !isHidden && Date.now() - createdAt.getTime() < 24 * 60 * 60 * 1000
 
   async function handleVote(type: 'up' | 'down') {
     if (!currentUserId) return
@@ -128,8 +136,10 @@ export default function CommentCard({
   return (
     <div className={`${depth > 0 ? 'ml-6 pl-4 border-l-2 border-gray-100' : ''}`}>
       <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3">
-        {isDeleted ? (
-          <p className="text-gray-400 text-sm italic">(该评论已删除)</p>
+        {isHidden ? (
+          <p className="text-gray-400 text-sm italic">
+            {isDeleted ? '(该评论已删除)' : '(该评论因违规已被隐藏)'}
+          </p>
         ) : (
           <>
             {/* Header */}
@@ -262,7 +272,7 @@ export default function CommentCard({
       </div>
 
       {/* Reply form */}
-      {showReplyForm && !isDeleted && (
+      {showReplyForm && !isHidden && (
         <div className="ml-6 mb-3">
           <CommentForm
             supervisorId={supervisorId}

@@ -23,7 +23,7 @@ export default function SupervisorPage() {
   useEffect(() => {
     const token = localStorage.getItem('access_token')
     if (!token) return
-    usersApi.getMe()
+    usersApi.getMeOptional()
       .then((res) => setCurrentUser(res.data))
       .catch(() => setCurrentUser(null))
   }, [])
