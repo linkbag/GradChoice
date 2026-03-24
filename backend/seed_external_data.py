@@ -28,7 +28,7 @@ from datetime import datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
-from sqlalchemy import create_engine, text, func
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -342,6 +342,7 @@ def load_yankong() -> list[dict]:
                 'score_academic': score_academic,
                 'score_mentoring': score_mentoring,
                 'score_wellbeing': score_wellbeing,
+                'score_stipend': score_stipend,
                 'score_resources': score_resources,
                 'date': (review.get('created_at') or '')[:10],
                 'dedup_key': desc[:150],
@@ -605,7 +606,7 @@ def seed_data(records: list[dict], db_url: str, dry_run: bool = False, reset: bo
                     'score_academic': to_decimal(rec.get('score_academic')),
                     'score_mentoring': to_decimal(rec.get('score_mentoring')),
                     'score_wellbeing': to_decimal(rec.get('score_wellbeing')),
-                    'score_stipend': None,
+                    'score_stipend': to_decimal(rec.get('score_stipend')),
                     'score_resources': to_decimal(rec.get('score_resources')),
                     'score_ethics': None,
                     'upvotes': 0,
