@@ -34,3 +34,7 @@ backend/uploads/
 
 # Alembic (keep versions dir but ignore pycache)
 backend/alembic/versions/__pycache__/
+
+# Scraped data (too large for git, keep scripts only)
+data/raw/
+data/normalized/

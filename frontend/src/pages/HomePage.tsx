@@ -63,6 +63,43 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* Attribution */}
+      <section className="max-w-4xl mx-auto px-4 py-12">
+        <div className="bg-white rounded-2xl border border-gray-100 p-8">
+          <h3 className="text-lg font-semibold text-gray-700 mb-3">数据致谢</h3>
+          <p className="text-sm text-gray-600 mb-3">
+            本站部分历史评价数据转载自开源社区，包括：
+          </p>
+          <ul className="text-sm text-gray-600 list-disc list-inside mb-3 space-y-1">
+            <li>
+              <a
+                href="https://github.com/kgco/RateMySupervisor"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-600 hover:underline"
+              >
+                导师评价网
+              </a>
+              （原 mysupervisor.org / ratemysupervisor.org）
+            </li>
+            <li>
+              <a
+                href="https://www.yankong.org/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-600 hover:underline"
+              >
+                研控
+              </a>
+            </li>
+            <li>及其他开源贡献者</li>
+          </ul>
+          <p className="text-sm text-gray-500">
+            感谢所有先驱者为保护研究生权益所做的贡献。如有任何版权或数据问题，请联系我们。
+          </p>
+        </div>
+      </section>
     </div>
   )
 }
