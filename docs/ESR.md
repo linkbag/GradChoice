@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-22 15:41*
+*Last updated: 2026-03-23 23:32*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -218,3 +218,7 @@ All changes are correct and complete. Migration 0006 chains from 0005, _refresh_
 ### Integration Review — 2026-03-22 15:41
 **Subteams:** claude-gc-dual-scores claude-gc-anon-names
 **Result:** Clean integration. No cross-team conflicts: gc-dual-scores (backend only: ratings.py cache refactor + migration 0006 + model/schema additions) and gc-anon-names (seed_mock.py nickname rework + SupervisorPage.tsx reply badge) touch fully disjoint files. Migration chain 0001→0006 is linear. Python syntax clean on all 5 changed files. TypeScript tsc --noEmit exit 0. Both branches merged to main and pushed.
+
+### Update: 2026-03-23 23:32
+### claude-gc-yankong-reimport — 2026-03-23 23:32
+Two issues found and fixed: (1) unused func import removed from sqlalchemy imports; (2) score_stipend data loss bug in load_yankong() — the studentSalary dimension score was computed and used in the overall average but silently dropped from the record dict and hardcoded None in the ratings batch. Both fixed. scrape_yankong.py and HomePage.tsx are clean. Remaining minor concerns: misleading stats[new_supervisors] counter (cosmetic only) and potential school_code empty-string collisions for unrecognized schools (low risk given yankong data is currently empty). All Python files pass syntax check.
