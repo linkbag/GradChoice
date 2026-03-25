@@ -40,14 +40,25 @@ def _f(val, digits: int = 2) -> Optional[float]:
 
 
 def get_supervisor_analytics(
-    db: Session, supervisor_id: uuid.UUID
+    db: Session, supervisor_id: uuid.UUID, user_status: str = "all"
 ) -> Optional[SupervisorAnalytics]:
     supervisor = db.query(Supervisor).filter(Supervisor.id == supervisor_id).first()
     if not supervisor:
         return None
 
-    # All-ratings aggregates
-    sq = db.query(
+    # Build filter based on user_status
+    if user_status == "verified":
+        status_filter = Rating.is_verified_rating.is_(True)
+        sql_status_filter = " AND is_verified_rating = true"
+    elif user_status == "unverified":
+        status_filter = Rating.is_verified_rating.is_(False)
+        sql_status_filter = " AND is_verified_rating = false"
+    else:
+        status_filter = None
+        sql_status_filter = ""
+
+    # Primary ratings aggregates (filtered by user_status)
+    base_q = db.query(
         func.avg(Rating.overall_score).label("avg_overall"),
         func.avg(Rating.score_academic).label("avg_academic"),
         func.avg(Rating.score_mentoring).label("avg_mentoring"),
@@ -57,7 +68,10 @@ def get_supervisor_analytics(
         func.avg(Rating.score_ethics).label("avg_ethics"),
         func.count(Rating.id).label("total_ratings"),
         func.count(Rating.id).filter(Rating.is_verified_rating.is_(True)).label("verified_ratings"),
-    ).filter(Rating.supervisor_id == supervisor_id).one()
+    ).filter(Rating.supervisor_id == supervisor_id)
+    if status_filter is not None:
+        base_q = base_q.filter(status_filter)
+    sq = base_q.one()
 
     scores = ScoreBreakdown(
         avg_overall=_f(sq.avg_overall),
@@ -71,7 +85,7 @@ def get_supervisor_analytics(
         verified_ratings=sq.verified_ratings or 0,
     )
 
-    # Verified-only aggregates
+    # Verified-only aggregates (always computed for reference; shown only when user_status="all")
     vq = db.query(
         func.avg(Rating.overall_score).label("avg_overall"),
         func.avg(Rating.score_academic).label("avg_academic"),
@@ -99,12 +113,12 @@ def get_supervisor_analytics(
         verified_ratings=vq.verified_ratings or 0,
     )
 
-    # Score distribution (1–5 stars)
+    # Score distribution (1–5 stars), filtered by user_status
     dist_rows = db.execute(
-        text("""
+        text(f"""
             SELECT ROUND(overall_score)::int AS star, COUNT(*) AS cnt
             FROM ratings
-            WHERE supervisor_id = :sid
+            WHERE supervisor_id = :sid{sql_status_filter}
             GROUP BY ROUND(overall_score)::int
             ORDER BY star
         """),
@@ -114,15 +128,15 @@ def get_supervisor_analytics(
     for s in range(1, 6):
         score_distribution.setdefault(str(s), 0)
 
-    # Monthly score trends
+    # Monthly score trends, filtered by user_status
     trend_rows = db.execute(
-        text("""
+        text(f"""
             SELECT
                 TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') AS month,
                 ROUND(AVG(overall_score)::numeric, 2) AS avg_overall,
                 COUNT(*) AS rating_count
             FROM ratings
-            WHERE supervisor_id = :sid
+            WHERE supervisor_id = :sid{sql_status_filter}
             GROUP BY DATE_TRUNC('month', created_at)
             ORDER BY DATE_TRUNC('month', created_at)
         """),
@@ -422,6 +436,7 @@ def get_rankings(
     page: int = 1,
     page_size: int = 20,
     min_ratings: int = 1,
+    user_status: str = "all",
 ) -> RankingsResponse:
     score_expr = VALID_DIMENSIONS.get(dimension, VALID_DIMENSIONS["overall"])
     sort_dir = "ASC" if sort_order == "asc" else "DESC"
@@ -437,6 +452,10 @@ def get_rankings(
     if department:
         conditions.append("s.department = :department")
         params["department"] = department
+    if user_status == "verified":
+        conditions.append("r.is_verified_rating = true")
+    elif user_status == "unverified":
+        conditions.append("r.is_verified_rating = false")
 
     where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 

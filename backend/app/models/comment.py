@@ -29,6 +29,7 @@ class Comment(Base):
         UUID(as_uuid=True), ForeignKey("comments.id", ondelete="CASCADE"), nullable=True, index=True
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    is_verified_comment: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     likes_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     dislikes_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_flagged: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
