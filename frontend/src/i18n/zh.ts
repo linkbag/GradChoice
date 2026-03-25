@@ -53,6 +53,12 @@ export const zh = {
     write_review: '写评价',
     no_ratings: '暂无评价，成为第一个评价者',
     score_disclaimer: '部分评分来自历史数据，可能缺少子维度打分。新评价将使用完整评分系统。',
+    score_popup_title: '评分与评论',
+    score_popup_hint: '请在评论中说明您打分的理由，帮助其他同学更好地了解该导师',
+    score_popup_submit: '提交评论与评分',
+    score_popup_skip: '跳过评分，仅发表评论',
+    score_popup_overall_section: '综合评分',
+    score_popup_sub_section: '分项评分（可选）',
   },
   auth: {
     login_title: '登录',

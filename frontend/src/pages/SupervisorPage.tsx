@@ -9,6 +9,57 @@ import PercentileDisplay from '@/components/PercentileDisplay'
 
 type UserStatus = 'all' | 'verified' | 'unverified'
 
+const SUB_SCORE_KEYS = ['academic', 'mentoring', 'wellbeing', 'stipend', 'resources', 'ethics'] as const
+type SubScoreKey = typeof SUB_SCORE_KEYS[number]
+
+function PopupStarPicker({
+  label,
+  value,
+  onChange,
+  required,
+}: {
+  label: string
+  value: number | null
+  onChange: (v: number | null) => void
+  required?: boolean
+}) {
+  return (
+    <div className="flex items-center justify-between py-2">
+      <span className="text-sm text-gray-700 w-24 shrink-0">
+        {label}
+        {required && <span className="text-red-500 ml-0.5">*</span>}
+      </span>
+      <div className="flex items-center gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            type="button"
+            onClick={() => onChange(value === star && !required ? null : star)}
+            className={`text-2xl transition-colors ${
+              value != null && star <= value ? 'text-yellow-400' : 'text-gray-300'
+            } hover:text-yellow-400`}
+            aria-label={`${star}星`}
+          >
+            ★
+          </button>
+        ))}
+        {!required && value != null && (
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            className="text-xs text-gray-400 hover:text-gray-600 ml-1"
+          >
+            清除
+          </button>
+        )}
+        {value != null && (
+          <span className="text-sm font-medium text-teal-600 ml-2 w-6">{value}.0</span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 const USER_STATUS_TABS: { key: UserStatus; label: string }[] = [
   { key: 'all', label: zh.supervisor.user_status_all },
   { key: 'verified', label: zh.supervisor.user_status_verified },
@@ -206,12 +257,20 @@ export default function SupervisorPage() {
 
   // Comment creation
   const [commentText, setCommentText] = useState('')
-  const [submittingComment, setSubmittingComment] = useState(false)
   const [commentError, setCommentError] = useState<string | null>(null)
   const [commentTosAgreed, setCommentTosAgreed] = useState(false)
   const [commentAnonymous, setCommentAnonymous] = useState(false)
 
   const COMMENT_MAX_LENGTH = 4500
+
+  // Score popup state
+  const [showScorePopup, setShowScorePopup] = useState(false)
+  const [popupOverallScore, setPopupOverallScore] = useState<number | null>(null)
+  const [popupSubScores, setPopupSubScores] = useState<Record<SubScoreKey, number | null>>({
+    academic: null, mentoring: null, wellbeing: null, stipend: null, resources: null, ethics: null,
+  })
+  const [popupSubmitting, setPopupSubmitting] = useState(false)
+  const [popupError, setPopupError] = useState<string | null>(null)
 
   // Reply state
   const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string } | null>(null)
@@ -312,18 +371,50 @@ export default function SupervisorPage() {
       setCommentError('请先同意服务条款与免责声明')
       return
     }
-    setSubmittingComment(true)
-    setCommentError(null)
+    // Reset and show score popup
+    setPopupOverallScore(null)
+    setPopupSubScores({ academic: null, mentoring: null, wellbeing: null, stipend: null, resources: null, ethics: null })
+    setPopupError(null)
+    setShowScorePopup(true)
+  }
+
+  async function handlePopupSubmit(skipScores: boolean) {
+    if (!id) return
+    setPopupSubmitting(true)
+    setPopupError(null)
     try {
+      if (!skipScores && popupOverallScore != null) {
+        try {
+          await ratingsApi.create({
+            supervisor_id: id,
+            overall_score: popupOverallScore,
+            score_academic: popupSubScores.academic ?? undefined,
+            score_mentoring: popupSubScores.mentoring ?? undefined,
+            score_wellbeing: popupSubScores.wellbeing ?? undefined,
+            score_stipend: popupSubScores.stipend ?? undefined,
+            score_resources: popupSubScores.resources ?? undefined,
+            score_ethics: popupSubScores.ethics ?? undefined,
+          })
+          // Refresh ratings list after new rating
+          const ratingsRes = await ratingsApi.getBySupervisor(id, { page_size: 20 })
+          setRatings(ratingsRes.data.items)
+          setRatingsTotal(ratingsRes.data.total)
+        } catch (e: unknown) {
+          const axiosErr = e as { response?: { status?: number } }
+          if (axiosErr.response?.status !== 409) throw e
+          // 409 = already rated this supervisor — proceed with comment only
+        }
+      }
       await commentsApi.create({ supervisor_id: id, content: commentText.trim() })
       setCommentText('')
       setCommentTosAgreed(false)
+      setShowScorePopup(false)
       await refreshComments()
     } catch (e: unknown) {
       const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setCommentError(detail || '发布失败，请重试')
+      setPopupError(detail || '发布失败，请重试')
     } finally {
-      setSubmittingComment(false)
+      setPopupSubmitting(false)
     }
   }
 
@@ -376,6 +467,7 @@ export default function SupervisorPage() {
   }
 
   return (
+    <>
     <div className="max-w-4xl mx-auto px-4 py-12">
       {/* Supervisor info header */}
       <div className="bg-white rounded-2xl border border-gray-200 p-8 mb-6">
@@ -686,10 +778,10 @@ export default function SupervisorPage() {
               <div className="flex justify-end mt-2">
                 <button
                   onClick={handleSubmitComment}
-                  disabled={submittingComment || !commentText.trim() || !commentTosAgreed}
+                  disabled={!commentText.trim() || !commentTosAgreed}
                   className="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submittingComment ? '发布中…' : '发布'}
+                  发布
                 </button>
               </div>
             </div>
@@ -764,5 +856,74 @@ export default function SupervisorPage() {
         </div>
       </div>
     </div>
+    {/* Score Popup Modal */}
+    {showScorePopup && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/50"
+          onClick={() => { if (!popupSubmitting) setShowScorePopup(false) }}
+        />
+        {/* Card */}
+        <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-1">{zh.supervisor.score_popup_title}</h2>
+          <p className="text-xs text-gray-500 mb-4">{zh.supervisor.score_popup_hint}</p>
+
+          {/* Overall score */}
+          <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 mb-3">
+            <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
+              {zh.supervisor.score_popup_overall_section} <span className="text-red-500">*</span>
+            </p>
+            <PopupStarPicker
+              label={zh.supervisor.score_labels.overall}
+              value={popupOverallScore}
+              onChange={setPopupOverallScore}
+              required
+            />
+          </div>
+
+          {/* Sub-scores */}
+          <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 mb-4">
+            <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
+              {zh.supervisor.score_popup_sub_section}
+            </p>
+            <div className="divide-y divide-gray-100">
+              {SUB_SCORE_KEYS.map((key) => (
+                <PopupStarPicker
+                  key={key}
+                  label={zh.supervisor.score_labels[key]}
+                  value={popupSubScores[key]}
+                  onChange={(v) => setPopupSubScores((prev) => ({ ...prev, [key]: v }))}
+                />
+              ))}
+            </div>
+          </div>
+
+          {popupError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2 mb-3">
+              {popupError}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => handlePopupSubmit(false)}
+            disabled={popupSubmitting || popupOverallScore == null}
+            className="w-full bg-teal-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed mb-2"
+          >
+            {popupSubmitting ? '提交中…' : zh.supervisor.score_popup_submit}
+          </button>
+          <button
+            type="button"
+            onClick={() => handlePopupSubmit(true)}
+            disabled={popupSubmitting}
+            className="w-full text-sm text-gray-500 hover:text-teal-600 py-2 transition-colors disabled:opacity-40"
+          >
+            {zh.supervisor.score_popup_skip}
+          </button>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
