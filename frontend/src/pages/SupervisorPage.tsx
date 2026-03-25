@@ -208,6 +208,10 @@ export default function SupervisorPage() {
   const [commentText, setCommentText] = useState('')
   const [submittingComment, setSubmittingComment] = useState(false)
   const [commentError, setCommentError] = useState<string | null>(null)
+  const [commentTosAgreed, setCommentTosAgreed] = useState(false)
+  const [commentAnonymous, setCommentAnonymous] = useState(false)
+
+  const COMMENT_MAX_LENGTH = 4500
 
   // Reply state
   const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string } | null>(null)
@@ -304,11 +308,16 @@ export default function SupervisorPage() {
       navigate('/login')
       return
     }
+    if (!commentTosAgreed) {
+      setCommentError('请先同意服务条款与免责声明')
+      return
+    }
     setSubmittingComment(true)
     setCommentError(null)
     try {
       await commentsApi.create({ supervisor_id: id, content: commentText.trim() })
       setCommentText('')
+      setCommentTosAgreed(false)
       await refreshComments()
     } catch (e: unknown) {
       const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
@@ -617,18 +626,67 @@ export default function SupervisorPage() {
             <div className="mb-6">
               <textarea
                 value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
+                onChange={(e) => setCommentText(e.target.value.slice(0, COMMENT_MAX_LENGTH))}
                 placeholder="分享你对该导师的了解或问题…"
                 rows={3}
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-teal-400 placeholder-gray-400"
               />
+              <div className="flex justify-end text-xs text-gray-400 mt-0.5">
+                {commentText.length} / {COMMENT_MAX_LENGTH}
+              </div>
+
+              {/* Anonymous option */}
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  id="comment-anon"
+                  type="checkbox"
+                  checked={commentAnonymous}
+                  onChange={(e) => setCommentAnonymous(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                />
+                <label htmlFor="comment-anon" className="text-sm text-gray-600 cursor-pointer">
+                  匿名评论
+                </label>
+              </div>
+
+              {/* ToS agreement */}
+              <div className="flex items-start gap-2 mt-2">
+                <input
+                  id="comment-tos"
+                  type="checkbox"
+                  checked={commentTosAgreed}
+                  onChange={(e) => setCommentTosAgreed(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 shrink-0"
+                />
+                <label htmlFor="comment-tos" className="text-sm text-gray-600 leading-snug cursor-pointer">
+                  我了解并同意本站{' '}
+                  <a
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-teal-600 hover:underline"
+                  >
+                    服务条款与免责声明
+                  </a>
+                </label>
+              </div>
+
+              {/* Privacy notice */}
+              <div className="mt-3 text-xs text-gray-400 space-y-1 leading-relaxed">
+                <p>
+                  研选尊重并保护所有用户的个人隐私权，用户的个人资料，非经用户许可或根据相关法律法规的强制性规定，研选不会主动地泄露给第三方。
+                </p>
+                <p>用户在研选发布的言论仅代表其个人意见和观点，与研选立场无关。</p>
+                <p>用户因其使用研选产生的一切后果由其自己承担，研选不承担任何责任。</p>
+              </div>
+
               {commentError && (
-                <p className="text-xs text-red-500 mt-1">{commentError}</p>
+                <p className="text-xs text-red-500 mt-2">{commentError}</p>
               )}
               <div className="flex justify-end mt-2">
                 <button
                   onClick={handleSubmitComment}
-                  disabled={submittingComment || !commentText.trim()}
+                  disabled={submittingComment || !commentText.trim() || !commentTosAgreed}
                   className="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submittingComment ? '发布中…' : '发布'}

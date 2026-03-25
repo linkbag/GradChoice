@@ -27,6 +27,7 @@ export default function RegisterPage() {
   const [code, setCode] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [tosAgreed, setTosAgreed] = useState(false)
 
   const [error, setError] = useState<string | null>(null)
   const [sendingCode, setSendingCode] = useState(false)
@@ -96,9 +97,14 @@ export default function RegisterPage() {
       return
     }
 
+    if (!tosAgreed) {
+      setError('请先同意服务条款与免责声明')
+      return
+    }
+
     setLoading(true)
     try {
-      const res = await authApi.register(email, password, displayName || undefined)
+      const res = await authApi.register(email, password, displayName || undefined, true)
       const { access_token } = res.data
       localStorage.setItem('access_token', access_token)
       navigate('/', { replace: true })
@@ -274,11 +280,32 @@ export default function RegisterPage() {
               />
             </div>
 
+            <div className="flex items-start gap-2">
+              <input
+                id="tos-agree"
+                type="checkbox"
+                checked={tosAgreed}
+                onChange={(e) => setTosAgreed(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 shrink-0"
+              />
+              <label htmlFor="tos-agree" className="text-sm text-gray-600 leading-snug cursor-pointer">
+                我了解并同意本站{' '}
+                <Link
+                  to="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-600 hover:underline"
+                >
+                  服务条款与免责声明
+                </Link>
+              </label>
+            </div>
+
             {error && <ErrorBox message={error} />}
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !tosAgreed}
               className="w-full bg-brand-600 text-white py-2.5 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 font-medium"
             >
               {loading ? '注册中…' : zh.auth.register_btn}

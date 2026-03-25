@@ -69,8 +69,8 @@ http.interceptors.response.use(
 // Auth
 // ============================================================
 export const authApi = {
-  register: (email: string, password: string, display_name?: string) =>
-    http.post<RegisterResponse>('/auth/register', { email, password, display_name }),
+  register: (email: string, password: string, display_name?: string, tos_agreed?: boolean) =>
+    http.post<RegisterResponse>('/auth/register', { email, password, display_name, tos_agreed }),
 
   login: (email: string, password: string) => {
     const form = new URLSearchParams()
