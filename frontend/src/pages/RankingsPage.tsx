@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom'
 import { analyticsApi, supervisorsApi } from '@/services/api'
 import type { RankingEntry, ProvinceListItem } from '@/types'
 import AutocompleteInput from '@/components/AutocompleteInput'
+import { zh } from '@/i18n/zh'
 
 type Dimension = 'overall' | 'academic' | 'mentoring' | 'wellbeing' | 'stipend' | 'resources' | 'ethics'
+type UserStatus = 'all' | 'verified' | 'unverified'
 
 const DIMENSION_TABS: { key: Dimension; label: string }[] = [
   { key: 'overall', label: '综合排名' },
@@ -16,10 +18,17 @@ const DIMENSION_TABS: { key: Dimension; label: string }[] = [
   { key: 'ethics', label: '学术道德' },
 ]
 
+const USER_STATUS_TABS: { key: UserStatus; label: string }[] = [
+  { key: 'all', label: zh.supervisor.user_status_all },
+  { key: 'verified', label: zh.supervisor.user_status_verified },
+  { key: 'unverified', label: zh.supervisor.user_status_unverified },
+]
+
 const PAGE_SIZE = 20
 
 export default function RankingsPage() {
   const [dimension, setDimension] = useState<Dimension>('overall')
+  const [userStatus, setUserStatus] = useState<UserStatus>('all')
   const [province, setProvince] = useState('')
   const [schoolName, setSchoolName] = useState('')
   const [schoolCode, setSchoolCode] = useState('')
@@ -54,6 +63,7 @@ export default function RankingsPage() {
         page,
         page_size: PAGE_SIZE,
         min_ratings: 1,
+        user_status: userStatus,
       })
       .then((res) => {
         setItems(res.data.items)
@@ -64,12 +74,17 @@ export default function RankingsPage() {
         setTotal(0)
       })
       .finally(() => setLoading(false))
-  }, [dimension, province, schoolCode, page])
+  }, [dimension, userStatus, province, schoolCode, page])
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   function handleDimensionChange(d: Dimension) {
     setDimension(d)
+    setPage(1)
+  }
+
+  function handleUserStatusChange(s: UserStatus) {
+    setUserStatus(s)
     setPage(1)
   }
 
@@ -104,7 +119,7 @@ export default function RankingsPage() {
       </div>
 
       {/* Dimension tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-1 mb-5 scrollbar-hide">
+      <div className="flex gap-1 overflow-x-auto pb-1 mb-4 scrollbar-hide">
         {DIMENSION_TABS.map(({ key, label }) => (
           <button
             key={key}
@@ -113,6 +128,23 @@ export default function RankingsPage() {
               dimension === key
                 ? 'bg-teal-600 text-white'
                 : 'bg-white border border-gray-200 text-gray-600 hover:border-teal-300 hover:text-teal-700'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* User status toggle */}
+      <div className="flex gap-1 mb-5">
+        {USER_STATUS_TABS.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => handleUserStatusChange(key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              userStatus === key
+                ? 'bg-gray-800 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             {label}

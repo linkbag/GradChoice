@@ -35,7 +35,11 @@ export const zh = {
   },
   supervisor: {
     rating_count: (n: number) => `${n} 条评价`,
-    verified_badge: '认证学生',
+    verified_badge: '已认证学生',
+    unverified_badge: '未认证',
+    user_status_all: '全部用户',
+    user_status_verified: '已认证',
+    user_status_unverified: '未认证',
     score_labels: {
       overall: '综合评分',
       academic: '学术水平',

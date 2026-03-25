@@ -7,6 +7,14 @@ import RadarChart from '@/components/RadarChart'
 import DistributionChart from '@/components/DistributionChart'
 import PercentileDisplay from '@/components/PercentileDisplay'
 
+type UserStatus = 'all' | 'verified' | 'unverified'
+
+const USER_STATUS_TABS: { key: UserStatus; label: string }[] = [
+  { key: 'all', label: zh.supervisor.user_status_all },
+  { key: 'verified', label: zh.supervisor.user_status_verified },
+  { key: 'unverified', label: zh.supervisor.user_status_unverified },
+]
+
 const KEY_TO_SCORE_FIELD: Record<string, keyof ScoreBreakdown> = {
   academic: 'avg_academic',
   mentoring: 'avg_mentoring',
@@ -105,9 +113,13 @@ function CommentCard({ comment, isLoggedIn, onVote, onReply }: CommentCardProps)
           ) : (
             <span className="text-sm font-medium text-gray-700">匿名</span>
           )}
-          {comment.author?.is_student_verified && (
+          {comment.is_verified_comment ? (
             <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full">
-              {zh.supervisor.verified_badge}
+              ✅ {zh.supervisor.verified_badge}
+            </span>
+          ) : (
+            <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+              {zh.supervisor.unverified_badge}
             </span>
           )}
           {comment.is_edited && (
@@ -160,9 +172,13 @@ function CommentCard({ comment, isLoggedIn, onVote, onReply }: CommentCardProps)
               ) : (
                 <span className="font-medium text-gray-600">匿名</span>
               )}
-              {r.author?.is_student_verified && (
+              {r.is_verified_comment ? (
                 <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full mx-1">
-                  {zh.supervisor.verified_badge}
+                  ✅ {zh.supervisor.verified_badge}
+                </span>
+              ) : (
+                <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full mx-1">
+                  {zh.supervisor.unverified_badge}
                 </span>
               )}
               <span className="text-gray-600">：</span>
@@ -180,6 +196,8 @@ export default function SupervisorPage() {
   const navigate = useNavigate()
   const [supervisor, setSupervisor] = useState<Supervisor | null>(null)
   const [analytics, setAnalytics] = useState<SupervisorAnalytics | null>(null)
+  const [analyticsUserStatus, setAnalyticsUserStatus] = useState<UserStatus>('all')
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
   const [ratings, setRatings] = useState<Rating[]>([])
   const [ratingsTotal, setRatingsTotal] = useState(0)
   const [comments, setComments] = useState<Comment[]>([])
@@ -215,11 +233,21 @@ export default function SupervisorPage() {
     setCommentsTotal(res.data.total)
   }, [id])
 
+  // Re-fetch analytics when user_status filter changes (but not on initial load)
+  useEffect(() => {
+    if (!id || loading) return
+    setAnalyticsLoading(true)
+    analyticsApi.getSupervisor(id, { user_status: analyticsUserStatus })
+      .then((res) => setAnalytics(res.data))
+      .catch(() => {})
+      .finally(() => setAnalyticsLoading(false))
+  }, [analyticsUserStatus, id]) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!id) return
     Promise.allSettled([
       supervisorsApi.get(id),
-      analyticsApi.getSupervisor(id),
+      analyticsApi.getSupervisor(id, { user_status: analyticsUserStatus }),
       ratingsApi.getBySupervisor(id, { page_size: 20 }),
       commentsApi.getBySupervisor(id, { page_size: 20 }),
     ]).then(([supResult, analyticsResult, ratingsResult, commentsResult]) => {
@@ -324,13 +352,8 @@ export default function SupervisorPage() {
     try {
       await commentsApi.vote(commentId, voteType)
       await refreshComments()
-    } catch (e: unknown) {
-      const status = (e as { response?: { status?: number } })?.response?.status
-      if (status === 403) {
-        setVoteError('请先完成邮箱验证后再投票')
-      } else {
-        setVoteError('投票失败，请重试')
-      }
+    } catch {
+      setVoteError('投票失败，请重试')
     }
   }
 
@@ -385,6 +408,26 @@ export default function SupervisorPage() {
               )}
             </div>
 
+            {/* User status filter toggle */}
+            <div className="flex gap-1 mb-4">
+              {USER_STATUS_TABS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setAnalyticsUserStatus(key)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    analyticsUserStatus === key
+                      ? 'bg-teal-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+              {analyticsLoading && (
+                <span className="text-xs text-gray-400 self-center ml-2">更新中…</span>
+              )}
+            </div>
+
             <div className="flex items-start gap-1.5 text-xs text-sky-600 bg-sky-50 border border-sky-100 rounded-lg px-3 py-2 mb-4">
               <span className="shrink-0 mt-px">ℹ</span>
               <span>{zh.supervisor.score_disclaimer}</span>
@@ -400,7 +443,7 @@ export default function SupervisorPage() {
                     <span className="text-gray-400 mb-1">/ 5.00</span>
                     <span className="text-sm text-gray-400 mb-1 ml-1">综合评分</span>
                   </div>
-                  {hasVerifiedScores && verifiedScores!.avg_overall != null && (
+                  {analyticsUserStatus === 'all' && hasVerifiedScores && verifiedScores!.avg_overall != null && (
                     <div className="flex items-end gap-1.5 bg-teal-50 border border-teal-100 rounded-xl px-3 py-1.5">
                       <span className="text-2xl font-bold text-teal-700">
                         {verifiedScores!.avg_overall.toFixed(2)}

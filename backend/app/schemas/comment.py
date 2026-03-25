@@ -31,6 +31,7 @@ class CommentResponse(BaseModel):
     supervisor_id: uuid.UUID
     parent_comment_id: Optional[uuid.UUID] = None
     content: str
+    is_verified_comment: bool = False
     is_deleted: bool = False
     is_edited: bool = False
     likes_count: int

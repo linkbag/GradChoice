@@ -13,9 +13,13 @@ router = APIRouter(prefix="/analytics", tags=["数据分析"])
 
 
 @router.get("/supervisor/{supervisor_id}", response_model=SupervisorAnalytics)
-def get_supervisor_analytics(supervisor_id: uuid.UUID, db: Session = Depends(get_db)):
+def get_supervisor_analytics(
+    supervisor_id: uuid.UUID,
+    user_status: str = Query("all", description="用户筛选: all | verified | unverified"),
+    db: Session = Depends(get_db),
+):
     """获取导师综合评分分析（含雷达图数据、百分位排名、评分趋势）"""
-    result = analytics_service.get_supervisor_analytics(db, supervisor_id)
+    result = analytics_service.get_supervisor_analytics(db, supervisor_id, user_status=user_status)
     if result is None:
         raise HTTPException(status_code=404, detail="导师不存在")
     return result
@@ -41,6 +45,7 @@ def get_rankings(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页条数"),
     min_ratings: int = Query(1, ge=1, description="最低评价数量"),
+    user_status: str = Query("all", description="用户筛选: all | verified | unverified"),
     db: Session = Depends(get_db),
 ):
     """获取导师排行榜（支持多维度、筛选、分页）"""
@@ -57,6 +62,7 @@ def get_rankings(
         page=page,
         page_size=page_size,
         min_ratings=min_ratings,
+        user_status=user_status,
     )
 
 

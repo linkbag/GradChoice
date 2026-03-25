@@ -8,7 +8,7 @@ from app.models.comment import Comment, CommentVote, VoteType
 from app.schemas.comment import (
     CommentCreate, CommentUpdate, CommentResponse, CommentAuthorResponse, CommentVoteCreate, CommentListResponse
 )
-from app.utils.auth import get_current_verified_user, get_optional_current_user
+from app.utils.auth import get_current_user, get_current_verified_user, get_optional_current_user
 
 router = APIRouter(prefix="/comments", tags=["评论"])
 
@@ -53,10 +53,10 @@ def _build_response(comment: Comment, user_id: uuid.UUID | None, db: Session, in
 @router.post("", response_model=CommentResponse, status_code=201)
 def create_comment(
     comment_in: CommentCreate,
-    current_user=Depends(get_current_verified_user),
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """发表评论或回复"""
+    """发表评论或回复（登录即可，无需认证）"""
     from app.models.supervisor import Supervisor
     sup = db.query(Supervisor).filter(Supervisor.id == comment_in.supervisor_id).first()
     if not sup:
@@ -71,6 +71,7 @@ def create_comment(
         supervisor_id=comment_in.supervisor_id,
         parent_comment_id=comment_in.parent_comment_id,
         content=comment_in.content,
+        is_verified_comment=current_user.is_student_verified,
     )
     db.add(comment)
     db.commit()
@@ -172,10 +173,10 @@ def get_comment_replies(
 def vote_comment(
     comment_id: uuid.UUID,
     vote_in: CommentVoteCreate,
-    current_user=Depends(get_current_verified_user),
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """对评论投票（赞/踩）"""
+    """对评论投票（赞/踩，登录即可）"""
     comment = db.query(Comment).filter(Comment.id == comment_id).first()
     if not comment:
         raise HTTPException(status_code=404, detail="评论不存在")

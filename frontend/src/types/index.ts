@@ -181,6 +181,7 @@ export interface Comment {
   supervisor_id: string
   parent_comment_id: string | null
   content: string
+  is_verified_comment: boolean
   is_deleted: boolean
   is_edited: boolean
   likes_count: number

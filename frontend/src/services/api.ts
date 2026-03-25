@@ -258,8 +258,8 @@ export const commentsApi = {
 // Analytics
 // ============================================================
 export const analyticsApi = {
-  getSupervisor: (id: string) =>
-    http.get<SupervisorAnalytics>(`/analytics/supervisor/${id}`),
+  getSupervisor: (id: string, params?: { user_status?: 'all' | 'verified' | 'unverified' }) =>
+    http.get<SupervisorAnalytics>(`/analytics/supervisor/${id}`, { params }),
 
   getSchool: (code: string) =>
     http.get<SchoolAnalytics>(`/analytics/school/${code}`),
@@ -271,6 +271,7 @@ export const analyticsApi = {
     page?: number
     page_size?: number
     min_ratings?: number
+    user_status?: 'all' | 'verified' | 'unverified'
   }) => http.get<RankingsResponse>('/analytics/rankings', { params }),
 
   getOverview: () => http.get<OverviewStats>('/analytics/overview'),
