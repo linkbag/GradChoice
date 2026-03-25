@@ -38,6 +38,8 @@ def get_rankings(
     ),
     school_code: Optional[str] = Query(None, description="按院校筛选"),
     province: Optional[str] = Query(None, description="按省份筛选"),
+    department: Optional[str] = Query(None, description="按院系筛选"),
+    sort_order: str = Query("desc", description="排序方向: asc 或 desc"),
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页条数"),
     min_ratings: int = Query(1, ge=1, description="最低评价数量"),
@@ -49,11 +51,15 @@ def get_rankings(
             status_code=422,
             detail=f"无效的排名维度 '{dimension}'，有效值为：{', '.join(VALID_DIMENSIONS)}",
         )
+    if sort_order not in ("asc", "desc"):
+        raise HTTPException(status_code=422, detail="sort_order 必须为 'asc' 或 'desc'")
     return analytics_service.get_rankings(
         db,
         dimension=dimension,
         school_code=school_code,
         province=province,
+        department=department,
+        sort_order=sort_order,
         page=page,
         page_size=page_size,
         min_ratings=min_ratings,
