@@ -40,7 +40,7 @@ def get_rankings(
     province: Optional[str] = Query(None, description="按省份筛选"),
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页条数"),
-    min_ratings: int = Query(3, ge=1, description="最低评价数量"),
+    min_ratings: int = Query(1, ge=1, description="最低评价数量"),
     db: Session = Depends(get_db),
 ):
     """获取导师排行榜（支持多维度、筛选、分页）"""
