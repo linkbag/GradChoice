@@ -45,10 +45,8 @@ export default function AutocompleteInput({
 
   function handleInputChange(v: string) {
     setInputValue(v)
+    onChange(v)
     setOpen(true)
-    if (!v) {
-      onChange('')
-    }
   }
 
   return (
