@@ -29,6 +29,7 @@ export const zh = {
     placeholder: '搜索导师姓名、院校或院系…',
     filter_province: '选择省份',
     filter_school: '选择院校',
+    filter_department: '按学院/院系筛选',
     no_results: '未找到相关导师',
     result_count: (n: number) => `共找到 ${n} 位导师`,
   },
