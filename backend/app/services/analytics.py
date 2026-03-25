@@ -417,11 +417,14 @@ def get_rankings(
     dimension: str = "overall",
     school_code: Optional[str] = None,
     province: Optional[str] = None,
+    department: Optional[str] = None,
+    sort_order: str = "desc",
     page: int = 1,
     page_size: int = 20,
     min_ratings: int = 1,
 ) -> RankingsResponse:
     score_expr = VALID_DIMENSIONS.get(dimension, VALID_DIMENSIONS["overall"])
+    sort_dir = "ASC" if sort_order == "asc" else "DESC"
 
     conditions: list[str] = []
     params: dict = {"min_ratings": min_ratings}
@@ -431,6 +434,9 @@ def get_rankings(
     if province:
         conditions.append("s.province = :province")
         params["province"] = province
+    if department:
+        conditions.append("s.department = :department")
+        params["department"] = department
 
     where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
@@ -451,7 +457,7 @@ def get_rankings(
 
     data_sql = f"""
         SELECT
-            ROW_NUMBER() OVER (ORDER BY {score_expr} DESC NULLS LAST) AS rank,
+            ROW_NUMBER() OVER (ORDER BY {score_expr} {sort_dir} NULLS LAST) AS rank,
             s.id::text AS supervisor_id,
             s.name AS supervisor_name,
             s.school_name,
@@ -464,7 +470,7 @@ def get_rankings(
         {where_clause}
         GROUP BY s.id, s.name, s.school_name, s.school_code, s.department
         HAVING COUNT(r.id) >= :min_ratings
-        ORDER BY {score_expr} DESC NULLS LAST
+        ORDER BY {score_expr} {sort_dir} NULLS LAST
         LIMIT :limit OFFSET :offset
     """
     rows = db.execute(text(data_sql), params).fetchall()

@@ -23,6 +23,8 @@ export default function RankingsPage() {
   const [province, setProvince] = useState('')
   const [schoolName, setSchoolName] = useState('')
   const [schoolCode, setSchoolCode] = useState('')
+  const [department, setDepartment] = useState('')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
   const [items, setItems] = useState<RankingEntry[]>([])
   const [total, setTotal] = useState(0)
@@ -32,6 +34,7 @@ export default function RankingsPage() {
   const [provinceOptions, setProvinceOptions] = useState<string[]>([])
   const [schoolOptions, setSchoolOptions] = useState<{ school_name: string; school_code: string }[]>([])
   const [schoolNameOptions, setSchoolNameOptions] = useState<string[]>([])
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([])
 
   useEffect(() => {
     Promise.all([
@@ -44,6 +47,17 @@ export default function RankingsPage() {
     }).catch(() => {})
   }, [])
 
+  // Fetch departments when school changes
+  useEffect(() => {
+    if (!schoolCode) {
+      setDepartmentOptions([])
+      return
+    }
+    supervisorsApi.getDepartments(schoolCode)
+      .then((res) => setDepartmentOptions(res.data.map((d: { department: string }) => d.department)))
+      .catch(() => setDepartmentOptions([]))
+  }, [schoolCode])
+
   useEffect(() => {
     setLoading(true)
     analyticsApi
@@ -51,6 +65,8 @@ export default function RankingsPage() {
         dimension,
         province: province || undefined,
         school_code: schoolCode || undefined,
+        department: department || undefined,
+        sort_order: sortOrder,
         page,
         page_size: PAGE_SIZE,
         min_ratings: 1,
@@ -64,7 +80,7 @@ export default function RankingsPage() {
         setTotal(0)
       })
       .finally(() => setLoading(false))
-  }, [dimension, province, schoolCode, page])
+  }, [dimension, province, schoolCode, department, sortOrder, page])
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
@@ -83,6 +99,12 @@ export default function RankingsPage() {
     // Look up the school_code from the school name
     const match = schoolOptions.find((s) => s.school_name === v)
     setSchoolCode(match ? match.school_code : '')
+    setDepartment('')
+    setPage(1)
+  }
+
+  function handleDepartmentChange(v: string) {
+    setDepartment(v)
     setPage(1)
   }
 
@@ -103,38 +125,54 @@ export default function RankingsPage() {
         </p>
       </div>
 
-      {/* Dimension tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-1 mb-5 scrollbar-hide">
-        {DIMENSION_TABS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => handleDimensionChange(key)}
-            className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              dimension === key
-                ? 'bg-teal-600 text-white'
-                : 'bg-white border border-gray-200 text-gray-600 hover:border-teal-300 hover:text-teal-700'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+      {/* Dimension tabs + sort toggle */}
+      <div className="flex items-center gap-2 mb-5">
+        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide flex-1">
+          {DIMENSION_TABS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => handleDimensionChange(key)}
+              className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                dimension === key
+                  ? 'bg-teal-600 text-white'
+                  : 'bg-white border border-gray-200 text-gray-600 hover:border-teal-300 hover:text-teal-700'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => { setSortOrder((o) => o === 'desc' ? 'asc' : 'desc'); setPage(1) }}
+          title={sortOrder === 'desc' ? '当前：从高到低，点击切换为从低到高' : '当前：从低到高，点击切换为从高到低'}
+          className="shrink-0 px-3 py-2 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-600 hover:border-teal-300 hover:text-teal-700 transition-colors"
+        >
+          {sortOrder === 'desc' ? '↓ 从高到低' : '↑ 从低到高'}
+        </button>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3 mb-5">
+      <div className="flex gap-3 mb-5 flex-wrap">
         <AutocompleteInput
           options={provinceOptions}
           value={province}
           onChange={handleProvinceChange}
           placeholder="按省份筛选"
-          className="flex-1"
+          className="flex-1 min-w-[140px]"
         />
         <AutocompleteInput
           options={schoolNameOptions}
           value={schoolName}
           onChange={handleSchoolNameChange}
           placeholder="按院校名称筛选"
-          className="flex-1"
+          className="flex-1 min-w-[160px]"
+        />
+        <AutocompleteInput
+          options={departmentOptions}
+          value={department}
+          onChange={handleDepartmentChange}
+          placeholder={schoolCode ? '按院系筛选' : '先选院校再筛选院系'}
+          className="flex-1 min-w-[140px]"
         />
       </div>
 

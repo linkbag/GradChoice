@@ -268,6 +268,8 @@ export const analyticsApi = {
     dimension?: string
     school_code?: string
     province?: string
+    department?: string
+    sort_order?: 'asc' | 'desc'
     page?: number
     page_size?: number
     min_ratings?: number
