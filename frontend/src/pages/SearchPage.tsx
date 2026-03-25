@@ -12,6 +12,7 @@ export default function SearchPage() {
   const [activeQuery, setActiveQuery] = useState('') // last submitted search term
   const [province, setProvince] = useState('')
   const [schoolName, setSchoolName] = useState('')
+  const [department, setDepartment] = useState('')
   const [results, setResults] = useState<SupervisorSearchResult[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -20,6 +21,8 @@ export default function SearchPage() {
 
   const [provinceOptions, setProvinceOptions] = useState<string[]>([])
   const [schoolOptions, setSchoolOptions] = useState<string[]>([])
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([])
+  const [schoolCodeMap, setSchoolCodeMap] = useState<Record<string, string>>({})
 
   // Skip filter-change effect on first render (initial load uses mount effect)
   const isFirstRender = useRef(true)
@@ -31,8 +34,26 @@ export default function SearchPage() {
     ]).then(([provRes, schoolRes]) => {
       setProvinceOptions(provRes.data.map((p: ProvinceListItem) => p.province))
       setSchoolOptions(schoolRes.data.map((s: { school_name: string }) => s.school_name))
+      const map: Record<string, string> = {}
+      schoolRes.data.forEach((s: { school_name: string; school_code: string }) => {
+        map[s.school_name] = s.school_code
+      })
+      setSchoolCodeMap(map)
     }).catch(() => {})
   }, [])
+
+  // When school changes: fetch departments for that school, reset department
+  useEffect(() => {
+    setDepartment('')
+    const code = schoolCodeMap[schoolName]
+    if (!schoolName || !code) {
+      setDepartmentOptions([])
+      return
+    }
+    supervisorsApi.getDepartments(code)
+      .then((res) => setDepartmentOptions(res.data.map((d) => d.department)))
+      .catch(() => setDepartmentOptions([]))
+  }, [schoolName, schoolCodeMap])
 
   async function fetchData(
     pageNum: number,
@@ -40,6 +61,7 @@ export default function SearchPage() {
     q: string,
     prov: string,
     school: string,
+    dept: string,
   ) {
     if (append) setLoadingMore(true)
     else setLoading(true)
@@ -49,6 +71,7 @@ export default function SearchPage() {
         res = await supervisorsApi.search(q, {
           province: prov || undefined,
           school_name: school || undefined,
+          department: dept || undefined,
           page: pageNum,
           page_size: PAGE_SIZE,
         })
@@ -56,6 +79,7 @@ export default function SearchPage() {
         res = await supervisorsApi.list({
           province: prov || undefined,
           school_name: school || undefined,
+          department: dept || undefined,
           page: pageNum,
           page_size: PAGE_SIZE,
         })
@@ -80,29 +104,29 @@ export default function SearchPage() {
 
   // Initial load — show all supervisors (browse mode)
   useEffect(() => {
-    fetchData(1, false, '', '', '')
+    fetchData(1, false, '', '', '', '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Auto-reload when province or school filter changes (skip first render)
+  // Auto-reload when province, school, or department filter changes (skip first render)
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false
       return
     }
-    fetchData(1, false, activeQuery, province, schoolName)
+    fetchData(1, false, activeQuery, province, schoolName, department)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [province, schoolName])
+  }, [province, schoolName, department])
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     const q = query.trim()
     setActiveQuery(q)
-    fetchData(1, false, q, province, schoolName)
+    fetchData(1, false, q, province, schoolName, department)
   }
 
   function handleLoadMore() {
-    fetchData(page + 1, true, activeQuery, province, schoolName)
+    fetchData(page + 1, true, activeQuery, province, schoolName, department)
   }
 
   const hasMore = results.length < total
@@ -129,7 +153,7 @@ export default function SearchPage() {
         </button>
       </form>
 
-      {/* Filters — changing either triggers an auto-reload */}
+      {/* Filters — changing any triggers an auto-reload */}
       <div className="flex gap-3 mb-8">
         <AutocompleteInput
           options={provinceOptions}
@@ -143,6 +167,13 @@ export default function SearchPage() {
           value={schoolName}
           onChange={setSchoolName}
           placeholder="按院校名称筛选"
+          className="flex-1"
+        />
+        <AutocompleteInput
+          options={departmentOptions}
+          value={department}
+          onChange={setDepartment}
+          placeholder={zh.search.filter_department}
           className="flex-1"
         />
       </div>

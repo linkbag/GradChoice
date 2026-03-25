@@ -67,6 +67,28 @@ def list_school_names(db: Session = Depends(get_db)):
     return [{"school_name": r.school_name, "school_code": r.school_code} for r in rows]
 
 
+@router.get("/departments")
+def list_departments(
+    school_code: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """获取某院校的院系列表（去重，用于前端筛选下拉）"""
+    if not school_code:
+        return []
+    rows = (
+        db.query(Supervisor.department)
+        .filter(
+            Supervisor.school_code == school_code,
+            Supervisor.department.isnot(None),
+            Supervisor.department != "",
+        )
+        .distinct()
+        .order_by(Supervisor.department)
+        .all()
+    )
+    return [{"department": r.department} for r in rows]
+
+
 @router.get("/school/{school_code}")
 def list_school_supervisors(
     school_code: str,
@@ -123,6 +145,7 @@ def search_supervisors(
     province: Optional[str] = None,
     school_code: Optional[str] = None,
     school_name: Optional[str] = None,
+    department: Optional[str] = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -141,6 +164,8 @@ def search_supervisors(
         query = query.filter(Supervisor.school_code == school_code)
     if school_name:
         query = query.filter(Supervisor.school_name == school_name)
+    if department:
+        query = query.filter(Supervisor.department == department)
     total = query.count()
     items = query.order_by(Supervisor.name).offset((page - 1) * page_size).limit(page_size).all()
     return SupervisorListResponse(items=items, total=total, page=page, page_size=page_size)
