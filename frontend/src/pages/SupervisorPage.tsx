@@ -174,6 +174,10 @@ export default function SupervisorPage() {
   const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string } | null>(null)
   const [replyText, setReplyText] = useState('')
   const [submittingReply, setSubmittingReply] = useState(false)
+  const [replyError, setReplyError] = useState<string | null>(null)
+
+  // Vote feedback
+  const [voteError, setVoteError] = useState<string | null>(null)
 
   // Suggest-edit form state
   const [showEditForm, setShowEditForm] = useState(false)
@@ -272,6 +276,7 @@ export default function SupervisorPage() {
       return
     }
     setSubmittingReply(true)
+    setReplyError(null)
     try {
       await commentsApi.create({
         supervisor_id: id,
@@ -281,8 +286,9 @@ export default function SupervisorPage() {
       setReplyText('')
       setReplyingTo(null)
       await refreshComments()
-    } catch {
-      // silent — reply errors are non-critical
+    } catch (e: unknown) {
+      const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      setReplyError(detail || '回复失败，请重试')
     } finally {
       setSubmittingReply(false)
     }
@@ -293,11 +299,17 @@ export default function SupervisorPage() {
       navigate('/login')
       return
     }
+    setVoteError(null)
     try {
       await commentsApi.vote(commentId, voteType)
       await refreshComments()
-    } catch {
-      // silent
+    } catch (e: unknown) {
+      const status = (e as { response?: { status?: number } })?.response?.status
+      if (status === 403) {
+        setVoteError('请先完成邮箱验证后再投票')
+      } else {
+        setVoteError('投票失败，请重试')
+      }
     }
   }
 
@@ -586,6 +598,9 @@ export default function SupervisorPage() {
                 className="w-full border border-teal-200 rounded-lg px-3 py-2 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-teal-400 bg-white"
                 autoFocus
               />
+              {replyError && (
+                <p className="text-xs text-red-500 mt-1">{replyError}</p>
+              )}
               <div className="flex justify-end mt-2">
                 <button
                   onClick={handleSubmitReply}
@@ -596,6 +611,11 @@ export default function SupervisorPage() {
                 </button>
               </div>
             </div>
+          )}
+
+          {/* Vote error feedback */}
+          {voteError && (
+            <p className="text-xs text-red-500 mb-3">{voteError}</p>
           )}
 
           {/* Comments list */}

@@ -186,24 +186,34 @@ def vote_comment(
     ).first()
 
     if existing:
-        old = existing.vote_type
-        if old == VoteType.up:
-            comment.likes_count = max(0, comment.likes_count - 1)
+        if existing.vote_type == vote_in.vote_type:
+            # Same vote type: toggle off (cancel the vote)
+            if existing.vote_type == VoteType.up:
+                comment.likes_count = max(0, comment.likes_count - 1)
+            else:
+                comment.dislikes_count = max(0, comment.dislikes_count - 1)
+            db.delete(existing)
         else:
-            comment.dislikes_count = max(0, comment.dislikes_count - 1)
-        existing.vote_type = vote_in.vote_type
+            # Switch vote direction
+            if existing.vote_type == VoteType.up:
+                comment.likes_count = max(0, comment.likes_count - 1)
+            else:
+                comment.dislikes_count = max(0, comment.dislikes_count - 1)
+            existing.vote_type = vote_in.vote_type
+            if vote_in.vote_type == VoteType.up:
+                comment.likes_count = (comment.likes_count or 0) + 1
+            else:
+                comment.dislikes_count = (comment.dislikes_count or 0) + 1
     else:
-        existing = CommentVote(
+        db.add(CommentVote(
             user_id=current_user.id,
             comment_id=comment_id,
             vote_type=vote_in.vote_type,
-        )
-        db.add(existing)
-
-    if vote_in.vote_type == VoteType.up:
-        comment.likes_count = (comment.likes_count or 0) + 1
-    else:
-        comment.dislikes_count = (comment.dislikes_count or 0) + 1
+        ))
+        if vote_in.vote_type == VoteType.up:
+            comment.likes_count = (comment.likes_count or 0) + 1
+        else:
+            comment.dislikes_count = (comment.dislikes_count or 0) + 1
 
     db.commit()
 
