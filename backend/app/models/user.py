@@ -35,6 +35,7 @@ class User(Base):
     verification_code_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     student_id_file_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     email_notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    tos_agreed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

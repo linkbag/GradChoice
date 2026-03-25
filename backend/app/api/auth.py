@@ -33,6 +33,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         is_email_verified=is_edu,
         is_student_verified=is_edu,
         verification_type=VerificationType.email_edu if is_edu else VerificationType.none,
+        tos_agreed_at=datetime.now(timezone.utc) if user_in.tos_agreed else None,
     )
     db.add(user)
     db.commit()

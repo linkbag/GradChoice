@@ -19,6 +19,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    tos_agreed: bool = False
 
 
 class UserUpdate(BaseModel):

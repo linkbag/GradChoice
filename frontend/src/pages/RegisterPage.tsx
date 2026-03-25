@@ -9,6 +9,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [tosAgreed, setTosAgreed] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -21,9 +22,14 @@ export default function RegisterPage() {
       return
     }
 
+    if (!tosAgreed) {
+      setError('请先同意服务条款与免责声明')
+      return
+    }
+
     setLoading(true)
     try {
-      await authApi.register(email, password, displayName || undefined)
+      await authApi.register(email, password, displayName || undefined, true)
       const isEdu = email.endsWith('.edu.cn')
       navigate('/login', {
         state: {
@@ -107,6 +113,27 @@ export default function RegisterPage() {
               onChange={(e) => setDisplayName(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
+          </div>
+
+          <div className="flex items-start gap-2">
+            <input
+              id="tos-agree"
+              type="checkbox"
+              checked={tosAgreed}
+              onChange={(e) => setTosAgreed(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 shrink-0"
+            />
+            <label htmlFor="tos-agree" className="text-sm text-gray-600 leading-snug cursor-pointer">
+              我了解并同意本站{' '}
+              <Link
+                to="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-600 hover:underline"
+              >
+                服务条款与免责声明
+              </Link>
+            </label>
           </div>
 
           {error && (
