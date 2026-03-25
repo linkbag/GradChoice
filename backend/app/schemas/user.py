@@ -54,11 +54,25 @@ class UserMe(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class RegisterResponse(UserMe):
+    access_token: str
+    token_type: str = "bearer"
+
+
 class SendVerificationRequest(BaseModel):
     school_email: EmailStr
 
 
 class VerifySchoolEmailRequest(BaseModel):
+    code: str
+
+
+class SendSignupVerificationRequest(BaseModel):
+    email: EmailStr
+
+
+class VerifySignupCodeRequest(BaseModel):
+    email: EmailStr
     code: str
 
 

@@ -379,3 +379,8 @@ export interface Token {
   token_type: string
   refresh_token?: string
 }
+
+export interface RegisterResponse extends User {
+  access_token: string
+  token_type: string
+}

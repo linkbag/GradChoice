@@ -7,7 +7,11 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User, VerificationType
-from app.schemas.user import UserCreate, UserMe, Token, SendVerificationRequest, VerifySchoolEmailRequest
+from app.schemas.user import (
+    UserCreate, UserMe, Token, RegisterResponse,
+    SendVerificationRequest, VerifySchoolEmailRequest,
+    SendSignupVerificationRequest, VerifySignupCodeRequest,
+)
 from app.utils.auth import (
     hash_password, verify_password, create_access_token,
     get_current_user,
@@ -15,29 +19,88 @@ from app.utils.auth import (
 
 router = APIRouter(prefix="/auth", tags=["认证"])
 
+# In-memory store for signup email verifications
+# { email: { "code": str, "expires_at": datetime, "verified": bool } }
+_signup_verifications: dict = {}
 
-@router.post("/register", response_model=UserMe, status_code=status.HTTP_201_CREATED)
-def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    """注册新用户"""
-    existing = db.query(User).filter(User.email == user_in.email).first()
+
+@router.post("/send-signup-verification")
+def send_signup_verification(body: SendSignupVerificationRequest, db: Session = Depends(get_db)):
+    """发送注册邮箱验证码（本地开发：验证码打印到控制台）"""
+    email = body.email.lower()
+    existing = db.query(User).filter(User.email == email).first()
     if existing:
         raise HTTPException(status_code=400, detail="该邮箱已被注册")
 
-    # Auto-verify .edu.cn emails as student-verified
+    code = f"{random.randint(0, 999999):06d}"
+    _signup_verifications[email] = {
+        "code": code,
+        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=15),
+        "verified": False,
+    }
+
+    print(f"\n{'='*50}")
+    print(f"  注册验证码 for {email}: {code}")
+    print(f"  (15 分钟内有效)")
+    print(f"{'='*50}\n")
+
+    return {"message": "验证码已发送，请查看邮箱"}
+
+
+@router.post("/verify-signup-code")
+def verify_signup_code(body: VerifySignupCodeRequest):
+    """验证注册邮箱验证码"""
+    email = body.email.lower()
+    entry = _signup_verifications.get(email)
+    if not entry:
+        raise HTTPException(status_code=400, detail="请先发送验证码")
+    if datetime.now(timezone.utc) > entry["expires_at"]:
+        _signup_verifications.pop(email, None)
+        raise HTTPException(status_code=400, detail="验证码已过期，请重新发送")
+    if body.code != entry["code"]:
+        raise HTTPException(status_code=400, detail="验证码错误")
+
+    _signup_verifications[email]["verified"] = True
+    return {"message": "邮箱验证成功"}
+
+
+@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
+def register(user_in: UserCreate, db: Session = Depends(get_db)):
+    """注册新用户，返回用户信息及 JWT 令牌"""
+    email = user_in.email.lower()
+    existing = db.query(User).filter(User.email == email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="该邮箱已被注册")
+
+    # Check if email was pre-verified via signup verification flow
+    entry = _signup_verifications.get(email)
+    is_pre_verified = (
+        entry is not None
+        and entry.get("verified")
+        and datetime.now(timezone.utc) <= entry["expires_at"]
+    )
+
     is_edu = user_in.email.endswith(".edu.cn")
     user = User(
         email=user_in.email,
         hashed_password=hash_password(user_in.password),
         display_name=user_in.display_name,
         bio=user_in.bio,
-        is_email_verified=is_edu,
+        is_email_verified=is_edu or is_pre_verified,
         is_student_verified=is_edu,
         verification_type=VerificationType.email_edu if is_edu else VerificationType.none,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
-    return user
+
+    # Clean up verification entry
+    _signup_verifications.pop(email, None)
+
+    # Generate JWT for auto-login
+    token = create_access_token(user.id)
+    user_data = UserMe.model_validate(user)
+    return {**user_data.model_dump(), "access_token": token, "token_type": "bearer"}
 
 
 @router.post("/login", response_model=Token)

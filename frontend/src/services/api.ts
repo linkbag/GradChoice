@@ -15,6 +15,7 @@ import type {
   UnreadCountResponse,
   EditProposal,
   Token,
+  RegisterResponse,
   PaginatedResponse,
   SupervisorSearchResult,
   SupervisorSubmit,
@@ -69,7 +70,7 @@ http.interceptors.response.use(
 // ============================================================
 export const authApi = {
   register: (email: string, password: string, display_name?: string) =>
-    http.post<User>('/auth/register', { email, password, display_name }),
+    http.post<RegisterResponse>('/auth/register', { email, password, display_name }),
 
   login: (email: string, password: string) => {
     const form = new URLSearchParams()
@@ -79,6 +80,12 @@ export const authApi = {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     })
   },
+
+  sendSignupVerification: (email: string) =>
+    http.post<{ message: string }>('/auth/send-signup-verification', { email }),
+
+  verifySignupCode: (email: string, code: string) =>
+    http.post<{ message: string }>('/auth/verify-signup-code', { email, code }),
 
   verifyEmail: (token: string) =>
     http.post('/auth/verify-email', null, { params: { token } }),
