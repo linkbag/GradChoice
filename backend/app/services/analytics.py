@@ -419,7 +419,7 @@ def get_rankings(
     province: Optional[str] = None,
     page: int = 1,
     page_size: int = 20,
-    min_ratings: int = 3,
+    min_ratings: int = 1,
 ) -> RankingsResponse:
     score_expr = VALID_DIMENSIONS.get(dimension, VALID_DIMENSIONS["overall"])
 
