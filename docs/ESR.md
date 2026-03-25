@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-24 22:24*
+*Last updated: 2026-03-24 22:36*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -266,3 +266,8 @@ Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indi
 ### Update: 2026-03-24 22:24
 ### claude-gc-unverified-scoring — 2026-03-24 22:24
 Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
+
+### Update: 2026-03-24 22:36
+### Integration Review — 2026-03-24 22:36
+**Subteams:** claude-gc-rankings-dept-sort claude-gc-auto-login claude-gc-unverified-scoring claude-gc-add-supervisor-v2 claude-gc-tos
+**Result:** Merged all 5 feature branches (rankings-dept-sort, add-supervisor-v2, unverified-scoring, auto-login, tos). Resolved 6 merge conflicts: analytics service (department+user_status filters), RankingsPage (sort toggle+user_status toggle+deps), RegisterPage (3-step flow+ToS checkbox), api.ts (RegisterResponse+tos_agreed), App.tsx (both new pages). Fixed migration 0007 collision by renumbering tos to 0008. TypeScript, frontend build, and backend import all pass.
