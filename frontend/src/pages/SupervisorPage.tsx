@@ -48,7 +48,12 @@ function RatingCard({ rating }: { rating: Rating }) {
     <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-700">{rating.display_name || '匿名'}</span>
+          <Link
+            to={`/users/${rating.user_id}/profile`}
+            className="text-sm font-medium text-teal-600 hover:underline cursor-pointer"
+          >
+            {rating.display_name || '匿名'}
+          </Link>
           {rating.is_verified_rating && (
             <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full">
               {zh.supervisor.verified_badge}
@@ -90,9 +95,16 @@ function CommentCard({ comment, isLoggedIn, onVote, onReply }: CommentCardProps)
     <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-700">
-            {comment.author?.display_name || '匿名'}
-          </span>
+          {comment.author?.id ? (
+            <Link
+              to={`/users/${comment.author.id}/profile`}
+              className="text-sm font-medium text-teal-600 hover:underline cursor-pointer"
+            >
+              {comment.author.display_name || '匿名'}
+            </Link>
+          ) : (
+            <span className="text-sm font-medium text-gray-700">匿名</span>
+          )}
           {comment.author?.is_student_verified && (
             <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full">
               {zh.supervisor.verified_badge}
@@ -138,7 +150,16 @@ function CommentCard({ comment, isLoggedIn, onVote, onReply }: CommentCardProps)
         <div className="mt-3 space-y-2 pl-4 border-l-2 border-gray-200">
           {comment.replies.map((r) => (
             <div key={r.id} className="text-sm">
-              <span className="font-medium text-gray-600">{r.author?.display_name || '匿名'}</span>
+              {r.author?.id ? (
+                <Link
+                  to={`/users/${r.author.id}/profile`}
+                  className="font-medium text-teal-600 hover:underline cursor-pointer"
+                >
+                  {r.author.display_name || '匿名'}
+                </Link>
+              ) : (
+                <span className="font-medium text-gray-600">匿名</span>
+              )}
               {r.author?.is_student_verified && (
                 <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full mx-1">
                   {zh.supervisor.verified_badge}
