@@ -36,6 +36,9 @@ export default function Layout() {
               <Link to="/about" className="text-sm text-gray-600 hover:text-brand-600 transition-colors">
                 {zh.nav.about}
               </Link>
+              <Link to="/add-supervisor" className="text-sm text-gray-600 hover:text-brand-600 transition-colors">
+                {zh.nav.add_supervisor}
+              </Link>
 
               {isLoggedIn ? (
                 <>

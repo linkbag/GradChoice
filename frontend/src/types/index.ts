@@ -347,6 +347,20 @@ export interface OverviewStats {
 }
 
 // ============================================================
+// Supervisor submission
+// ============================================================
+
+export interface SupervisorSubmit {
+  name: string
+  school_name: string
+  department?: string
+  school_code?: string
+  province?: string
+  title?: string
+  website_url?: string
+}
+
+// ============================================================
 // Pagination wrapper
 // ============================================================
 export interface PaginatedResponse<T> {
