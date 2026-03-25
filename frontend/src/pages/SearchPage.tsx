@@ -178,11 +178,16 @@ export default function SearchPage() {
         />
       </div>
 
-      {/* Result count */}
+      {/* Result count + add supervisor link */}
       {total > 0 && !loading && (
-        <p className="text-sm text-gray-500 mb-4">
-          {activeQuery ? zh.search.result_count(total) : `共 ${total} 位导师`}
-        </p>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-gray-500">
+            {activeQuery ? zh.search.result_count(total) : `共 ${total} 位导师`}
+          </p>
+          <Link to="/add-supervisor" className="text-sm text-teal-600 hover:underline">
+            {zh.search.add_supervisor_link}
+          </Link>
+        </div>
       )}
 
       {/* Loading indicator */}
@@ -192,9 +197,14 @@ export default function SearchPage() {
 
       {/* Empty state */}
       {results.length === 0 && !loading && (
-        <p className="text-gray-400 text-center py-12">
-          {activeQuery ? zh.search.no_results : '暂无导师数据'}
-        </p>
+        <div className="text-center py-12">
+          <p className="text-gray-400 mb-3">
+            {activeQuery ? zh.search.no_results : '暂无导师数据'}
+          </p>
+          <Link to="/add-supervisor" className="text-sm text-teal-600 hover:underline">
+            {zh.search.add_supervisor_link}
+          </Link>
+        </div>
       )}
 
       {/* Results */}

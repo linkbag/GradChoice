@@ -11,6 +11,9 @@ export default function AddSupervisorPage() {
   const isLoggedIn = !!localStorage.getItem('access_token')
 
   const [schoolNames, setSchoolNames] = useState<string[]>([])
+  const [schoolCodeMap, setSchoolCodeMap] = useState<Record<string, string>>({})
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([])
+  const [tosAgreed, setTosAgreed] = useState(false)
   const [form, setForm] = useState({
     school_name: '',
     department: '',
@@ -24,8 +27,25 @@ export default function AddSupervisorPage() {
   useEffect(() => {
     supervisorsApi.getSchoolNames().then((res) => {
       setSchoolNames(res.data.map((s) => s.school_name))
+      const map: Record<string, string> = {}
+      res.data.forEach((s) => { map[s.school_name] = s.school_code })
+      setSchoolCodeMap(map)
     })
   }, [])
+
+  // Cascade: fetch departments when school changes, reset department field
+  useEffect(() => {
+    setForm((prev) => ({ ...prev, department: '' }))
+    const code = schoolCodeMap[form.school_name]
+    if (!form.school_name || !code) {
+      setDepartmentOptions([])
+      return
+    }
+    supervisorsApi.getDepartments(code)
+      .then((res) => setDepartmentOptions(res.data.map((d) => d.department)))
+      .catch(() => setDepartmentOptions([]))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.school_name, schoolCodeMap])
 
   function handleChange(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -34,7 +54,7 @@ export default function AddSupervisorPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.name.trim() || !form.school_name.trim()) return
+    if (!form.name.trim() || !form.school_name.trim() || !tosAgreed) return
 
     setSubmitting(true)
     setError(null)
@@ -48,8 +68,11 @@ export default function AddSupervisorPage() {
       })
       navigate(`/supervisor/${res.data.id}`)
     } catch (err: unknown) {
+      const httpStatus = (err as { response?: { status?: number } })?.response?.status
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      if (detail === '该导师可能已存在') {
+      if (httpStatus === 403) {
+        setError(zh.addSupervisor.error_unverified)
+      } else if (detail === '该导师可能已存在') {
         setError(zh.addSupervisor.error_duplicate)
       } else {
         setError(zh.addSupervisor.error_generic)
@@ -93,17 +116,16 @@ export default function AddSupervisorPage() {
           />
         </div>
 
-        {/* Department */}
+        {/* Department — cascades from school selection, free text also accepted */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             {zh.addSupervisor.field_department}
           </label>
-          <input
-            type="text"
+          <AutocompleteInput
+            options={departmentOptions}
             value={form.department}
-            onChange={(e) => handleChange('department', e.target.value)}
+            onChange={(v) => handleChange('department', v)}
             placeholder={zh.addSupervisor.field_department_placeholder}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
           />
         </div>
 
@@ -162,9 +184,25 @@ export default function AddSupervisorPage() {
           </p>
         )}
 
+        {/* ToS agreement */}
+        <label className="flex items-start gap-2 text-sm text-gray-600 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={tosAgreed}
+            onChange={(e) => setTosAgreed(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-300"
+          />
+          <span>
+            {zh.addSupervisor.tos_agreement}{' '}
+            <Link to="/terms" className="text-teal-600 underline hover:text-teal-800">
+              {zh.addSupervisor.tos_link}
+            </Link>
+          </span>
+        </label>
+
         <button
           type="submit"
-          disabled={submitting || !isLoggedIn || !form.name.trim() || !form.school_name.trim()}
+          disabled={submitting || !isLoggedIn || !form.name.trim() || !form.school_name.trim() || !tosAgreed}
           className="w-full bg-teal-600 text-white py-2.5 rounded-xl font-medium text-sm hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {submitting ? zh.addSupervisor.submitting : zh.addSupervisor.submit_btn}

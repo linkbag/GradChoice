@@ -64,6 +64,22 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Add Supervisor CTA */}
+      <section className="max-w-4xl mx-auto px-4 pt-10 pb-2">
+        <div className="flex items-center justify-between bg-teal-50 border border-teal-200 rounded-2xl px-6 py-5">
+          <div>
+            <h3 className="font-semibold text-teal-800 mb-1">{zh.home.add_cta_title}</h3>
+            <p className="text-sm text-teal-700">{zh.home.add_cta_desc}</p>
+          </div>
+          <Link
+            to="/add-supervisor"
+            className="ml-6 shrink-0 bg-teal-600 text-white text-sm font-medium px-5 py-2 rounded-full hover:bg-teal-700 transition-colors"
+          >
+            {zh.home.add_cta_btn}
+          </Link>
+        </div>
+      </section>
+
       {/* Score Disclaimer */}
       <section className="max-w-4xl mx-auto px-4 pt-8 pb-2">
         <div className="flex gap-3 items-start bg-sky-50 border border-sky-200 rounded-2xl px-5 py-4">

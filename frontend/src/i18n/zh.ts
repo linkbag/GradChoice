@@ -23,6 +23,9 @@ export const zh = {
       { title: '公开透明', desc: '所有评分数据公开可查，算法透明' },
       { title: '免费开源', desc: '永久免费，代码开源，接受公众监督' },
     ],
+    add_cta_title: '找不到您的导师？',
+    add_cta_desc: '帮助我们完善数据库，让更多学生受益',
+    add_cta_btn: '添加导师',
     score_disclaimer_title: '关于历史评分数据',
     score_disclaimer_body: '当前部分评分和评论来源于历史平台数据（如导师评价网、研控等），其评分体系与本站不完全一致。部分历史评价可能缺少子维度评分（如学术水平、学生培养等）。新提交的评价将使用研选完整的六维度评分系统。',
   },
@@ -32,6 +35,7 @@ export const zh = {
     filter_school: '选择院校',
     filter_department: '按学院/院系筛选',
     no_results: '未找到相关导师',
+    add_supervisor_link: '找不到导师？添加新导师',
     result_count: (n: number) => `共找到 ${n} 位导师`,
   },
   supervisor: {
@@ -86,7 +90,7 @@ export const zh = {
     guidance_duplicate: '在添加新院校或导师之前请务必🙏 仔细确认此院校（导师）不存在于下拉菜单中，避免重复🔍',
     field_school: '院校/机构名称',
     field_school_placeholder: '请选择或输入院校名称',
-    field_department: '院系/课题组',
+    field_department: '院系',
     field_department_placeholder: '例如：计算机科学与技术学院',
     field_name: '导师姓名',
     field_name_placeholder: '请输入导师姓名',
@@ -99,7 +103,10 @@ export const zh = {
     success: '导师已添加成功！',
     error_duplicate: '该导师可能已存在，请先搜索确认',
     error_generic: '提交失败，请稍后重试',
+    error_unverified: '请先验证您的邮箱后再提交',
     login_required: '请先登录后再添加导师',
+    tos_agreement: '我了解并同意本站',
+    tos_link: '服务条款与免责声明',
   },
 }
 
