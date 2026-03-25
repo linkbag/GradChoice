@@ -13,6 +13,7 @@ import RankingsPage from '@/pages/RankingsPage'
 import SchoolAnalyticsPage from '@/pages/SchoolAnalyticsPage'
 import RatePage from '@/pages/RatePage'
 import PublicProfilePage from '@/pages/PublicProfilePage'
+import AddSupervisorPage from '@/pages/AddSupervisorPage'
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="inbox" element={<InboxPage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="users/:userId/profile" element={<PublicProfilePage />} />
+          <Route path="add-supervisor" element={<AddSupervisorPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

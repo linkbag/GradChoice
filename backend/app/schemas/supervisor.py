@@ -21,6 +21,17 @@ class SupervisorCreate(SupervisorBase):
     pass
 
 
+class SupervisorSubmit(BaseModel):
+    """User-submitted new supervisor — minimal required fields, rest auto-filled."""
+    name: str
+    school_name: str
+    department: Optional[str] = ""
+    school_code: Optional[str] = None
+    province: Optional[str] = None
+    title: Optional[str] = None
+    website_url: Optional[str] = None
+
+
 class SupervisorUpdate(BaseModel):
     title: Optional[str] = None
     affiliated_unit: Optional[str] = None

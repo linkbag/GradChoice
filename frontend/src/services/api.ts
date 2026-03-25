@@ -17,6 +17,8 @@ import type {
   Token,
   PaginatedResponse,
   SupervisorSearchResult,
+  SupervisorSubmit,
+  Supervisor,
   SchoolListResponse,
   ProvinceListItem,
   SchoolSupervisorsResponse,
@@ -167,6 +169,9 @@ export const supervisorsApi = {
 
   getDepartments: (school_code: string) =>
     http.get<{ department: string }[]>('/supervisors/departments', { params: { school_code } }),
+
+  submit: (data: SupervisorSubmit) =>
+    http.post<Supervisor>('/supervisors/submit', data),
 }
 
 // ============================================================
