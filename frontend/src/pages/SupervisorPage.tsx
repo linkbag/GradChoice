@@ -352,6 +352,11 @@ export default function SupervisorPage() {
               )}
             </div>
 
+            <div className="flex items-start gap-1.5 text-xs text-sky-600 bg-sky-50 border border-sky-100 rounded-lg px-3 py-2 mb-4">
+              <span className="shrink-0 mt-px">ℹ</span>
+              <span>{zh.supervisor.score_disclaimer}</span>
+            </div>
+
             {hasScores ? (
               <>
                 <div className="flex flex-wrap items-end gap-4 mb-6">
