@@ -64,6 +64,17 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Score Disclaimer */}
+      <section className="max-w-4xl mx-auto px-4 pt-8 pb-2">
+        <div className="flex gap-3 items-start bg-sky-50 border border-sky-200 rounded-2xl px-5 py-4">
+          <span className="text-sky-500 text-lg leading-none mt-0.5">ℹ</span>
+          <div>
+            <p className="text-sm font-semibold text-sky-800 mb-1">{zh.home.score_disclaimer_title}</p>
+            <p className="text-sm text-sky-700 leading-relaxed">{zh.home.score_disclaimer_body}</p>
+          </div>
+        </div>
+      </section>
+
       {/* Attribution */}
       <section className="max-w-4xl mx-auto px-4 py-12">
         <div className="bg-white rounded-2xl border border-gray-100 p-8">
