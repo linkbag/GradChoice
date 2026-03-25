@@ -22,6 +22,8 @@ export const zh = {
       { title: '公开透明', desc: '所有评分数据公开可查，算法透明' },
       { title: '免费开源', desc: '永久免费，代码开源，接受公众监督' },
     ],
+    score_disclaimer_title: '关于历史评分数据',
+    score_disclaimer_body: '当前部分评分和评论来源于历史平台数据（如导师评价网、研控等），其评分体系与本站不完全一致。部分历史评价可能缺少子维度评分（如学术水平、学生培养等）。新提交的评价将使用研选完整的六维度评分系统。',
   },
   search: {
     placeholder: '搜索导师姓名、院校或院系…',
@@ -44,6 +46,7 @@ export const zh = {
     },
     write_review: '写评价',
     no_ratings: '暂无评价，成为第一个评价者',
+    score_disclaimer: '部分评分来自历史数据，可能缺少子维度打分。新评价将使用完整评分系统。',
   },
   auth: {
     login_title: '登录',
