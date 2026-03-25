@@ -146,7 +146,7 @@ export const supervisorsApi = {
     sort_by?: string
   }) => http.get<PaginatedResponse<SupervisorSearchResult>>('/supervisors', { params }),
 
-  search: (q: string, params?: { province?: string; school_code?: string; school_name?: string; page?: number; page_size?: number }) =>
+  search: (q: string, params?: { province?: string; school_code?: string; school_name?: string; department?: string; page?: number; page_size?: number }) =>
     http.get<PaginatedResponse<SupervisorSearchResult>>('/supervisors/search', { params: { q, ...params } }),
 
   get: (id: string) => http.get<SupervisorDetail>(`/supervisors/${id}`),
@@ -164,6 +164,9 @@ export const supervisorsApi = {
 
   getSchoolSupervisors: (school_code: string) =>
     http.get<SchoolSupervisorsResponse>(`/supervisors/school/${school_code}`),
+
+  getDepartments: (school_code: string) =>
+    http.get<{ department: string }[]>('/supervisors/departments', { params: { school_code } }),
 }
 
 // ============================================================
