@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-24 21:27*
+*Last updated: 2026-03-24 21:29*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -225,4 +225,8 @@ Two issues found and fixed: (1) unused func import removed from sqlalchemy impor
 
 ### Update: 2026-03-24 21:27
 ### claude-gc-rankings-real — 2026-03-24 21:27
+Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
+
+### Update: 2026-03-24 21:29
+### claude-gc-score-disclaimer — 2026-03-24 21:29
 Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
