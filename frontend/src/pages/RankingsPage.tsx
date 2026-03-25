@@ -53,7 +53,7 @@ export default function RankingsPage() {
         school_code: schoolCode || undefined,
         page,
         page_size: PAGE_SIZE,
-        min_ratings: 3,
+        min_ratings: 1,
       })
       .then((res) => {
         setItems(res.data.items)
@@ -99,7 +99,7 @@ export default function RankingsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">导师排行榜</h1>
         <p className="text-sm text-gray-500 mt-1">
-          仅展示获得至少 3 条评价的导师 · 数据实时更新
+          仅展示获得至少 1 条评价的导师 · 数据实时更新
         </p>
       </div>
 
