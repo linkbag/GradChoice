@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-24 22:19*
+*Last updated: 2026-03-24 22:20*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -254,3 +254,7 @@ Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indi
 ### Update: 2026-03-24 22:19
 ### claude-gc-add-supervisor-v2 — 2026-03-24 22:19
 Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
+
+### Update: 2026-03-24 22:20
+### claude-gc-rankings-dept-sort — 2026-03-24 22:20
+All changes are correct and secure. SQL injection safe (sort_dir always ASC/DESC, parameterized department filter). State management correct (department resets on school change). Dependency array complete. tsc + vite build both pass.
