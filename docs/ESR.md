@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-24 23:04*
+*Last updated: 2026-03-25 19:24*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -284,3 +284,7 @@ Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indi
 ### Integration Review — 2026-03-24 23:04
 **Subteams:** claude-gc-add-supervisor-fixes claude-gc-comment-score-popup
 **Result:** Merged both feature branches (gc-add-supervisor-fixes, gc-comment-score-popup) cleanly. No cross-team conflicts — subteams modified separate pages with only zh.ts as shared file (auto-merged). TypeScript, frontend build, and backend import all pass.
+
+### Update: 2026-03-25 19:24
+### claude-gc-ui-tweaks — 2026-03-25 19:24
+One bug fixed: CJK regex used Python unicode escapes (locale-dependent under postgres:16-alpine C locale); switched to PostgreSQL \x{4e00} code-point syntax which is locale-independent. Layout.tsx and RadarChart.tsx changes are correct.
