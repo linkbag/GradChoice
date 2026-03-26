@@ -21,6 +21,9 @@ from pathlib import Path
 from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
 
+sys.path.insert(0, str(Path(__file__).parent))
+from app.utils.name_filter import NameFilter
+
 API_BASE = "https://rms-api.realmofresearch.com"
 OUT_DIR = Path(__file__).parent.parent / "data" / "raw" / "yankong"
 DELAY = 1.0  # seconds between requests
@@ -71,8 +74,10 @@ def scrape():
     with open(OUT_DIR / "index.json", 'w', encoding='utf-8') as f:
         json.dump(index, f, ensure_ascii=False, indent=2)
 
-    # Count professors
+    # Count professors (filter names through blocklist)
+    name_filter = NameFilter()
     total_profs = 0
+    total_filtered = 0
     professor_list = []
     for uni, depts in index.items():
         if not isinstance(depts, dict):
@@ -81,10 +86,14 @@ def scrape():
             if not isinstance(names, list):
                 continue
             for name in names:
-                professor_list.append((uni, dept, name))
+                cleaned, reason = name_filter.clean_name(name)
+                if cleaned is None:
+                    total_filtered += 1
+                    continue
+                professor_list.append((uni, dept, cleaned))
                 total_profs += 1
 
-    print(f"  共 {len(index)} 所大学, {total_profs} 位教授")
+    print(f"  共 {len(index)} 所大学, {total_profs} 位教授（过滤 {total_filtered} 个假名）")
 
     # Step 3: Check for existing progress (resume support)
     reviews_file = OUT_DIR / "reviews.json"

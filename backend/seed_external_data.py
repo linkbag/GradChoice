@@ -37,6 +37,7 @@ from app.models.user import User, VerificationType
 from app.models.supervisor import Supervisor
 from app.models.rating import Rating
 from app.models.comment import Comment
+from app.utils.name_filter import NameFilter
 
 try:
     from passlib.context import CryptContext
@@ -502,6 +503,9 @@ def seed_data(records: list[dict], db_url: str, dry_run: bool = False, reset: bo
         existing_sup_keys.add((row[0], row[1], row[2]))
     print(f"  已有导师唯一键: {len(existing_sup_keys)}")
 
+    # Initialize name filter
+    name_filter = NameFilter()
+
     # Process records
     stats = Counter()
     ratings_batch = []
@@ -512,7 +516,14 @@ def seed_data(records: list[dict], db_url: str, dry_run: bool = False, reset: bo
 
     for i, rec in enumerate(records):
         school = rec['school']
-        name = rec['supervisor_name']
+        raw_name = rec['supervisor_name']
+
+        # Filter name through blocklist — skip junk entries
+        cleaned_name, _reason = name_filter.clean_name(raw_name)
+        if cleaned_name is None:
+            stats['filtered_names'] += 1
+            continue
+        name = cleaned_name
         key = (school, name)
 
         # Try to find supervisor in our DB
@@ -624,6 +635,7 @@ def seed_data(records: list[dict], db_url: str, dry_run: bool = False, reset: bo
     # Summary before inserting
     unique_new_sups = len(new_supervisors)
     print(f"\n统计:")
+    print(f"  过滤假名/垃圾: {stats['filtered_names']} 条")
     print(f"  匹配到已有导师: {stats['matched_supervisors']} 次")
     print(f"  需要新建导师: {unique_new_sups} 位")
     print(f"  评论: {stats['comments_created']} 条")

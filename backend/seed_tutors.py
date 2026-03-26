@@ -29,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from app.models.supervisor import Supervisor
 from app.database import Base
+from app.utils.name_filter import NameFilter
 
 DEFAULT_XLSX = "/mnt/d/Startup projects/cn-grad-units/MASTER_ALL_90HEI_TUTORS.xlsx"
 DEFAULT_SHEET = "全部导师(90校)"
@@ -112,6 +113,11 @@ def seed(xlsx_path: str, sheet: str, db_url: str, dry_run: bool = False):
 
     print(f"  有效数据: {len(df)} 行")
 
+    # Initialize name filter
+    name_filter = NameFilter()
+    total_blocked = 0
+    total_titles_stripped = 0
+
     # Connect to DB
     engine = create_engine(db_url, pool_pre_ping=True)
     Base.metadata.create_all(engine)
@@ -157,7 +163,17 @@ def seed(xlsx_path: str, sheet: str, db_url: str, dry_run: bool = False):
         batch.clear()
 
     for _, row in df.iterrows():
-        key = (row["school_code"] or "", row["name"], row.get("department") or "")
+        raw_name = row["name"]
+
+        # Filter name through blocklist before any DB operations
+        cleaned_name, reason = name_filter.clean_name(raw_name)
+        if cleaned_name is None:
+            total_blocked += 1
+            continue
+        if cleaned_name != raw_name:
+            total_titles_stripped += 1
+
+        key = (row["school_code"] or "", cleaned_name, row.get("department") or "")
         if key in existing:
             total_skipped += 1
             continue
@@ -168,7 +184,7 @@ def seed(xlsx_path: str, sheet: str, db_url: str, dry_run: bool = False):
             "school_code": clean(row.get("school_code")) or "",
             "school_name": clean(row.get("school_name")) or "",
             "province": clean(row.get("province")) or "",
-            "name": row["name"],
+            "name": cleaned_name,
             "department": clean(row.get("department")) or "",
             "title": clean(row.get("title")),
             "affiliated_unit": clean(row.get("affiliated_unit")),
@@ -190,6 +206,8 @@ def seed(xlsx_path: str, sheet: str, db_url: str, dry_run: bool = False):
 
     print(f"\n{'[模拟运行] ' if dry_run else ''}完成！")
     print(f"总计新增: {total_inserted}")
+    print(f"总计过滤（假名/垃圾）: {total_blocked}")
+    print(f"总计去除职称后缀: {total_titles_stripped}")
     print(f"总计跳过（重复）: {total_skipped}")
     print(f"\n各院校摘要（新增≥1条，前30所）:")
     for school, count in sorted(per_school.items(), key=lambda x: -x[1])[:30]:
