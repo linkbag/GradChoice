@@ -223,7 +223,7 @@ def search_supervisors(
         query = query.filter(Supervisor.department == department)
     total = query.count()
     chinese_first = case(
-        (func.substr(Supervisor.name, 1, 1).op('~')('^[\u4e00-\u9fff]'), 0),
+        (func.substr(Supervisor.name, 1, 1).op('~')('^[\\x{4e00}-\\x{9fff}]'), 0),
         else_=1
     )
     items = query.order_by(chinese_first, Supervisor.name).offset((page - 1) * page_size).limit(page_size).all()
