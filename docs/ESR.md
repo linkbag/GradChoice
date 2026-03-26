@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-25 19:28*
+*Last updated: 2026-03-25 21:41*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -293,3 +293,7 @@ One bug fixed: CJK regex used Python unicode escapes (locale-dependent under pos
 ### Integration Review — 2026-03-25 19:28
 **Subteams:** claude-gc-ui-tweaks
 **Result:** Single subteam merge (gc-ui-tweaks). No cross-team conflicts. Merge clean, TypeScript passes. 3 source files changed: navbar reorder + remove about link, radar chart label swap, CJK-first sort in search endpoint.
+
+### Update: 2026-03-25 21:41
+### claude-gc-data-cleanup — 2026-03-25 21:41
+Review passed — reviewer fixed issues (commit: 1021ee2 fix: apply CJK-first sort to default supervisor list endpoint (not just search))
