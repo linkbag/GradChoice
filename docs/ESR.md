@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-25 23:18*
+*Last updated: 2026-03-25 23:22*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -315,3 +315,8 @@ Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indi
 ### Update: 2026-03-25 23:18
 ### claude-gc-rescrape — 2026-03-25 23:18
 Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
+
+### Update: 2026-03-25 23:22
+### Integration Review — 2026-03-25 23:22
+**Subteams:** claude-gc-rescrape
+**Result:** Single subteam merge (gc-rescrape). Clean merge, no conflicts. 16/16 tests pass. rescrape.py correctly imports NameFilter from already-merged gc-blocklist-guard. Duplicated surname/filtering constants in rescrape.py are acceptable (HTML extraction heuristics vs authoritative blocklist filter). DB insert uses ON CONFLICT DO NOTHING. No cross-team issues.
