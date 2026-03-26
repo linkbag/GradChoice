@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-25 22:10*
+*Last updated: 2026-03-25 22:14*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -306,3 +306,8 @@ Review passed — reviewer fixed issues (commit: 1021ee2 fix: apply CJK-first so
 ### Update: 2026-03-25 22:10
 ### claude-gc-blocklist-guard — 2026-03-25 22:10
 Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
+
+### Update: 2026-03-25 22:14
+### Integration Review — 2026-03-25 22:14
+**Subteams:** claude-gc-blocklist-guard
+**Result:** Single subteam merge (gc-blocklist-guard). Clean merge, no conflicts. 16/16 tests pass. New NameFilter module at backend/app/utils/name_filter.py integrated into all 4 import paths (seed_tutors, seed_external_data, scrape_yankong, supervisors API). 4 real names correctly removed from blocklist.json. No cross-team issues.
