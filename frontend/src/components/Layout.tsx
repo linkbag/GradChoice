@@ -30,14 +30,11 @@ export default function Layout() {
               <Link to="/search" className="text-sm text-gray-600 hover:text-brand-600 transition-colors">
                 {zh.nav.search}
               </Link>
-              <Link to="/rankings" className="text-sm text-gray-600 hover:text-brand-600 transition-colors">
-                {zh.nav.rankings}
-              </Link>
-              <Link to="/about" className="text-sm text-gray-600 hover:text-brand-600 transition-colors">
-                {zh.nav.about}
-              </Link>
               <Link to="/add-supervisor" className="text-sm text-gray-600 hover:text-brand-600 transition-colors">
                 {zh.nav.add_supervisor}
+              </Link>
+              <Link to="/rankings" className="text-sm text-gray-600 hover:text-brand-600 transition-colors">
+                {zh.nav.rankings}
               </Link>
 
               {isLoggedIn ? (

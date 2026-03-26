@@ -19,8 +19,8 @@ const LABELS: { key: keyof ScoreBreakdown; label: string }[] = [
   { key: 'avg_academic', label: '学术水平' },
   { key: 'avg_mentoring', label: '学生培养' },
   { key: 'avg_wellbeing', label: '身心健康' },
-  { key: 'avg_stipend', label: '生活补助' },
   { key: 'avg_resources', label: '科研资源' },
+  { key: 'avg_stipend', label: '生活补助' },
   { key: 'avg_ethics', label: '学术道德' },
 ]
 

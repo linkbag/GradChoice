@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, or_
+from sqlalchemy import case, func, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -222,7 +222,11 @@ def search_supervisors(
     if department:
         query = query.filter(Supervisor.department == department)
     total = query.count()
-    items = query.order_by(Supervisor.name).offset((page - 1) * page_size).limit(page_size).all()
+    chinese_first = case(
+        (func.substr(Supervisor.name, 1, 1).op('~')('^[\u4e00-\u9fff]'), 0),
+        else_=1
+    )
+    items = query.order_by(chinese_first, Supervisor.name).offset((page - 1) * page_size).limit(page_size).all()
     return SupervisorListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
