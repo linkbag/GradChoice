@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import case, func, or_
+from sqlalchemy import and_, case, func, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -222,10 +222,9 @@ def search_supervisors(
     if department:
         query = query.filter(Supervisor.department == department)
     total = query.count()
-    chinese_first = case(
-        (func.substr(Supervisor.name, 1, 1).op('~')('^[\\x{4e00}-\\x{9fff}]'), 0),
-        else_=1
-    )
+    first_char_code = func.ascii(func.substr(Supervisor.name, 1, 1))
+    is_cjk = and_(first_char_code >= 0x4E00, first_char_code <= 0x9FFF)
+    chinese_first = case((is_cjk, 0), else_=1)
     items = query.order_by(chinese_first, Supervisor.name).offset((page - 1) * page_size).limit(page_size).all()
     return SupervisorListResponse(items=items, total=total, page=page, page_size=page_size)
 
@@ -257,7 +256,10 @@ def list_supervisors(
     elif sort_by == "rating_count":
         q = q.order_by(Supervisor.rating_count.desc(), Supervisor.name)
     else:
-        q = q.order_by(Supervisor.school_name, Supervisor.name)
+        first_char_code = func.ascii(func.substr(Supervisor.name, 1, 1))
+        is_cjk = and_(first_char_code >= 0x4E00, first_char_code <= 0x9FFF)
+        chinese_first = case((is_cjk, 0), else_=1)
+        q = q.order_by(chinese_first, Supervisor.school_name, Supervisor.name)
     items = q.offset((page - 1) * page_size).limit(page_size).all()
     return SupervisorListResponse(items=items, total=total, page=page, page_size=page_size)
 
