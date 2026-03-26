@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-25 19:24*
+*Last updated: 2026-03-25 19:28*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -288,3 +288,8 @@ Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indi
 ### Update: 2026-03-25 19:24
 ### claude-gc-ui-tweaks — 2026-03-25 19:24
 One bug fixed: CJK regex used Python unicode escapes (locale-dependent under postgres:16-alpine C locale); switched to PostgreSQL \x{4e00} code-point syntax which is locale-independent. Layout.tsx and RadarChart.tsx changes are correct.
+
+### Update: 2026-03-25 19:28
+### Integration Review — 2026-03-25 19:28
+**Subteams:** claude-gc-ui-tweaks
+**Result:** Single subteam merge (gc-ui-tweaks). No cross-team conflicts. Merge clean, TypeScript passes. 3 source files changed: navbar reorder + remove about link, radar chart label swap, CJK-first sort in search endpoint.
