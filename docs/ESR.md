@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-25 21:44*
+*Last updated: 2026-03-25 22:10*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -302,3 +302,7 @@ Review passed — reviewer fixed issues (commit: 1021ee2 fix: apply CJK-first so
 ### Integration Review — 2026-03-25 21:44
 **Subteams:** claude-gc-data-cleanup
 **Result:** Single subteam merge (gc-data-cleanup). Resolved supervisors.py divergence by keeping main CJK-first sort fix over branch regression. 5 new data/ files merged: blocklist.json (1010 names + 6 regex), build_blocklist.py, db_cleanup.py, clean_xlsx.py, rescrape_pairs.json (186 pairs). Backend imports pass, all data files validated.
+
+### Update: 2026-03-25 22:10
+### claude-gc-blocklist-guard — 2026-03-25 22:10
+Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
