@@ -9,6 +9,7 @@ from app.models.supervisor import Supervisor
 from app.models.rating import Rating
 from app.schemas.supervisor import SupervisorResponse, SupervisorListResponse, SupervisorSearchResult, SupervisorSubmit
 from app.utils.auth import get_current_verified_user
+from app.utils.name_filter import get_name_filter
 
 router = APIRouter(prefix="/supervisors", tags=["导师"])
 
@@ -43,9 +44,19 @@ def submit_supervisor(
 
     dept = data.department or ""
 
+    # Filter name through blocklist before any DB operations
+    cleaned_name, reason = get_name_filter().clean_name(data.name)
+    if cleaned_name is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"名称 '{data.name}' 被系统过滤: {reason}",
+        )
+    # Use cleaned name (title suffix stripped if applicable) going forward
+    supervisor_name = cleaned_name
+
     # Duplicate check: same name + school_name + department
     dup = db.query(Supervisor).filter(
-        Supervisor.name == data.name,
+        Supervisor.name == supervisor_name,
         Supervisor.school_name == data.school_name,
         Supervisor.department == dept,
     ).first()
@@ -53,7 +64,7 @@ def submit_supervisor(
         raise HTTPException(status_code=400, detail="该导师可能已存在")
 
     supervisor = Supervisor(
-        name=data.name,
+        name=supervisor_name,
         school_name=data.school_name,
         school_code=school_code,
         province=province,
