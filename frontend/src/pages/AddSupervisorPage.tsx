@@ -68,11 +68,8 @@ export default function AddSupervisorPage() {
       })
       navigate(`/supervisor/${res.data.id}`)
     } catch (err: unknown) {
-      const httpStatus = (err as { response?: { status?: number } })?.response?.status
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      if (httpStatus === 403) {
-        setError(zh.addSupervisor.error_unverified)
-      } else if (detail === '该导师可能已存在') {
+      if (detail === '该导师可能已存在') {
         setError(zh.addSupervisor.error_duplicate)
       } else {
         setError(zh.addSupervisor.error_generic)

@@ -7,7 +7,7 @@ from app.models.chat import Chat, ChatMessage
 from app.schemas.chat import (
     ChatCreate, ChatResponse, ChatMessageCreate, ChatMessageResponse, ChatMessagesResponse
 )
-from app.utils.auth import get_current_verified_user
+from app.utils.auth import get_current_user
 
 router = APIRouter(prefix="/chats", tags=["私信"])
 
@@ -28,7 +28,7 @@ def _chat_response(chat: Chat, user_id: uuid.UUID, db: Session) -> ChatResponse:
 
 
 @router.get("/unread-count")
-def get_unread_count(current_user=Depends(get_current_verified_user), db: Session = Depends(get_db)):
+def get_unread_count(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     """获取未读消息总数"""
     # Get all chats where user is participant
     chat_ids = db.query(Chat.id).filter(
@@ -45,7 +45,7 @@ def get_unread_count(current_user=Depends(get_current_verified_user), db: Sessio
 @router.post("", response_model=ChatResponse, status_code=201)
 def create_chat(
     chat_in: ChatCreate,
-    current_user=Depends(get_current_verified_user),
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """发起私信会话"""
@@ -93,7 +93,7 @@ def create_chat(
 
 
 @router.get("", response_model=list[ChatResponse])
-def list_chats(current_user=Depends(get_current_verified_user), db: Session = Depends(get_db)):
+def list_chats(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     """获取当前用户的所有会话"""
     chats = db.query(Chat).filter(
         (Chat.initiator_id == current_user.id) | (Chat.recipient_id == current_user.id)
@@ -106,7 +106,7 @@ def get_messages(
     chat_id: uuid.UUID,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
-    current_user=Depends(get_current_verified_user),
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """获取会话消息历史"""
@@ -134,7 +134,7 @@ def get_messages(
 def send_message(
     chat_id: uuid.UUID,
     message_in: ChatMessageCreate,
-    current_user=Depends(get_current_verified_user),
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """发送消息"""

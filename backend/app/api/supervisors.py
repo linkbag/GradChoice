@@ -8,7 +8,7 @@ from app.database import get_db
 from app.models.supervisor import Supervisor
 from app.models.rating import Rating
 from app.schemas.supervisor import SupervisorResponse, SupervisorListResponse, SupervisorSearchResult, SupervisorSubmit
-from app.utils.auth import get_current_verified_user
+from app.utils.auth import get_current_user
 from app.utils.name_filter import get_name_filter
 
 router = APIRouter(prefix="/supervisors", tags=["导师"])
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/supervisors", tags=["导师"])
 @router.post("/submit", response_model=SupervisorResponse, status_code=201)
 def submit_supervisor(
     data: SupervisorSubmit,
-    current_user=Depends(get_current_verified_user),
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """用户提交新导师（直接入库，无审核队列）"""
