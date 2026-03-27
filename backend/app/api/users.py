@@ -32,6 +32,18 @@ def update_me(
     return current_user
 
 
+@router.patch("/me/notifications", response_model=UserMe)
+def update_notifications(
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """切换当前用户的邮件通知开关"""
+    current_user.email_notifications_enabled = not current_user.email_notifications_enabled
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
 @router.get("/me/ratings", response_model=RatingListResponse)
 def get_my_ratings(
     page: int = Query(1, ge=1),
