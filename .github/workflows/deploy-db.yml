@@ -54,4 +54,10 @@ jobs:
           pip install -r backend/requirements.txt
           cd backend
           DATABASE_URL="${{ secrets.DATABASE_URL }}" SECRET_KEY="ci-only" alembic upgrade head
-          echo "✅ Migrations complete"
+
+          # Safety net: ensure is_anonymous column exists regardless of Alembic state
+          psql "${DATABASE_URL}" -c "
+            ALTER TABLE comments ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN NOT NULL DEFAULT false;
+            UPDATE comments SET is_anonymous = false WHERE is_anonymous IS NULL;
+          "
+          echo "✅ Migrations + safety checks complete"
