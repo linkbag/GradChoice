@@ -32,6 +32,7 @@ jobs:
         working-directory: backend
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SECRET_KEY: "ci-migration-only-not-used-for-auth"
         run: alembic upgrade head
 
       - name: Seed data
