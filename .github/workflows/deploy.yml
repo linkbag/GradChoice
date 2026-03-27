@@ -188,7 +188,7 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         env:
-          VITE_API_URL: ${{ needs.deploy-backend.outputs.api_url }}
+          VITE_API_URL: ${{ secrets.API_URL }}
         run: npm run build
 
       - name: Create Cloudflare Pages project (if needed)
