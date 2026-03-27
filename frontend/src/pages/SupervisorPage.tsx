@@ -756,7 +756,7 @@ export default function SupervisorPage() {
               <textarea
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value.slice(0, COMMENT_MAX_LENGTH))}
-                placeholder="分享你对该导师的了解或问题…"
+                placeholder="建议从以下方面分享：与导师关系（如导师口头禅）· 学术水平 · 学生培养 · 身心健康（工作时间、师生关系）· 科研资源 · 生活补助 · 学术道德"
                 rows={3}
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-teal-400 placeholder-gray-400"
               />

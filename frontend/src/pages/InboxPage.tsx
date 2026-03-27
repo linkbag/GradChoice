@@ -24,6 +24,7 @@ export default function InboxPage() {
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMsg, setNewMsg] = useState('')
+  const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -65,13 +66,16 @@ export default function InboxPage() {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedChat || !newMsg.trim()) return
+    if (!selectedChat || !newMsg.trim() || sending) return
+    setSending(true)
     try {
       await chatsApi.sendMessage(selectedChat.id, newMsg)
       setNewMsg('')
       const res = await chatsApi.getMessages(selectedChat.id, { page: 1, page_size: 50 })
       setMessages(res.data.items)
-    } catch {}
+    } catch {} finally {
+      setSending(false)
+    }
   }
 
   if (loading) return <div className="max-w-4xl mx-auto px-4 py-12 text-gray-400">加载中…</div>
@@ -186,9 +190,10 @@ export default function InboxPage() {
                 />
                 <button
                   type="submit"
-                  className="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-brand-700"
+                  disabled={sending}
+                  className="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-brand-700 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  发送
+                  {sending ? '发送中…' : '发送'}
                 </button>
               </form>
             </>
