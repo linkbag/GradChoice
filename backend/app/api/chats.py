@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -8,10 +8,30 @@ from app.schemas.chat import (
     ChatCreate, ChatResponse, ChatMessageCreate, ChatMessageResponse, ChatMessagesResponse
 )
 from app.utils.auth import get_current_user
+from app.utils.email import send_notification_email
 
 router = APIRouter(prefix="/chats", tags=["私信"])
 
 MAX_MESSAGES_PER_CHAT = 2
+
+
+def _notify_recipient_bg(recipient_email: str, sender_name: str) -> None:
+    """Background task: send email notification (no DB session needed)."""
+    send_notification_email(recipient_email, sender_name)
+
+
+def _get_notification_args(
+    chat: Chat, sender_id: uuid.UUID, db: Session
+) -> tuple[str, str] | None:
+    """Return (recipient_email, sender_name) if notification should be sent, else None."""
+    from app.models.user import User
+    recipient_id = chat.recipient_id if chat.initiator_id == sender_id else chat.initiator_id
+    recipient = db.query(User).filter(User.id == recipient_id).first()
+    if not recipient or not recipient.email_notifications_enabled:
+        return None
+    sender = db.query(User).filter(User.id == sender_id).first()
+    sender_name = (sender.display_name or "匿名用户") if sender else "匿名用户"
+    return (recipient.email, sender_name)
 
 
 def _enforce_message_limit(chat_id: uuid.UUID, db: Session) -> None:
@@ -62,6 +82,7 @@ def get_unread_count(current_user=Depends(get_current_user), db: Session = Depen
 @router.post("", response_model=ChatResponse, status_code=201)
 def create_chat(
     chat_in: ChatCreate,
+    background_tasks: BackgroundTasks,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -90,6 +111,9 @@ def create_chat(
         db.flush()
         _enforce_message_limit(existing.id, db)
         db.commit()
+        notif = _get_notification_args(existing, current_user.id, db)
+        if notif:
+            background_tasks.add_task(_notify_recipient_bg, *notif)
         return _chat_response(existing, current_user.id, db)
 
     chat = Chat(
@@ -110,6 +134,9 @@ def create_chat(
     _enforce_message_limit(chat.id, db)
     db.commit()
     db.refresh(chat)
+    notif = _get_notification_args(chat, current_user.id, db)
+    if notif:
+        background_tasks.add_task(_notify_recipient_bg, *notif)
     return _chat_response(chat, current_user.id, db)
 
 
@@ -155,6 +182,7 @@ def get_messages(
 def send_message(
     chat_id: uuid.UUID,
     message_in: ChatMessageCreate,
+    background_tasks: BackgroundTasks,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -175,4 +203,7 @@ def send_message(
     _enforce_message_limit(chat_id, db)
     db.commit()
     db.refresh(msg)
+    notif = _get_notification_args(chat, current_user.id, db)
+    if notif:
+        background_tasks.add_task(_notify_recipient_bg, *notif)
     return msg

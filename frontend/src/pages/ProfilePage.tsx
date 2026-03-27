@@ -187,7 +187,7 @@ export default function ProfilePage() {
 
           {/* 邮件通知 toggle */}
           <div>
-            <p className="text-sm text-gray-500">邮件通知</p>
+            <p className="text-sm text-gray-500">接收新私信邮件通知</p>
             <div className="flex items-center gap-3 mt-1">
               <button
                 role="switch"

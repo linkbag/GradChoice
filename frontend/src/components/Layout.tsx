@@ -1,9 +1,39 @@
-import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { zh } from '@/i18n/zh'
+import { chatsApi } from '@/services/api'
 
 export default function Layout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const isLoggedIn = !!localStorage.getItem('access_token')
+  const [unreadCount, setUnreadCount] = useState(0)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const fetchUnread = async () => {
+    try {
+      const res = await chatsApi.getUnreadCount()
+      setUnreadCount(res.data.unread_count)
+    } catch {
+      // silently fail — don't disrupt layout on error
+    }
+  }
+
+  useEffect(() => {
+    if (!isLoggedIn) return
+    fetchUnread()
+    intervalRef.current = setInterval(fetchUnread, 30_000)
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [isLoggedIn])
+
+  // Clear badge when user is on the inbox page
+  useEffect(() => {
+    if (location.pathname === '/inbox') {
+      setUnreadCount(0)
+    }
+  }, [location.pathname])
 
   const handleLogout = () => {
     localStorage.removeItem('access_token')
@@ -39,8 +69,13 @@ export default function Layout() {
 
               {isLoggedIn ? (
                 <>
-                  <Link to="/inbox" className="text-sm text-gray-600 hover:text-brand-600 transition-colors">
+                  <Link to="/inbox" className="relative text-sm text-gray-600 hover:text-brand-600 transition-colors">
                     {zh.nav.inbox}
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1.5 -right-2.5 flex items-center justify-center min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
                   </Link>
                   <Link to="/my-reviews" className="text-sm text-gray-600 hover:text-brand-600 transition-colors">
                     {zh.nav.my_reviews}
