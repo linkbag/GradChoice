@@ -237,7 +237,7 @@ export const ratingsApi = {
 // Comments
 // ============================================================
 export const commentsApi = {
-  create: (data: { supervisor_id: string; content: string; parent_comment_id?: string }) =>
+  create: (data: { supervisor_id: string; content: string; parent_comment_id?: string; is_anonymous?: boolean }) =>
     http.post<Comment>('/comments', data),
 
   getBySupervisor: (

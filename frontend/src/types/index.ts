@@ -184,6 +184,7 @@ export interface Comment {
   is_verified_comment: boolean
   is_deleted: boolean
   is_edited: boolean
+  is_anonymous: boolean
   likes_count: number
   dislikes_count: number
   is_flagged: boolean
