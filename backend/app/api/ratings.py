@@ -138,7 +138,7 @@ def update_rating(
 @router.delete("/{rating_id}", status_code=204)
 def delete_rating(
     rating_id: uuid.UUID,
-    current_user=Depends(get_current_verified_user),
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """删除自己的评分"""

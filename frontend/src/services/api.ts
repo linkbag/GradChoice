@@ -230,7 +230,7 @@ export const ratingsApi = {
     >,
   ) => http.put<Rating>(`/ratings/${id}`, data),
 
-  delete: (id: string) => http.delete(`/ratings/${id}`),
+  delete: (id: string) => http.delete(`/ratings/${id}`, { skipAuthRedirect: true }),
 
   vote: (id: string, vote_type: 'up' | 'down') =>
     http.post(`/ratings/${id}/vote`, { vote_type }),
@@ -260,7 +260,7 @@ export const commentsApi = {
   update: (id: string, content: string) =>
     http.put<Comment>(`/comments/${id}`, { content }),
 
-  delete: (id: string) => http.delete(`/comments/${id}`),
+  delete: (id: string) => http.delete(`/comments/${id}`, { skipAuthRedirect: true }),
 
   vote: (id: string, vote_type: 'up' | 'down') =>
     http.post(`/comments/${id}/vote`, { vote_type }),

@@ -206,7 +206,7 @@ def update_comment(
 @router.delete("/{comment_id}", status_code=204)
 def delete_comment(
     comment_id: uuid.UUID,
-    current_user=Depends(get_current_verified_user),
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """软删除自己的评论"""

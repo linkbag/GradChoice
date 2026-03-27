@@ -45,6 +45,7 @@ function RatingCard({
 }) {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [draft, setDraft] = useState<EditRatingState>({
     overall_score: rating.overall_score,
@@ -71,14 +72,22 @@ function RatingCard({
 
   const saveEdit = async () => {
     setSaving(true)
+    let success = false
     try {
       const res = await ratingsApi.update(rating.id, draft)
       onUpdated(res.data)
-      setEditing(false)
+      success = true
     } catch {
       // keep editing
     } finally {
       setSaving(false)
+      if (success) {
+        setSaved(true)
+        setTimeout(() => {
+          setSaved(false)
+          setEditing(false)
+        }, 1500)
+      }
     }
   }
 
@@ -167,11 +176,12 @@ function RatingCard({
               disabled={saving}
               className="text-sm bg-brand-600 text-white px-4 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50"
             >
-              {saving ? '保存中…' : '保存'}
+              {saving ? '保存中…' : saved ? '✓ 已保存' : '保存'}
             </button>
             <button
               onClick={() => setEditing(false)}
-              className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5"
+              disabled={saving || saved}
+              className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 disabled:opacity-40"
             >
               取消
             </button>
@@ -261,19 +271,28 @@ function CommentCard({
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(comment.content)
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
   const saveEdit = async () => {
     if (!draft.trim()) return
     setSaving(true)
+    let success = false
     try {
       const res = await commentsApi.update(comment.id, draft.trim())
       onUpdated(res.data)
-      setEditing(false)
+      success = true
     } catch {
       // keep editing
     } finally {
       setSaving(false)
+      if (success) {
+        setSaved(true)
+        setTimeout(() => {
+          setSaved(false)
+          setEditing(false)
+        }, 1500)
+      }
     }
   }
 
@@ -346,11 +365,12 @@ function CommentCard({
               disabled={saving || !draft.trim()}
               className="text-sm bg-brand-600 text-white px-4 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50"
             >
-              {saving ? '保存中…' : '保存'}
+              {saving ? '保存中…' : saved ? '✓ 已保存' : '保存'}
             </button>
             <button
               onClick={() => setEditing(false)}
-              className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5"
+              disabled={saving || saved}
+              className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 disabled:opacity-40"
             >
               取消
             </button>
