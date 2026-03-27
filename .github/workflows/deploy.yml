@@ -38,8 +38,8 @@ jobs:
           cp -r app package/
           cp lambda_handler.py package/
           # Strip unnecessary files to keep under 50MB zip limit
+          # NOTE: keep .dist-info — email-validator and pydantic require package metadata at runtime
           find package -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-          find package -name "*.dist-info" -type d -exec rm -rf {} + 2>/dev/null || true
           find package -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true
           cd package && zip -r9 ../lambda.zip . -x "*.pyc"
           cd .. && echo "Package size: $(du -sh lambda.zip | cut -f1)"
