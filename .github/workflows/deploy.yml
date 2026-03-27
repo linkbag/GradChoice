@@ -160,6 +160,18 @@ jobs:
               --source-arn "arn:aws:execute-api:${REGION}:${ACCOUNT_ID}:${API_ID}/*" 2>/dev/null || true
           fi
 
+          # Always update CORS config
+          echo "Updating API Gateway CORS..."
+          aws apigatewayv2 update-api \
+            --api-id $API_ID \
+            --cors-configuration '{
+              "AllowOrigins":["https://gradchoice.org","https://www.gradchoice.org","https://gradchoice.pages.dev"],
+              "AllowMethods":["GET","POST","PUT","DELETE","OPTIONS"],
+              "AllowHeaders":["Content-Type","Authorization"],
+              "AllowCredentials":true,
+              "MaxAge":3600
+            }' > /dev/null
+
           API_URL="https://${API_ID}.execute-api.${AWS_REGION_VAL}.amazonaws.com/prod"
           echo "api_url=${API_URL}" >> $GITHUB_OUTPUT
           echo "API URL: ${API_URL}"
