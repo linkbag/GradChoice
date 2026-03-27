@@ -17,9 +17,12 @@ Design notes:
 from __future__ import annotations
 
 import json
+import logging
 import re
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 # Path: backend/app/utils/name_filter.py → 3 levels up → backend root (works in
 # local dev, Docker volume mount, and Lambda where backend/ is the package root).
@@ -58,12 +61,25 @@ class NameFilter:
     """
 
     def __init__(self, blocklist_path: Optional[str | Path] = None):
-        """Load blocklist from JSON. Default path: project_root/data/blocklist.json."""
-        path = Path(blocklist_path) if blocklist_path else _DEFAULT_BLOCKLIST
-        with open(path, encoding="utf-8") as f:
-            data = json.load(f)
+        """Load blocklist from JSON. Default path: project_root/data/blocklist.json.
 
+        If the file is not found (e.g. in Lambda deployments that omit data/),
+        the filter initialises with empty lists and logs a warning — name filtering
+        is disabled but the endpoint still works.
+        """
+        path = Path(blocklist_path) if blocklist_path else _DEFAULT_BLOCKLIST
         self._blocklist_path = path
+
+        if not path.exists():
+            logger.warning(
+                "blocklist.json not found at %s — name filtering disabled (heuristic rules still active)",
+                path,
+            )
+            data: dict = {}
+        else:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+
         # Explicit false-name list (set for O(1) lookup)
         self._explicit: set[str] = {e.strip() for e in data.get("explicit", [])}
         # Title suffixes sorted longest-first for greedy matching

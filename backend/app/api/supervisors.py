@@ -1,8 +1,12 @@
+import logging
+import traceback
 import uuid
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, case, func, or_
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.models.supervisor import Supervisor
@@ -21,61 +25,67 @@ def submit_supervisor(
     db: Session = Depends(get_db),
 ):
     """用户提交新导师（直接入库，无审核队列）"""
-    # Auto-match school_code and province from existing data
-    school_code = data.school_code
-    province = data.province
-    if not school_code or not province:
-        existing = (
-            db.query(Supervisor.school_code, Supervisor.province)
-            .filter(Supervisor.school_name == data.school_name)
-            .first()
+    try:
+        # Auto-match school_code and province from existing data
+        school_code = data.school_code
+        province = data.province
+        if not school_code or not province:
+            existing = (
+                db.query(Supervisor.school_code, Supervisor.province)
+                .filter(Supervisor.school_name == data.school_name)
+                .first()
+            )
+            if existing:
+                if not school_code:
+                    school_code = existing.school_code
+                if not province:
+                    province = existing.province
+
+        # Fallback defaults for NOT NULL columns
+        if not school_code:
+            school_code = data.school_name[:20]
+        if not province:
+            province = ""
+
+        dept = data.department or ""
+
+        # Filter name through blocklist before any DB operations
+        cleaned_name, reason = get_name_filter().clean_name(data.name)
+        if cleaned_name is None:
+            raise HTTPException(
+                status_code=400,
+                detail=f"名称 '{data.name}' 被系统过滤: {reason}",
+            )
+        # Use cleaned name (title suffix stripped if applicable) going forward
+        supervisor_name = cleaned_name
+
+        # Duplicate check: same name + school_name + department
+        dup = db.query(Supervisor).filter(
+            Supervisor.name == supervisor_name,
+            Supervisor.school_name == data.school_name,
+            Supervisor.department == dept,
+        ).first()
+        if dup:
+            raise HTTPException(status_code=400, detail="该导师可能已存在")
+
+        supervisor = Supervisor(
+            name=supervisor_name,
+            school_name=data.school_name,
+            school_code=school_code,
+            province=province,
+            department=dept,
+            title=data.title,
+            webpage_url_1=data.website_url,
         )
-        if existing:
-            if not school_code:
-                school_code = existing.school_code
-            if not province:
-                province = existing.province
-
-    # Fallback defaults for NOT NULL columns
-    if not school_code:
-        school_code = data.school_name[:20]
-    if not province:
-        province = ""
-
-    dept = data.department or ""
-
-    # Filter name through blocklist before any DB operations
-    cleaned_name, reason = get_name_filter().clean_name(data.name)
-    if cleaned_name is None:
-        raise HTTPException(
-            status_code=400,
-            detail=f"名称 '{data.name}' 被系统过滤: {reason}",
-        )
-    # Use cleaned name (title suffix stripped if applicable) going forward
-    supervisor_name = cleaned_name
-
-    # Duplicate check: same name + school_name + department
-    dup = db.query(Supervisor).filter(
-        Supervisor.name == supervisor_name,
-        Supervisor.school_name == data.school_name,
-        Supervisor.department == dept,
-    ).first()
-    if dup:
-        raise HTTPException(status_code=400, detail="该导师可能已存在")
-
-    supervisor = Supervisor(
-        name=supervisor_name,
-        school_name=data.school_name,
-        school_code=school_code,
-        province=province,
-        department=dept,
-        title=data.title,
-        webpage_url_1=data.website_url,
-    )
-    db.add(supervisor)
-    db.commit()
-    db.refresh(supervisor)
-    return supervisor
+        db.add(supervisor)
+        db.commit()
+        db.refresh(supervisor)
+        return supervisor
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("submit_supervisor error:\n%s", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"导师提交失败: {type(e).__name__}: {e}")
 
 
 @router.get("/schools")

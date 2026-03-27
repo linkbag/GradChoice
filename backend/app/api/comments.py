@@ -1,7 +1,9 @@
+import logging
+import traceback
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.models.comment import Comment, CommentVote, VoteType
@@ -9,6 +11,8 @@ from app.schemas.comment import (
     CommentCreate, CommentUpdate, CommentResponse, CommentAuthorResponse, CommentVoteCreate, CommentListResponse
 )
 from app.utils.auth import get_current_user, get_current_verified_user, get_optional_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/comments", tags=["评论"])
 
@@ -42,18 +46,37 @@ def _build_response(comment: Comment, user_id: uuid.UUID | None, db: Session, in
 
     replies = []
     if include_replies and reply_count > 0:
-        raw_replies = db.query(Comment).filter(
+        raw_replies = db.query(Comment).options(
+            joinedload(Comment.user)
+        ).filter(
             Comment.parent_comment_id == comment.id,
             Comment.is_deleted.is_(False),
         ).order_by(Comment.created_at.asc()).limit(10).all()
         replies = [_build_response(r, user_id, db, include_replies=False) for r in raw_replies]
 
-    data = CommentResponse.model_validate(comment)
-    data.user_vote = vote
-    data.reply_count = reply_count
-    data.author = author
-    data.replies = replies
-    return data
+    # Build CommentResponse explicitly — do NOT use model_validate(comment) because Pydantic
+    # would read comment.replies (SQLAlchemy relationship) triggering uncontrolled lazy loads
+    # across the whole reply tree, causing N+1 queries and DetachedInstanceError in NullPool.
+    return CommentResponse(
+        id=comment.id,
+        user_id=comment.user_id,
+        supervisor_id=comment.supervisor_id,
+        parent_comment_id=comment.parent_comment_id,
+        content=comment.content,
+        is_verified_comment=bool(comment.is_verified_comment),
+        is_deleted=bool(comment.is_deleted),
+        is_edited=bool(comment.is_edited),
+        is_anonymous=bool(comment.is_anonymous) if comment.is_anonymous is not None else False,
+        likes_count=comment.likes_count or 0,
+        dislikes_count=comment.dislikes_count or 0,
+        is_flagged=bool(comment.is_flagged),
+        created_at=comment.created_at,
+        updated_at=comment.updated_at,
+        user_vote=vote,
+        reply_count=reply_count,
+        author=author,
+        replies=replies,
+    )
 
 
 @router.post("", response_model=CommentResponse, status_code=201)
@@ -63,27 +86,36 @@ def create_comment(
     db: Session = Depends(get_db),
 ):
     """发表评论或回复（登录即可，无需认证）"""
-    from app.models.supervisor import Supervisor
-    sup = db.query(Supervisor).filter(Supervisor.id == comment_in.supervisor_id).first()
-    if not sup:
-        raise HTTPException(status_code=404, detail="导师不存在")
-    if comment_in.parent_comment_id:
-        parent = db.query(Comment).filter(Comment.id == comment_in.parent_comment_id).first()
-        if not parent:
-            raise HTTPException(status_code=404, detail="父评论不存在")
+    try:
+        from app.models.supervisor import Supervisor
+        sup = db.query(Supervisor).filter(Supervisor.id == comment_in.supervisor_id).first()
+        if not sup:
+            raise HTTPException(status_code=404, detail="导师不存在")
+        if comment_in.parent_comment_id:
+            parent = db.query(Comment).filter(Comment.id == comment_in.parent_comment_id).first()
+            if not parent:
+                raise HTTPException(status_code=404, detail="父评论不存在")
 
-    comment = Comment(
-        user_id=current_user.id,
-        supervisor_id=comment_in.supervisor_id,
-        parent_comment_id=comment_in.parent_comment_id,
-        content=comment_in.content,
-        is_anonymous=comment_in.is_anonymous or False,
-        is_verified_comment=current_user.is_student_verified,
-    )
-    db.add(comment)
-    db.commit()
-    db.refresh(comment)
-    return _build_response(comment, current_user.id, db)
+        comment = Comment(
+            user_id=current_user.id,
+            supervisor_id=comment_in.supervisor_id,
+            parent_comment_id=comment_in.parent_comment_id,
+            content=comment_in.content,
+            is_anonymous=comment_in.is_anonymous or False,
+            is_verified_comment=current_user.is_student_verified,
+        )
+        db.add(comment)
+        db.commit()
+        # Re-query with joinedload to avoid lazy-loading user in NullPool context
+        comment = db.query(Comment).options(
+            joinedload(Comment.user)
+        ).filter(Comment.id == comment.id).first()
+        return _build_response(comment, current_user.id, db)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("create_comment error:\n%s", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"评论创建失败: {type(e).__name__}: {e}")
 
 
 @router.get("/supervisor/{supervisor_id}", response_model=CommentListResponse)
@@ -95,16 +127,30 @@ def get_supervisor_comments(
     current_user=Depends(get_optional_current_user),
 ):
     """获取导师的顶层评论"""
-    q = db.query(Comment).filter(
-        Comment.supervisor_id == supervisor_id,
-        Comment.parent_comment_id.is_(None),
-        Comment.is_deleted.is_(False),
-    )
-    total = q.count()
-    comments = q.order_by(Comment.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
-    user_id = current_user.id if current_user else None
-    items = [_build_response(c, user_id, db) for c in comments]
-    return CommentListResponse(items=items, total=total, page=page, page_size=page_size)
+    try:
+        # Count separately to avoid joinedload affecting the count
+        total = db.query(func.count(Comment.id)).filter(
+            Comment.supervisor_id == supervisor_id,
+            Comment.parent_comment_id.is_(None),
+            Comment.is_deleted.is_(False),
+        ).scalar() or 0
+
+        comments = db.query(Comment).options(
+            joinedload(Comment.user)
+        ).filter(
+            Comment.supervisor_id == supervisor_id,
+            Comment.parent_comment_id.is_(None),
+            Comment.is_deleted.is_(False),
+        ).order_by(Comment.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
+
+        user_id = current_user.id if current_user else None
+        items = [_build_response(c, user_id, db) for c in comments]
+        return CommentListResponse(items=items, total=total, page=page, page_size=page_size)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("get_supervisor_comments error:\n%s", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"评论加载失败: {type(e).__name__}: {e}")
 
 
 @router.get("/{comment_id}", response_model=CommentResponse)
@@ -114,14 +160,22 @@ def get_comment(
     current_user=Depends(get_optional_current_user),
 ):
     """获取单条评论"""
-    comment = db.query(Comment).filter(
-        Comment.id == comment_id,
-        Comment.is_deleted.is_(False),
-    ).first()
-    if not comment:
-        raise HTTPException(status_code=404, detail="评论不存在")
-    user_id = current_user.id if current_user else None
-    return _build_response(comment, user_id, db)
+    try:
+        comment = db.query(Comment).options(
+            joinedload(Comment.user)
+        ).filter(
+            Comment.id == comment_id,
+            Comment.is_deleted.is_(False),
+        ).first()
+        if not comment:
+            raise HTTPException(status_code=404, detail="评论不存在")
+        user_id = current_user.id if current_user else None
+        return _build_response(comment, user_id, db)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("get_comment error:\n%s", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"评论加载失败: {type(e).__name__}: {e}")
 
 
 @router.put("/{comment_id}", response_model=CommentResponse)
@@ -132,7 +186,9 @@ def update_comment(
     db: Session = Depends(get_db),
 ):
     """修改自己的评论"""
-    comment = db.query(Comment).filter(Comment.id == comment_id).first()
+    comment = db.query(Comment).options(
+        joinedload(Comment.user)
+    ).filter(Comment.id == comment_id).first()
     if not comment:
         raise HTTPException(status_code=404, detail="评论不存在")
     if comment.user_id != current_user.id:
@@ -140,7 +196,9 @@ def update_comment(
     comment.content = comment_update.content
     comment.is_edited = True
     db.commit()
-    db.refresh(comment)
+    comment = db.query(Comment).options(
+        joinedload(Comment.user)
+    ).filter(Comment.id == comment_id).first()
     return _build_response(comment, current_user.id, db)
 
 
@@ -168,7 +226,9 @@ def get_comment_replies(
     current_user=Depends(get_optional_current_user),
 ):
     """获取评论的回复"""
-    replies = db.query(Comment).filter(
+    replies = db.query(Comment).options(
+        joinedload(Comment.user)
+    ).filter(
         Comment.parent_comment_id == comment_id,
         Comment.is_deleted.is_(False),
     ).order_by(Comment.created_at.asc()).all()
