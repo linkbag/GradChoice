@@ -34,7 +34,7 @@ jobs:
         working-directory: backend
         run: |
           mkdir -p package
-          pip install -r requirements-lambda.txt -t package/ --platform manylinux2014_x86_64 --only-binary=:all:
+          pip install -r requirements-lambda.txt -t package/ --platform manylinux2014_x86_64 --python-version 3.12 --only-binary=:all:
           cp -r app package/
           cp lambda_handler.py package/
           # Strip unnecessary files to keep under 50MB zip limit
