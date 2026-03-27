@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Literal, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 # Inline enum to avoid importing from models (prevents circular imports)
 VoteType = Literal["up", "down"]
@@ -11,7 +11,8 @@ class CommentCreate(BaseModel):
     supervisor_id: uuid.UUID
     parent_comment_id: Optional[uuid.UUID] = None
     content: str
-    is_anonymous: bool = False
+    # Accept None from clients that omit the field; coerce to False
+    is_anonymous: Optional[bool] = False
 
 
 class CommentUpdate(BaseModel):
@@ -47,6 +48,12 @@ class CommentResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @field_validator("is_anonymous", mode="before")
+    @classmethod
+    def _coerce_none_to_false(cls, v: object) -> bool:
+        """Coerce NULL from pre-migration rows to False so serialization never crashes."""
+        return False if v is None else v
 
 
 CommentResponse.model_rebuild()
