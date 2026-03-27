@@ -11,6 +11,23 @@ from app.utils.auth import get_current_verified_user
 
 router = APIRouter(prefix="/chats", tags=["私信"])
 
+MAX_MESSAGES_PER_CHAT = 2
+
+
+def _enforce_message_limit(chat_id: uuid.UUID, db: Session) -> None:
+    """Keep only the most recent MAX_MESSAGES_PER_CHAT messages in a chat."""
+    keep_ids = (
+        db.query(ChatMessage.id)
+        .filter(ChatMessage.chat_id == chat_id)
+        .order_by(ChatMessage.created_at.desc())
+        .limit(MAX_MESSAGES_PER_CHAT)
+        .subquery()
+    )
+    db.query(ChatMessage).filter(
+        ChatMessage.chat_id == chat_id,
+        ChatMessage.id.notin_(keep_ids),
+    ).delete(synchronize_session="fetch")
+
 
 def _chat_response(chat: Chat, user_id: uuid.UUID, db: Session) -> ChatResponse:
     # Get last message and unread count
@@ -70,6 +87,8 @@ def create_chat(
             content=chat_in.initial_message,
         )
         db.add(msg)
+        db.flush()
+        _enforce_message_limit(existing.id, db)
         db.commit()
         return _chat_response(existing, current_user.id, db)
 
@@ -87,6 +106,8 @@ def create_chat(
         content=chat_in.initial_message,
     )
     db.add(msg)
+    db.flush()
+    _enforce_message_limit(chat.id, db)
     db.commit()
     db.refresh(chat)
     return _chat_response(chat, current_user.id, db)
@@ -150,6 +171,8 @@ def send_message(
         content=message_in.content,
     )
     db.add(msg)
+    db.flush()
+    _enforce_message_limit(chat_id, db)
     db.commit()
     db.refresh(msg)
     return msg

@@ -154,7 +154,9 @@ function CommentCard({ comment, isLoggedIn, onVote, onReply }: CommentCardProps)
     <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          {comment.author?.id ? (
+          {comment.is_anonymous ? (
+            <span className="text-sm font-medium text-gray-700">匿名用户</span>
+          ) : comment.author?.id ? (
             <Link
               to={`/users/${comment.author.id}/profile`}
               className="text-sm font-medium text-teal-600 hover:underline cursor-pointer"
@@ -213,7 +215,9 @@ function CommentCard({ comment, isLoggedIn, onVote, onReply }: CommentCardProps)
         <div className="mt-3 space-y-2 pl-4 border-l-2 border-gray-200">
           {comment.replies.map((r) => (
             <div key={r.id} className="text-sm">
-              {r.author?.id ? (
+              {r.is_anonymous ? (
+                <span className="font-medium text-gray-600">匿名用户</span>
+              ) : r.author?.id ? (
                 <Link
                   to={`/users/${r.author.id}/profile`}
                   className="font-medium text-teal-600 hover:underline cursor-pointer"
@@ -405,8 +409,9 @@ export default function SupervisorPage() {
           // 409 = already rated this supervisor — proceed with comment only
         }
       }
-      await commentsApi.create({ supervisor_id: id, content: commentText.trim() })
+      await commentsApi.create({ supervisor_id: id, content: commentText.trim(), is_anonymous: commentAnonymous })
       setCommentText('')
+      setCommentAnonymous(false)
       setCommentTosAgreed(false)
       setShowScorePopup(false)
       await refreshComments()
@@ -737,7 +742,7 @@ export default function SupervisorPage() {
                   className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
                 />
                 <label htmlFor="comment-anon" className="text-sm text-gray-600 cursor-pointer">
-                  匿名评论
+                  匿名发布
                 </label>
               </div>
 
