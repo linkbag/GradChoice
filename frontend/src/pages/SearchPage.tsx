@@ -232,7 +232,10 @@ export default function SearchPage() {
                   ) : (
                     <span className="text-gray-400 text-sm">暂无评分</span>
                   )}
-                  <p className="text-xs text-gray-400">{zh.supervisor.rating_count(s.rating_count)}</p>
+                  <p className="text-xs text-gray-400">
+                    {zh.supervisor.rating_count(s.rating_count)}
+                    {s.comment_count > 0 && ` · ${s.comment_count} 条评论`}
+                  </p>
                 </div>
               </div>
             </Link>

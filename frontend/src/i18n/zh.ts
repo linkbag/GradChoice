@@ -54,7 +54,7 @@ export const zh = {
       resources: '科研资源',
       ethics: '学术道德',
     },
-    write_review: '写评价',
+    write_review: '发布评分',
     no_ratings: '暂无评价，成为第一个评价者',
     score_disclaimer: '部分评分来自历史数据，可能缺少子维度打分。新评价将使用完整评分系统。',
     score_popup_title: '评分与评论',

@@ -275,7 +275,7 @@ export default function RankingsPage() {
             上一页
           </button>
           <span className="text-sm text-gray-500">
-            第 {page} / {totalPages} 页 · 共 {total} 位导师
+            第 {page} / {totalPages} 页 · 共 {total} 位已评分导师
           </span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 from app.database import get_db
 from app.models.supervisor import Supervisor
 from app.models.rating import Rating
+from app.models.comment import Comment
 from app.schemas.supervisor import SupervisorResponse, SupervisorListResponse, SupervisorSearchResult, SupervisorSubmit
 from app.utils.auth import get_current_user
 from app.utils.name_filter import get_name_filter
@@ -227,7 +228,13 @@ def search_supervisors(
     db: Session = Depends(get_db),
 ):
     """搜索导师（按姓名、院校、院系 — ILIKE 模糊搜索）"""
-    query = db.query(Supervisor)
+    comment_count_subq = (
+        db.query(func.count(Comment.id))
+        .filter(Comment.supervisor_id == Supervisor.id, Comment.parent_comment_id.is_(None))
+        .correlate(Supervisor)
+        .scalar_subquery()
+    )
+    query = db.query(Supervisor, comment_count_subq.label("comment_count"))
     search_filter = or_(
         Supervisor.name.ilike(f"%{q}%"),
         Supervisor.school_name.ilike(f"%{q}%"),
@@ -246,7 +253,24 @@ def search_supervisors(
     first_char_code = func.ascii(func.substr(Supervisor.name, 1, 1))
     is_cjk = and_(first_char_code >= 0x4E00, first_char_code <= 0x9FFF)
     chinese_first = case((is_cjk, 0), else_=1)
-    items = query.order_by(chinese_first, Supervisor.name).offset((page - 1) * page_size).limit(page_size).all()
+    rows = query.order_by(chinese_first, Supervisor.name).offset((page - 1) * page_size).limit(page_size).all()
+    items = []
+    for sup, cc in rows:
+        result = SupervisorSearchResult(
+            id=sup.id,
+            school_code=sup.school_code,
+            school_name=sup.school_name,
+            province=sup.province,
+            name=sup.name,
+            department=sup.department,
+            title=sup.title,
+            avg_overall_score=sup.avg_overall_score,
+            rating_count=sup.rating_count or 0,
+            comment_count=cc or 0,
+            verified_avg_overall_score=sup.verified_avg_overall_score,
+            verified_rating_count=sup.verified_rating_count or 0,
+        )
+        items.append(result)
     return SupervisorListResponse(items=items, total=total, page=page, page_size=page_size)
 
 

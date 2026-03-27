@@ -12,7 +12,6 @@ import type { ScoreBreakdown } from '@/types'
 interface Props {
   scores: ScoreBreakdown
   schoolAvg?: ScoreBreakdown
-  nationalAvg?: ScoreBreakdown
 }
 
 const LABELS: { key: keyof ScoreBreakdown; label: string; desc: string }[] = [
@@ -27,17 +26,15 @@ const LABELS: { key: keyof ScoreBreakdown; label: string; desc: string }[] = [
 function buildData(
   scores: ScoreBreakdown,
   schoolAvg?: ScoreBreakdown,
-  nationalAvg?: ScoreBreakdown,
 ) {
   return LABELS.map(({ key, label }) => ({
     subject: label,
     该导师: scores[key] ?? 0,
     校均值: schoolAvg?.[key] ?? 0,
-    全国均值: nationalAvg?.[key] ?? 0,
   }))
 }
 
-export default function RadarChart({ scores, schoolAvg, nationalAvg }: Props) {
+export default function RadarChart({ scores, schoolAvg }: Props) {
   const hasData = LABELS.some(({ key }) => scores[key] != null)
 
   if (!hasData) {
@@ -48,7 +45,7 @@ export default function RadarChart({ scores, schoolAvg, nationalAvg }: Props) {
     )
   }
 
-  const data = buildData(scores, schoolAvg, nationalAvg)
+  const data = buildData(scores, schoolAvg)
 
   return (
     <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
@@ -81,17 +78,6 @@ export default function RadarChart({ scores, schoolAvg, nationalAvg }: Props) {
                 fillOpacity={0.15}
                 strokeWidth={1.5}
                 strokeDasharray="4 2"
-              />
-            )}
-            {nationalAvg && (
-              <Radar
-                name="全国均值"
-                dataKey="全国均值"
-                stroke="#6366f1"
-                fill="#6366f1"
-                fillOpacity={0.1}
-                strokeWidth={1.5}
-                strokeDasharray="2 3"
               />
             )}
             <Legend

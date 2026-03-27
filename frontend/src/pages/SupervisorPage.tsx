@@ -565,7 +565,6 @@ export default function SupervisorPage() {
                 <RadarChart
                   scores={scores!}
                   schoolAvg={analytics!.school_avg_scores.avg_overall != null ? analytics!.school_avg_scores : undefined}
-                  nationalAvg={analytics!.national_avg_scores.avg_overall != null ? analytics!.national_avg_scores : undefined}
                 />
 
                 <div className="grid grid-cols-3 gap-3 mt-6">
@@ -621,7 +620,7 @@ export default function SupervisorPage() {
       <div className="bg-white rounded-2xl border border-gray-200 p-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-bold text-gray-800">
-            学生评价
+            学生评分
             {ratingsTotal > 0 && (
               <span className="ml-2 text-sm font-normal text-gray-400">
                 {zh.supervisor.rating_count(ratingsTotal)}

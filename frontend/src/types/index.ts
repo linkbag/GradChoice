@@ -56,6 +56,7 @@ export interface SupervisorSearchResult {
   title: string | null
   avg_overall_score: number | null
   rating_count: number
+  comment_count: number
 }
 
 export interface RecentComment {
