@@ -42,6 +42,7 @@ class RatingResponse(BaseModel):
     user_id: uuid.UUID
     supervisor_id: uuid.UUID
     display_name: Optional[str] = None
+    supervisor_name: Optional[str] = None
     is_verified_rating: bool
     overall_score: float
     score_academic: Optional[float] = None

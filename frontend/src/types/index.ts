@@ -121,6 +121,7 @@ export interface Rating {
   user_id: string
   supervisor_id: string
   display_name: string
+  supervisor_name: string | null
   is_verified_rating: boolean
   overall_score: number
   score_academic: number | null
@@ -193,6 +194,7 @@ export interface Comment {
   reply_count: number
   author: CommentAuthor | null
   replies: Comment[]
+  supervisor_name: string | null
   created_at: string
   updated_at: string
 }
