@@ -58,17 +58,9 @@ jobs:
       - name: Run Alembic migrations
         working-directory: backend
         env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SECRET_KEY: "ci-migration-only-not-used-for-auth"
-        run: |
-          # Neon may not set search_path to public by default
-          # Append options to ensure public schema is used
-          BASE_URL="${{ secrets.DATABASE_URL }}"
-          if [[ "$BASE_URL" == *"?"* ]]; then
-            export DATABASE_URL="${BASE_URL}&options=-csearch_path%3Dpublic"
-          else
-            export DATABASE_URL="${BASE_URL}?options=-csearch_path%3Dpublic"
-          fi
-          alembic upgrade head
+        run: alembic upgrade head
 
       - name: Seed data
         if: ${{ inputs.seed_data == 'true' || inputs.fresh_seed == 'true' }}
