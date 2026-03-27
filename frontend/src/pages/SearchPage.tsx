@@ -220,7 +220,7 @@ export default function SearchPage() {
                 <div>
                   <h2 className="font-bold text-gray-900">{s.name}</h2>
                   <p className="text-sm text-gray-600 mt-0.5">
-                    {s.school_name} · {s.department.replace(/&amp;/g, '&')}
+                    {s.school_name}{s.department ? ` · ${s.department.replace(/&amp;/g, '&')}` : ''}
                   </p>
                   {s.title && <p className="text-xs text-gray-400 mt-0.5">{s.title}</p>}
                 </div>
