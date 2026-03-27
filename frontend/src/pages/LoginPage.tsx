@@ -74,6 +74,12 @@ export default function LoginPage() {
           >
             {loading ? '登录中…' : zh.auth.login_btn}
           </button>
+
+          <div className="text-right">
+            <Link to="/forgot-password" className="text-sm text-gray-400 hover:text-brand-600 hover:underline">
+              忘记密码？
+            </Link>
+          </div>
         </form>
 
         <p className="text-sm text-center text-gray-500 mt-6">

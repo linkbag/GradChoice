@@ -179,7 +179,7 @@ export default function RegisterPage() {
                 className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               <p className="text-xs text-gray-400 mt-1">
-                使用 .edu.cn 邮箱注册可自动完成学生身份认证
+                (可选) 使用 .edu 或 .org 邮箱注册可自动完成学生身份认证，信息严格保密，仅会获得已验证标签以增加评价可信度
               </p>
             </div>
 

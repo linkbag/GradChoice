@@ -16,6 +16,7 @@ import PublicProfilePage from '@/pages/PublicProfilePage'
 import AddSupervisorPage from '@/pages/AddSupervisorPage'
 import TermsPage from '@/pages/TermsPage'
 import MyReviewsPage from '@/pages/MyReviewsPage'
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="add-supervisor" element={<AddSupervisorPage />} />
           <Route path="terms" element={<TermsPage />} />
           <Route path="my-reviews" element={<MyReviewsPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

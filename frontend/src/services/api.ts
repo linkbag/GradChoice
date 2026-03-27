@@ -102,11 +102,11 @@ export const authApi = {
     })
   },
 
-  forgotPassword: (email: string) =>
-    http.post('/auth/forgot-password', { email }),
+  sendResetVerification: (email: string) =>
+    http.post<{ message: string }>('/auth/send-reset-verification', { email }),
 
-  resetPassword: (token: string, new_password: string) =>
-    http.post('/auth/reset-password', { token, new_password }),
+  resetPassword: (email: string, code: string, new_password: string) =>
+    http.post<{ message: string }>('/auth/reset-password', { email, code, new_password }),
 
   refresh: (refresh_token: string) =>
     http.post<Token>('/auth/refresh', { refresh_token }),

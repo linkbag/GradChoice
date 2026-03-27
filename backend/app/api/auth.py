@@ -13,6 +13,7 @@ from app.schemas.user import (
     UserCreate, UserMe, Token, RegisterResponse,
     SendVerificationRequest, VerifySchoolEmailRequest,
     SendSignupVerificationRequest, VerifySignupCodeRequest,
+    ResetPasswordRequest,
 )
 from app.utils.auth import (
     hash_password, verify_password, create_access_token,
@@ -242,3 +243,64 @@ def verify_school_email(
     db.refresh(current_user)
 
     return {"message": "学校邮箱验证成功"}
+
+
+@router.post("/send-reset-verification")
+def send_reset_verification(body: SendSignupVerificationRequest, db: Session = Depends(get_db)):
+    """发送密码重置验证码"""
+    email = body.email.lower()
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        # Don't reveal whether email is registered; silently succeed
+        return {"message": "如果该邮箱已注册，验证码已发送，请查看邮箱"}
+
+    code = f"{random.randint(0, 999999):06d}"
+    smtp_configured = bool(settings.SMTP_HOST)
+
+    _signup_verifications[email] = {
+        "code": code,
+        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=15),
+        "verified": not smtp_configured,
+    }
+
+    if not smtp_configured:
+        logger.warning("SMTP not configured — reset code for %s: %s", email, code)
+        return {"message": "验证码已发送（SMTP 未配置，请查看服务器日志）"}
+
+    from app.utils.email import send_verification_email
+    if send_verification_email(email, code, purpose="密码重置"):
+        return {"message": "验证码已发送，请查看邮箱"}
+    else:
+        logger.warning("SMTP send failed for reset — code for %s: %s", email, code)
+        return {"message": "验证码已发送，如未收到请稍后重试"}
+
+
+@router.post("/reset-password")
+def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """重置密码（使用邮箱验证码）"""
+    email = body.email.lower()
+    entry = _signup_verifications.get(email)
+    if not entry:
+        raise HTTPException(status_code=400, detail="请先发送验证码")
+    if datetime.now(timezone.utc) > entry["expires_at"]:
+        _signup_verifications.pop(email, None)
+        raise HTTPException(status_code=400, detail="验证码已过期，请重新发送")
+
+    smtp_configured = bool(settings.SMTP_HOST)
+    if smtp_configured and body.code != entry["code"]:
+        raise HTTPException(status_code=400, detail="验证码错误")
+    if not smtp_configured and body.code != entry["code"] and not entry.get("verified"):
+        raise HTTPException(status_code=400, detail="验证码错误")
+
+    if len(body.new_password) < 8:
+        raise HTTPException(status_code=400, detail="密码长度至少为 8 个字符")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+
+    user.hashed_password = hash_password(body.new_password)
+    db.commit()
+
+    _signup_verifications.pop(email, None)
+    return {"message": "密码重置成功"}
