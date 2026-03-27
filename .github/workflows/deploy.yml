@@ -34,10 +34,14 @@ jobs:
         working-directory: backend
         run: |
           mkdir -p package
-          pip install -r requirements.txt -t package/ --platform manylinux2014_x86_64 --only-binary=:all:
+          pip install -r requirements-lambda.txt -t package/ --platform manylinux2014_x86_64 --only-binary=:all:
           cp -r app package/
           cp lambda_handler.py package/
-          cd package && zip -r9 ../lambda.zip . -x "__pycache__/*" "*.pyc"
+          # Strip unnecessary files to keep under 50MB zip limit
+          find package -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+          find package -name "*.dist-info" -type d -exec rm -rf {} + 2>/dev/null || true
+          find package -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true
+          cd package && zip -r9 ../lambda.zip . -x "*.pyc"
           cd .. && echo "Package size: $(du -sh lambda.zip | cut -f1)"
 
       - name: Create or update Lambda function
