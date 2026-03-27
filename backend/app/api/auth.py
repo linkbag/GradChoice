@@ -1,3 +1,4 @@
+import logging
 import random
 from datetime import datetime, timedelta, timezone
 
@@ -5,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
 from app.models.user import User, VerificationType
 from app.schemas.user import (
@@ -16,6 +18,19 @@ from app.utils.auth import (
     hash_password, verify_password, create_access_token,
     get_current_user,
 )
+
+logger = logging.getLogger(__name__)
+
+
+def is_edu_email(email: str) -> bool:
+    """Check if email is from an educational (.edu*) or .org domain."""
+    e = email.lower()
+    parts = e.rsplit("@", 1)
+    if len(parts) != 2:
+        return False
+    domain = parts[1]
+    # Match .edu, .edu.xx, .edu.xx.yy, etc. and .org
+    return domain.endswith(".edu") or ".edu." in domain or domain.endswith(".org")
 
 router = APIRouter(prefix="/auth", tags=["认证"])
 
@@ -33,12 +48,19 @@ def send_signup_verification(body: SendSignupVerificationRequest, db: Session = 
         raise HTTPException(status_code=400, detail="该邮箱已被注册")
 
     code = f"{random.randint(0, 999999):06d}"
+    smtp_configured = bool(settings.SMTP_HOST)
+
     _signup_verifications[email] = {
         "code": code,
         "expires_at": datetime.now(timezone.utc) + timedelta(minutes=15),
-        "verified": False,
+        "verified": not smtp_configured,  # auto-verify when SMTP unavailable
     }
 
+    if not smtp_configured:
+        logger.warning("SMTP not configured — auto-verifying signup email for %s", email)
+        return {"message": "邮箱已自动验证（SMTP 未配置）"}
+
+    # TODO: send real email via SMTP when configured
     print(f"\n{'='*50}")
     print(f"  注册验证码 for {email}: {code}")
     print(f"  (15 分钟内有效)")
@@ -80,7 +102,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         and datetime.now(timezone.utc) <= entry["expires_at"]
     )
 
-    is_edu = user_in.email.endswith(".edu.cn")
+    is_edu = is_edu_email(user_in.email)
     user = User(
         email=user_in.email,
         hashed_password=hash_password(user_in.password),
@@ -146,8 +168,8 @@ def verify_student(
 ):
     """学生身份认证"""
     if verification_type == "email_edu":
-        if not current_user.email.endswith(".edu.cn"):
-            raise HTTPException(status_code=400, detail="只有 .edu.cn 邮箱可以通过邮箱认证")
+        if not is_edu_email(current_user.email):
+            raise HTTPException(status_code=400, detail="只有教育邮箱 (.edu*) 或 .org 邮箱可以通过邮箱认证")
         current_user.is_student_verified = True
         current_user.is_email_verified = True
         current_user.verification_type = VerificationType.email_edu
@@ -176,8 +198,8 @@ def send_verification(
 ):
     """发送学校邮箱验证码（本地开发：验证码打印到控制台）"""
     email = body.school_email.lower()
-    if not (email.endswith(".edu") or email.endswith(".edu.cn") or email.endswith(".org")):
-        raise HTTPException(status_code=400, detail="仅支持 .edu / .edu.cn / .org 邮箱")
+    if not is_edu_email(email):
+        raise HTTPException(status_code=400, detail="仅支持教育邮箱 (.edu*) 或 .org 邮箱")
 
     code = f"{random.randint(0, 999999):06d}"
     current_user.school_email = email
