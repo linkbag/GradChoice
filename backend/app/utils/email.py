@@ -1,20 +1,20 @@
-"""Email sending utility via SMTP."""
+"""Email sending utility via AWS SES (boto3)."""
 import logging
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-
-from app.config import settings
+import boto3
+from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 
+SENDER = "研选 GradChoice <verification-noreply@gradchoice.org>"
+SES_REGION = "ap-southeast-1"
+
+
+def _ses_client():
+    return boto3.client("ses", region_name=SES_REGION)
+
 
 def send_verification_email(to_email: str, code: str, purpose: str = "注册") -> bool:
-    """Send a verification code email. Returns True on success."""
-    if not settings.SMTP_HOST or not settings.SMTP_USER:
-        logger.warning("SMTP not configured — cannot send email to %s", to_email)
-        return False
-
+    """Send a verification code email via AWS SES. Returns True on success."""
     subject = f"研选 GradChoice — {purpose}验证码"
     html = f"""
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
@@ -29,38 +29,32 @@ def send_verification_email(to_email: str, code: str, purpose: str = "注册") -
         <p style="color: #9ca3af; font-size: 11px;">研选 GradChoice — 帮助研究生选择导师</p>
     </div>
     """
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = f"研选 GradChoice <{settings.SMTP_USER}>"
-    msg["To"] = to_email
-    msg.attach(MIMEText(f"您的{purpose}验证码是：{code}（15 分钟内有效）", "plain", "utf-8"))
-    msg.attach(MIMEText(html, "html", "utf-8"))
+    text = f"您的{purpose}验证码是：{code}（15 分钟内有效）"
 
     try:
-        port = int(settings.SMTP_PORT)
-        if port == 465:
-            server = smtplib.SMTP_SSL(settings.SMTP_HOST, port, timeout=10)
-        else:
-            server = smtplib.SMTP(settings.SMTP_HOST, port, timeout=10)
-            server.starttls()
-
-        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-        server.sendmail(settings.SMTP_USER, to_email, msg.as_string())
-        server.quit()
-        logger.info("Verification email sent to %s", to_email)
+        _ses_client().send_email(
+            Source=SENDER,
+            Destination={"ToAddresses": [to_email]},
+            Message={
+                "Subject": {"Data": subject, "Charset": "UTF-8"},
+                "Body": {
+                    "Text": {"Data": text, "Charset": "UTF-8"},
+                    "Html": {"Data": html, "Charset": "UTF-8"},
+                },
+            },
+        )
+        logger.info("Verification email sent to %s via SES", to_email)
         return True
+    except ClientError as e:
+        logger.error("SES failed to send email to %s: %s", to_email, e.response["Error"]["Message"])
+        return False
     except Exception as e:
         logger.error("Failed to send email to %s: %s", to_email, e)
         return False
 
 
 def send_notification_email(to_email: str, sender_display_name: str) -> bool:
-    """Send a new private message notification email. Returns True on success."""
-    if not settings.SMTP_HOST or not settings.SMTP_USER:
-        logger.warning("SMTP not configured — cannot send notification to %s", to_email)
-        return False
-
+    """Send a new private message notification email via AWS SES. Returns True on success."""
     subject = "研选 GradChoice — 您收到了一条新私信"
     inbox_url = "https://gradchoice.pages.dev/inbox"
     html = f"""
@@ -76,30 +70,25 @@ def send_notification_email(to_email: str, sender_display_name: str) -> bool:
         <p style="color: #9ca3af; font-size: 11px;">研选 GradChoice — 帮助研究生选择导师</p>
     </div>
     """
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = f"研选 GradChoice <{settings.SMTP_USER}>"
-    msg["To"] = to_email
-    msg.attach(MIMEText(
-        f"您在研选 GradChoice 收到了一条来自 {sender_display_name} 的新私信。点击查看：{inbox_url}",
-        "plain", "utf-8"
-    ))
-    msg.attach(MIMEText(html, "html", "utf-8"))
+    text = f"您在研选 GradChoice 收到了一条来自 {sender_display_name} 的新私信。点击查看：{inbox_url}"
 
     try:
-        port = int(settings.SMTP_PORT)
-        if port == 465:
-            server = smtplib.SMTP_SSL(settings.SMTP_HOST, port, timeout=10)
-        else:
-            server = smtplib.SMTP(settings.SMTP_HOST, port, timeout=10)
-            server.starttls()
-
-        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-        server.sendmail(settings.SMTP_USER, to_email, msg.as_string())
-        server.quit()
-        logger.info("Notification email sent to %s", to_email)
+        _ses_client().send_email(
+            Source=SENDER,
+            Destination={"ToAddresses": [to_email]},
+            Message={
+                "Subject": {"Data": subject, "Charset": "UTF-8"},
+                "Body": {
+                    "Text": {"Data": text, "Charset": "UTF-8"},
+                    "Html": {"Data": html, "Charset": "UTF-8"},
+                },
+            },
+        )
+        logger.info("Notification email sent to %s via SES", to_email)
         return True
+    except ClientError as e:
+        logger.error("SES failed to send notification to %s: %s", to_email, e.response["Error"]["Message"])
+        return False
     except Exception as e:
         logger.error("Failed to send notification email to %s: %s", to_email, e)
         return False
