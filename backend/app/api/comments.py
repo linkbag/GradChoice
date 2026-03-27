@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/comments", tags=["评论"])
 
 
-def _build_response(comment: Comment, user_id: uuid.UUID | None, db: Session, include_replies: bool = True) -> CommentResponse:
+def _build_response(comment: Comment, user_id: uuid.UUID | None, db: Session, include_replies: bool = True, supervisor_name: str | None = None) -> CommentResponse:
     vote = None
     if user_id:
         v = db.query(CommentVote).filter(
@@ -76,6 +76,7 @@ def _build_response(comment: Comment, user_id: uuid.UUID | None, db: Session, in
         reply_count=reply_count,
         author=author,
         replies=replies,
+        supervisor_name=supervisor_name,
     )
 
 

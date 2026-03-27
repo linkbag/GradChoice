@@ -42,6 +42,9 @@ export default function Layout() {
                   <Link to="/inbox" className="text-sm text-gray-600 hover:text-brand-600 transition-colors">
                     {zh.nav.inbox}
                   </Link>
+                  <Link to="/my-reviews" className="text-sm text-gray-600 hover:text-brand-600 transition-colors">
+                    {zh.nav.my_reviews}
+                  </Link>
                   <Link to="/profile" className="text-sm text-gray-600 hover:text-brand-600 transition-colors">
                     {zh.nav.profile}
                   </Link>

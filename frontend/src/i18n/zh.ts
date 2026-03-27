@@ -11,6 +11,7 @@ export const zh = {
     logout: '退出登录',
     rankings: '排行榜',
     add_supervisor: '添加导师',
+    my_reviews: '我的评价',
   },
   home: {
     hero_title: '研选 GradChoice',

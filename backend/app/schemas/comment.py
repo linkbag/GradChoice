@@ -44,6 +44,7 @@ class CommentResponse(BaseModel):
     reply_count: int = 0
     author: Optional[CommentAuthorResponse] = None
     replies: list["CommentResponse"] = []
+    supervisor_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

@@ -15,6 +15,7 @@ import RatePage from '@/pages/RatePage'
 import PublicProfilePage from '@/pages/PublicProfilePage'
 import AddSupervisorPage from '@/pages/AddSupervisorPage'
 import TermsPage from '@/pages/TermsPage'
+import MyReviewsPage from '@/pages/MyReviewsPage'
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="users/:userId/profile" element={<PublicProfilePage />} />
           <Route path="add-supervisor" element={<AddSupervisorPage />} />
           <Route path="terms" element={<TermsPage />} />
+          <Route path="my-reviews" element={<MyReviewsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
