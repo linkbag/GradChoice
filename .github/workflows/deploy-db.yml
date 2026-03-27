@@ -48,9 +48,14 @@ jobs:
           DB_URL="${DATABASE_URL}"
 
           echo "Seeding database from dump..."
-          gunzip -c data/seed_dump.sql.gz | psql "${DB_URL}" -v ON_ERROR_STOP=0
+          # Neon doesn't allow DISABLE/ENABLE TRIGGER (no superuser)
+          # Strip those lines and load data only
+          gunzip -c data/seed_dump.sql.gz \
+            | grep -v 'DISABLE TRIGGER' \
+            | grep -v 'ENABLE TRIGGER' \
+            | psql "${DB_URL}" -v ON_ERROR_STOP=0 || true
 
           echo "Verifying seed..."
-          psql "${DB_URL}" -c "SELECT count(*) as supervisors FROM supervisors;"
-          psql "${DB_URL}" -c "SELECT count(*) as comments FROM comments;"
-          psql "${DB_URL}" -c "SELECT count(*) as ratings FROM ratings;"
+          psql "${DB_URL}" -c "SELECT count(*) as supervisors FROM public.supervisors;"
+          psql "${DB_URL}" -c "SELECT count(*) as comments FROM public.comments;"
+          psql "${DB_URL}" -c "SELECT count(*) as ratings FROM public.ratings;"
