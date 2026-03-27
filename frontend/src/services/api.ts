@@ -203,7 +203,7 @@ export const ratingsApi = {
       page_size?: number
       sort?: 'newest' | 'oldest' | 'most_helpful'
     },
-  ) => http.get<RatingListResponse>(`/ratings/supervisor/${supervisorId}`, { params }),
+  ) => http.get<RatingListResponse>(`/ratings/supervisor/${supervisorId}`, { params, skipAuthRedirect: true }),
 
   getSummary: (supervisorId: string) =>
     http.get<SupervisorRatingCache>(`/ratings/supervisor/${supervisorId}/summary`),
@@ -247,7 +247,7 @@ export const commentsApi = {
       page_size?: number
       sort?: 'newest' | 'oldest' | 'most_liked' | 'most_discussed'
     },
-  ) => http.get<PaginatedResponse<Comment>>(`/comments/supervisor/${supervisorId}`, { params }),
+  ) => http.get<PaginatedResponse<Comment>>(`/comments/supervisor/${supervisorId}`, { params, skipAuthRedirect: true }),
 
   get: (commentId: string) => http.get<Comment>(`/comments/${commentId}`),
 
@@ -271,7 +271,7 @@ export const commentsApi = {
 // ============================================================
 export const analyticsApi = {
   getSupervisor: (id: string, params?: { user_status?: 'all' | 'verified' | 'unverified' }) =>
-    http.get<SupervisorAnalytics>(`/analytics/supervisor/${id}`, { params }),
+    http.get<SupervisorAnalytics>(`/analytics/supervisor/${id}`, { params, skipAuthRedirect: true }),
 
   getSchool: (code: string) =>
     http.get<SchoolAnalytics>(`/analytics/school/${code}`),

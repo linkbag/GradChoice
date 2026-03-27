@@ -136,7 +136,7 @@ export default function RankingsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">导师排行榜</h1>
         <p className="text-sm text-gray-500 mt-1">
-          仅展示获得至少 1 条评价的导师 · 数据实时更新
+          仅展示获得至少 1 条打分的导师 · 数据实时更新
         </p>
       </div>
 
@@ -225,7 +225,7 @@ export default function RankingsPage() {
               <div>导师</div>
               <div>院校 / 院系</div>
               <div className="text-right">评分</div>
-              <div className="text-right">评价数</div>
+              <div className="text-right">打分数</div>
             </div>
 
             {items.map((item) => (

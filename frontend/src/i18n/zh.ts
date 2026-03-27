@@ -39,7 +39,7 @@ export const zh = {
     result_count: (n: number) => `共找到 ${n} 位导师`,
   },
   supervisor: {
-    rating_count: (n: number) => `${n} 条评价`,
+    rating_count: (n: number) => `${n} 条打分`,
     verified_badge: '已认证学生',
     unverified_badge: '未认证',
     user_status_all: '全部用户',
