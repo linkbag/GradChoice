@@ -1,0 +1,55 @@
+name: Deploy Database to Neon
+
+on:
+  workflow_dispatch:
+    inputs:
+      seed_data:
+        description: 'Also seed supervisor/review data (first-time setup)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+jobs:
+  migrate-and-seed:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Run Alembic migrations
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: alembic upgrade head
+
+      - name: Seed data
+        if: ${{ inputs.seed_data == 'true' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          # Install PostgreSQL client
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+
+          # Extract Neon connection params from DATABASE_URL
+          # Neon requires sslmode=require
+          DB_URL="${DATABASE_URL}"
+
+          echo "Seeding database from dump..."
+          gunzip -c data/seed_dump.sql.gz | psql "${DB_URL}" -v ON_ERROR_STOP=0
+
+          echo "Verifying seed..."
+          psql "${DB_URL}" -c "SELECT count(*) as supervisors FROM supervisors;"
+          psql "${DB_URL}" -c "SELECT count(*) as comments FROM comments;"
+          psql "${DB_URL}" -c "SELECT count(*) as ratings FROM ratings;"
