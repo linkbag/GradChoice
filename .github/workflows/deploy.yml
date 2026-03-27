@@ -66,7 +66,7 @@ jobs:
               --function-name $LAMBDA_FUNCTION \
               --timeout 30 \
               --memory-size 512 \
-              --environment "Variables={DATABASE_URL=${DATABASE_URL},SECRET_KEY=${SECRET_KEY},ALLOWED_ORIGINS=https://gradchoice.org\\,https://www.gradchoice.org}"
+              --environment "Variables={DATABASE_URL=${DATABASE_URL},SECRET_KEY=${SECRET_KEY},ALLOWED_ORIGINS=https://gradchoice.org\,https://www.gradchoice.org\,https://gradchoice.pages.dev}"
           else
             echo "Creating Lambda execution role..."
             TRUST_POLICY='{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"lambda.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
@@ -93,7 +93,7 @@ jobs:
               --zip-file fileb://lambda.zip \
               --timeout 30 \
               --memory-size 512 \
-              --environment "Variables={DATABASE_URL=${DATABASE_URL},SECRET_KEY=${SECRET_KEY},ALLOWED_ORIGINS=https://gradchoice.org\\,https://www.gradchoice.org}"
+              --environment "Variables={DATABASE_URL=${DATABASE_URL},SECRET_KEY=${SECRET_KEY},ALLOWED_ORIGINS=https://gradchoice.org\,https://www.gradchoice.org\,https://gradchoice.pages.dev}"
           fi
 
           aws lambda wait function-updated --function-name $LAMBDA_FUNCTION 2>/dev/null || true
@@ -115,7 +115,7 @@ jobs:
               --name $API_NAME \
               --protocol-type HTTP \
               --cors-configuration '{
-                "AllowOrigins":["https://gradchoice.org","https://www.gradchoice.org"],
+                "AllowOrigins":["https://gradchoice.org","https://www.gradchoice.org","https://gradchoice.pages.dev"],
                 "AllowMethods":["GET","POST","PUT","DELETE","OPTIONS"],
                 "AllowHeaders":["Content-Type","Authorization"],
                 "MaxAge":3600
