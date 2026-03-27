@@ -21,9 +21,12 @@ import re
 from pathlib import Path
 from typing import Optional
 
-# Path: backend/app/utils/name_filter.py → 4 levels up → project root
+# Path: backend/app/utils/name_filter.py → 3 levels up → backend root (works in
+# local dev, Docker volume mount, and Lambda where backend/ is the package root).
+# The blocklist.json lives at backend/data/blocklist.json (copied from data/ at
+# project root during build/deploy).
 _DEFAULT_BLOCKLIST = (
-    Path(__file__).resolve().parent.parent.parent.parent / "data" / "blocklist.json"
+    Path(__file__).resolve().parent.parent.parent / "data" / "blocklist.json"
 )
 
 # CJK Unified Ideographs range U+4E00–U+9FFF (most common CJK block)

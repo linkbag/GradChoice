@@ -77,7 +77,7 @@ def create_comment(
         supervisor_id=comment_in.supervisor_id,
         parent_comment_id=comment_in.parent_comment_id,
         content=comment_in.content,
-        is_anonymous=comment_in.is_anonymous,
+        is_anonymous=comment_in.is_anonymous or False,
         is_verified_comment=current_user.is_student_verified,
     )
     db.add(comment)
