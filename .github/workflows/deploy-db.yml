@@ -11,6 +11,14 @@ on:
         options:
           - 'false'
           - 'true'
+      fresh_seed:
+        description: 'Drop all tables first (DESTRUCTIVE — use for fresh re-seed only)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 jobs:
   migrate-and-seed:
@@ -28,6 +36,25 @@ jobs:
         working-directory: backend
         run: pip install -r requirements.txt
 
+      - name: Install PostgreSQL client
+        if: ${{ inputs.seed_data == 'true' || inputs.fresh_seed == 'true' }}
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Drop all tables (fresh start)
+        if: ${{ inputs.fresh_seed == 'true' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          psql "${DATABASE_URL}" -c "
+            DO \$\$ DECLARE r RECORD;
+            BEGIN
+              FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+                EXECUTE 'DROP TABLE IF EXISTS public.' || quote_ident(r.tablename) || ' CASCADE';
+              END LOOP;
+            END \$\$;
+          "
+          echo "✅ All tables dropped"
+
       - name: Run Alembic migrations
         working-directory: backend
         env:
@@ -36,26 +63,19 @@ jobs:
         run: alembic upgrade head
 
       - name: Seed data
-        if: ${{ inputs.seed_data == 'true' }}
+        if: ${{ inputs.seed_data == 'true' || inputs.fresh_seed == 'true' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          # Install PostgreSQL client
-          sudo apt-get update && sudo apt-get install -y postgresql-client
-
-          # Extract Neon connection params from DATABASE_URL
-          # Neon requires sslmode=require
-          DB_URL="${DATABASE_URL}"
-
           echo "Seeding database from dump..."
-          # Neon doesn't allow DISABLE/ENABLE TRIGGER (no superuser)
-          # Strip those lines and load data only
           gunzip -c data/seed_dump.sql.gz \
             | grep -v 'DISABLE TRIGGER' \
             | grep -v 'ENABLE TRIGGER' \
-            | psql "${DB_URL}" -v ON_ERROR_STOP=0 || true
+            | psql "${DATABASE_URL}" -v ON_ERROR_STOP=0 || true
 
+          echo ""
           echo "Verifying seed..."
-          psql "${DB_URL}" -c "SELECT count(*) as supervisors FROM public.supervisors;"
-          psql "${DB_URL}" -c "SELECT count(*) as comments FROM public.comments;"
-          psql "${DB_URL}" -c "SELECT count(*) as ratings FROM public.ratings;"
+          psql "${DATABASE_URL}" -c "SELECT count(*) as supervisors FROM public.supervisors;"
+          psql "${DATABASE_URL}" -c "SELECT count(*) as comments FROM public.comments;"
+          psql "${DATABASE_URL}" -c "SELECT count(*) as ratings FROM public.ratings;"
+          echo "✅ Seed complete"
