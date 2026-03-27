@@ -60,13 +60,14 @@ def send_signup_verification(body: SendSignupVerificationRequest, db: Session = 
         logger.warning("SMTP not configured — auto-verifying signup email for %s", email)
         return {"message": "邮箱已自动验证（SMTP 未配置）"}
 
-    # TODO: send real email via SMTP when configured
-    print(f"\n{'='*50}")
-    print(f"  注册验证码 for {email}: {code}")
-    print(f"  (15 分钟内有效)")
-    print(f"{'='*50}\n")
-
-    return {"message": "验证码已发送，请查看邮箱"}
+    from app.utils.email import send_verification_email
+    if send_verification_email(email, code, purpose="注册"):
+        return {"message": "验证码已发送，请查看邮箱"}
+    else:
+        # SMTP failed — fall back to auto-verify
+        _signup_verifications[email]["verified"] = True
+        logger.warning("SMTP send failed — auto-verifying signup for %s", email)
+        return {"message": "邮箱已自动验证（邮件发送失败）"}
 
 
 @router.post("/verify-signup-code")
@@ -208,13 +209,12 @@ def send_verification(
     current_user.verification_code_expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
     db.commit()
 
-    # LOCAL DEV: print code to console instead of sending email
-    print(f"\n{'='*50}")
-    print(f"  验证码 for {email}: {code}")
-    print(f"  (15 分钟内有效)")
-    print(f"{'='*50}\n")
-
-    return {"message": "验证码已发送，请查看邮箱"}
+    from app.utils.email import send_verification_email
+    if send_verification_email(email, code, purpose="学校邮箱"):
+        return {"message": "验证码已发送，请查看邮箱"}
+    else:
+        logger.warning("SMTP send failed for school email %s — code: %s", email, code)
+        return {"message": "验证码发送失败，请稍后重试"}
 
 
 @router.post("/verify-school-email")
