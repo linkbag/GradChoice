@@ -15,14 +15,11 @@ class Settings(BaseSettings):
     # App
     APP_NAME: str = "研选 GradChoice"
     DEBUG: bool = False
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 
-    @field_validator("ALLOWED_ORIGINS", mode="before")
-    @classmethod
-    def parse_origins(cls, v):
-        if isinstance(v, str):
-            return [s.strip() for s in v.split(",") if s.strip()]
-        return v
+    @property
+    def allowed_origins_list(self) -> list[str]:
+        return [s.strip() for s in self.ALLOWED_ORIGINS.split(",") if s.strip()]
 
     # Email (SMTP)
     SMTP_HOST: Optional[str] = None
