@@ -3,84 +3,55 @@ name: Deploy Database to Neon
 on:
   workflow_dispatch:
     inputs:
-      seed_data:
-        description: 'Also seed supervisor/review data (first-time setup)'
-        required: false
-        default: 'false'
+      mode:
+        description: 'Deployment mode'
+        required: true
+        default: 'migrate'
         type: choice
         options:
-          - 'false'
-          - 'true'
-      fresh_seed:
-        description: 'Drop all tables first (DESTRUCTIVE — use for fresh re-seed only)'
-        required: false
-        default: 'false'
-        type: choice
-        options:
-          - 'false'
-          - 'true'
+          - 'migrate'
+          - 'full-seed'
 
 jobs:
-  migrate-and-seed:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies
-        working-directory: backend
-        run: pip install -r requirements.txt
-
       - name: Install PostgreSQL client
-        if: ${{ inputs.seed_data == 'true' || inputs.fresh_seed == 'true' }}
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
-      - name: Drop all tables and types (fresh start)
-        if: ${{ inputs.fresh_seed == 'true' }}
+      - name: Full seed (schema + data from dump)
+        if: ${{ inputs.mode == 'full-seed' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
+          echo "Dropping existing objects..."
           psql "${DATABASE_URL}" -c "
             DO \$\$ DECLARE r RECORD;
             BEGIN
-              -- Drop all tables
               FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
                 EXECUTE 'DROP TABLE IF EXISTS public.' || quote_ident(r.tablename) || ' CASCADE';
               END LOOP;
-              -- Drop all custom types/enums
               FOR r IN (SELECT typname FROM pg_type t JOIN pg_namespace n ON t.typnamespace = n.oid WHERE n.nspname = 'public' AND t.typtype = 'e') LOOP
                 EXECUTE 'DROP TYPE IF EXISTS public.' || quote_ident(r.typname) || ' CASCADE';
               END LOOP;
             END \$\$;
           "
-          echo "✅ All tables and types dropped"
 
-      - name: Run Alembic migrations
-        working-directory: backend
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          SECRET_KEY: "ci-migration-only-not-used-for-auth"
-        run: alembic upgrade head
-
-      - name: Seed data
-        if: ${{ inputs.seed_data == 'true' || inputs.fresh_seed == 'true' }}
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: |
-          echo "Seeding database from dump..."
-          gunzip -c data/seed_dump.sql.gz \
-            | grep -v 'DISABLE TRIGGER' \
-            | grep -v 'ENABLE TRIGGER' \
-            | psql "${DATABASE_URL}" -v ON_ERROR_STOP=0 || true
+          echo "Loading full dump (schema + data)..."
+          gunzip -c data/seed_dump.sql.gz | psql "${DATABASE_URL}" --set ON_ERROR_STOP=off 2>&1 | tail -20
 
           echo ""
-          echo "Verifying seed..."
-          psql "${DATABASE_URL}" -c "SELECT count(*) as supervisors FROM public.supervisors;"
-          psql "${DATABASE_URL}" -c "SELECT count(*) as comments FROM public.comments;"
-          psql "${DATABASE_URL}" -c "SELECT count(*) as ratings FROM public.ratings;"
-          echo "✅ Seed complete"
+          echo "Verifying..."
+          psql "${DATABASE_URL}" -c "SELECT 'supervisors' as tbl, count(*) as rows FROM public.supervisors UNION ALL SELECT 'comments', count(*) FROM public.comments UNION ALL SELECT 'ratings', count(*) FROM public.ratings;"
+          echo "✅ Full seed complete"
+
+      - name: Migrate only (Alembic)
+        if: ${{ inputs.mode == 'migrate' }}
+        run: |
+          pip install -r backend/requirements.txt
+          cd backend
+          DATABASE_URL="${{ secrets.DATABASE_URL }}" SECRET_KEY="ci-only" alembic upgrade head
+          echo "✅ Migrations complete"
