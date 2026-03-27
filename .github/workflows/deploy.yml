@@ -5,9 +5,13 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  LAMBDA_FUNCTION: gradchoice-api
+  API_NAME: gradchoice-api
+
 jobs:
   # ──────────────────────────────────────────────
-  # Backend: FastAPI → AWS Lambda via SAM
+  # Backend: FastAPI → AWS Lambda + API Gateway
   # ──────────────────────────────────────────────
   deploy-backend:
     runs-on: ubuntu-latest
@@ -19,9 +23,6 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Set up AWS SAM CLI
-        uses: aws-actions/setup-sam@v2
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -29,37 +30,137 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: SAM build
-        working-directory: backend
-        run: sam build
-
-      - name: SAM deploy
+      - name: Build Lambda package
         working-directory: backend
         run: |
-          sam deploy \
-            --stack-name gradchoice-api \
-            --s3-bucket ${{ secrets.AWS_SAM_BUCKET }} \
-            --capabilities CAPABILITY_IAM \
-            --no-confirm-changeset \
-            --no-fail-on-empty-changeset \
-            --parameter-overrides \
-              DatabaseUrl=${{ secrets.DATABASE_URL }} \
-              SecretKey=${{ secrets.SECRET_KEY }} \
-              AllowedOrigins="https://gradchoice.org,https://www.gradchoice.org"
+          mkdir -p package
+          pip install -r requirements.txt -t package/ --platform manylinux2014_x86_64 --only-binary=:all:
+          cp -r app package/
+          cp lambda_handler.py package/
+          cd package && zip -r9 ../lambda.zip . -x "__pycache__/*" "*.pyc"
+          cd .. && echo "Package size: $(du -sh lambda.zip | cut -f1)"
 
-      - name: Get API URL
-        id: api-url
+      - name: Create or update Lambda function
         working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
         run: |
-          API_URL=$(aws cloudformation describe-stacks \
-            --stack-name gradchoice-api \
-            --query 'Stacks[0].Outputs[?OutputKey==`ApiUrl`].OutputValue' \
+          ROLE_NAME="${LAMBDA_FUNCTION}-role"
+
+          # Check if function exists
+          if aws lambda get-function --function-name $LAMBDA_FUNCTION 2>/dev/null; then
+            echo "Updating existing Lambda function..."
+            aws lambda update-function-code \
+              --function-name $LAMBDA_FUNCTION \
+              --zip-file fileb://lambda.zip
+
+            # Wait for update to complete
+            aws lambda wait function-updated --function-name $LAMBDA_FUNCTION
+
+            aws lambda update-function-configuration \
+              --function-name $LAMBDA_FUNCTION \
+              --timeout 30 \
+              --memory-size 512 \
+              --environment "Variables={DATABASE_URL=${DATABASE_URL},SECRET_KEY=${SECRET_KEY},ALLOWED_ORIGINS=https://gradchoice.org\\,https://www.gradchoice.org}"
+          else
+            echo "Creating Lambda execution role..."
+            TRUST_POLICY='{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"lambda.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
+
+            ROLE_ARN=$(aws iam create-role \
+              --role-name $ROLE_NAME \
+              --assume-role-policy-document "$TRUST_POLICY" \
+              --query 'Role.Arn' --output text 2>/dev/null || \
+              aws iam get-role --role-name $ROLE_NAME --query 'Role.Arn' --output text)
+
+            aws iam attach-role-policy \
+              --role-name $ROLE_NAME \
+              --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole 2>/dev/null || true
+
+            echo "Waiting for role propagation..."
+            sleep 10
+
+            echo "Creating Lambda function..."
+            aws lambda create-function \
+              --function-name $LAMBDA_FUNCTION \
+              --runtime python3.12 \
+              --handler lambda_handler.handler \
+              --role "$ROLE_ARN" \
+              --zip-file fileb://lambda.zip \
+              --timeout 30 \
+              --memory-size 512 \
+              --environment "Variables={DATABASE_URL=${DATABASE_URL},SECRET_KEY=${SECRET_KEY},ALLOWED_ORIGINS=https://gradchoice.org\\,https://www.gradchoice.org}"
+          fi
+
+          aws lambda wait function-updated --function-name $LAMBDA_FUNCTION 2>/dev/null || true
+          echo "✅ Lambda function deployed"
+
+      - name: Create or get API Gateway
+        id: api-gw
+        run: |
+          # Check if API already exists
+          API_ID=$(aws apigatewayv2 get-apis \
+            --query "Items[?Name=='${API_NAME}'].ApiId" \
             --output text)
+
+          if [ -z "$API_ID" ] || [ "$API_ID" = "None" ]; then
+            echo "Creating HTTP API Gateway..."
+            API_ID=$(aws apigatewayv2 create-api \
+              --name $API_NAME \
+              --protocol-type HTTP \
+              --cors-configuration '{
+                "AllowOrigins":["https://gradchoice.org","https://www.gradchoice.org"],
+                "AllowMethods":["GET","POST","PUT","DELETE","OPTIONS"],
+                "AllowHeaders":["Content-Type","Authorization"],
+                "MaxAge":3600
+              }' \
+              --query 'ApiId' --output text)
+
+            echo "Setting up Lambda integration..."
+            LAMBDA_ARN=$(aws lambda get-function \
+              --function-name $LAMBDA_FUNCTION \
+              --query 'Configuration.FunctionArn' --output text)
+
+            INTEGRATION_ID=$(aws apigatewayv2 create-integration \
+              --api-id $API_ID \
+              --integration-type AWS_PROXY \
+              --integration-uri "$LAMBDA_ARN" \
+              --payload-format-version "2.0" \
+              --query 'IntegrationId' --output text)
+
+            aws apigatewayv2 create-route \
+              --api-id $API_ID \
+              --route-key 'ANY /{proxy+}' \
+              --target "integrations/${INTEGRATION_ID}"
+
+            aws apigatewayv2 create-route \
+              --api-id $API_ID \
+              --route-key 'ANY /' \
+              --target "integrations/${INTEGRATION_ID}"
+
+            aws apigatewayv2 create-stage \
+              --api-id $API_ID \
+              --stage-name prod \
+              --auto-deploy
+
+            # Grant API Gateway permission to invoke Lambda
+            ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+            REGION=${{ secrets.AWS_REGION }}
+            aws lambda add-permission \
+              --function-name $LAMBDA_FUNCTION \
+              --statement-id apigateway-invoke \
+              --action lambda:InvokeFunction \
+              --principal apigateway.amazonaws.com \
+              --source-arn "arn:aws:execute-api:${REGION}:${ACCOUNT_ID}:${API_ID}/*" 2>/dev/null || true
+          fi
+
+          REGION=${{ secrets.AWS_REGION }}
+          API_URL="https://${API_ID}.execute-api.${REGION}.amazonaws.com/prod"
           echo "api_url=${API_URL}" >> $GITHUB_OUTPUT
-          echo "API deployed at: ${API_URL}"
+          echo "API URL: ${API_URL}"
 
     outputs:
-      api_url: ${{ steps.api-url.outputs.api_url }}
+      api_url: ${{ steps.api-gw.outputs.api_url }}
 
   # ──────────────────────────────────────────────
   # Frontend: React → Cloudflare Pages
