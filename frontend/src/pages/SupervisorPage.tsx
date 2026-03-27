@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { zh } from '@/i18n/zh'
-import { supervisorsApi, analyticsApi, ratingsApi, commentsApi, editProposalsApi } from '@/services/api'
+import { supervisorsApi, analyticsApi, ratingsApi, commentsApi, editProposalsApi, usersApi, chatsApi } from '@/services/api'
 import type { Supervisor, SupervisorAnalytics, ScoreBreakdown, Rating, Comment } from '@/types'
 import RadarChart from '@/components/RadarChart'
 import DistributionChart from '@/components/DistributionChart'
@@ -145,11 +145,13 @@ function RatingCard({ rating }: { rating: Rating }) {
 interface CommentCardProps {
   comment: Comment
   isLoggedIn: boolean
+  currentUserId?: string | null
   onVote: (id: string, type: 'up' | 'down') => void
   onReply: (id: string, authorName: string) => void
+  onChat: (comment: Comment) => void
 }
 
-function CommentCard({ comment, isLoggedIn, onVote, onReply }: CommentCardProps) {
+function CommentCard({ comment, isLoggedIn, currentUserId, onVote, onReply, onChat }: CommentCardProps) {
   return (
     <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
       <div className="flex items-center justify-between mb-2">
@@ -207,6 +209,14 @@ function CommentCard({ comment, isLoggedIn, onVote, onReply }: CommentCardProps)
         >
           回复
         </button>
+        {isLoggedIn && !comment.is_anonymous && comment.author?.id && comment.author.id !== currentUserId && (
+          <button
+            onClick={() => onChat(comment)}
+            className="text-gray-400 hover:text-teal-600 transition-colors"
+          >
+            私信
+          </button>
+        )}
         {comment.reply_count > 0 && (
           <span className="text-gray-400">💬 {comment.reply_count} 条回复</span>
         )}
@@ -292,6 +302,12 @@ export default function SupervisorPage() {
   const [editDone, setEditDone] = useState(false)
 
   const isLoggedIn = !!localStorage.getItem('access_token')
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isLoggedIn) return
+    usersApi.getMeOptional().then((res) => setCurrentUserId(res.data.id)).catch(() => {})
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const refreshComments = useCallback(async () => {
     if (!id) return
@@ -469,6 +485,23 @@ export default function SupervisorPage() {
     }
     setReplyingTo({ id: commentId, authorName })
     setReplyText('')
+  }
+
+  async function handleChat(comment: Comment) {
+    if (!isLoggedIn) { navigate('/login'); return }
+    if (!comment.author?.id) return
+    try {
+      const quoteContent = `【引用评论】\n${comment.content}\n【/引用评论】`
+      const res = await chatsApi.create({
+        recipient_id: comment.author.id,
+        supervisor_id: id,
+        initial_message: quoteContent,
+      })
+      navigate('/inbox', { state: { chatId: res.data.id } })
+    } catch {
+      // ignore — user already sees no feedback, navigate to inbox anyway
+      navigate('/inbox')
+    }
   }
 
   return (
@@ -844,8 +877,10 @@ export default function SupervisorPage() {
                   key={c.id}
                   comment={c}
                   isLoggedIn={isLoggedIn}
+                  currentUserId={currentUserId}
                   onVote={handleVote}
                   onReply={handleReply}
+                  onChat={handleChat}
                 />
               ))}
               {commentsTotal > comments.length && (
