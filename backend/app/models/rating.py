@@ -36,6 +36,7 @@ class Rating(Base):
     score_stipend: Mapped[float | None] = mapped_column(Numeric(3, 2), nullable=True)
     score_resources: Mapped[float | None] = mapped_column(Numeric(3, 2), nullable=True)
     score_ethics: Mapped[float | None] = mapped_column(Numeric(3, 2), nullable=True)
+    first_year_income: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # Denormalized vote counts — updated by vote endpoint
     upvotes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     downvotes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

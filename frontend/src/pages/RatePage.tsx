@@ -79,6 +79,7 @@ export default function RatePage() {
     resources: null,
     ethics: null,
   })
+  const [firstYearIncome, setFirstYearIncome] = useState<string>('')
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -116,6 +117,7 @@ export default function RatePage() {
         score_stipend: subScores.stipend ?? undefined,
         score_resources: subScores.resources ?? undefined,
         score_ethics: subScores.ethics ?? undefined,
+        first_year_income: firstYearIncome !== '' ? parseInt(firstYearIncome, 10) : undefined,
       })
       navigate(`/supervisor/${id}`, { replace: true })
     } catch (err: unknown) {
@@ -186,6 +188,24 @@ export default function RatePage() {
                   onChange={(v) => setSubScore(key, v)}
                 />
               ))}
+            </div>
+          </div>
+
+          {/* First-year income */}
+          <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
+            <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
+              毕业首年收入（可选）
+            </p>
+            <div className="flex flex-col gap-1">
+              <input
+                type="number"
+                min={0}
+                value={firstYearIncome}
+                onChange={(e) => setFirstYearIncome(e.target.value)}
+                placeholder="请输入数字，单位：人民币"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+              />
+              <p className="text-xs text-gray-400">仅供参考，严格保密</p>
             </div>
           </div>
 

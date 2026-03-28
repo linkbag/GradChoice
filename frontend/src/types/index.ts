@@ -300,6 +300,7 @@ export interface SupervisorAnalytics {
   score_trends: ScoreTrend[]
   school_avg_scores: ScoreBreakdown
   national_avg_scores: ScoreBreakdown
+  avg_first_year_income: number | null
 }
 
 export interface SchoolAnalytics {

@@ -48,6 +48,7 @@ class SupervisorAnalytics(BaseModel):
     score_trends: list[ScoreTrend] = []
     school_avg_scores: ScoreBreakdown = ScoreBreakdown()
     national_avg_scores: ScoreBreakdown = ScoreBreakdown()
+    avg_first_year_income: Optional[float] = None
 
 
 class SchoolAnalytics(BaseModel):

@@ -598,6 +598,7 @@ export default function SupervisorPage() {
                 <RadarChart
                   scores={scores!}
                   schoolAvg={analytics!.school_avg_scores.avg_overall != null ? analytics!.school_avg_scores : undefined}
+                  avgFirstYearIncome={analytics!.avg_first_year_income}
                 />
 
                 <div className="grid grid-cols-3 gap-3 mt-6">

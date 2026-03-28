@@ -12,6 +12,7 @@ import type { ScoreBreakdown } from '@/types'
 interface Props {
   scores: ScoreBreakdown
   schoolAvg?: ScoreBreakdown
+  avgFirstYearIncome?: number | null
 }
 
 const LABELS: { key: keyof ScoreBreakdown; label: string; desc: string }[] = [
@@ -34,7 +35,7 @@ function buildData(
   }))
 }
 
-export default function RadarChart({ scores, schoolAvg }: Props) {
+export default function RadarChart({ scores, schoolAvg, avgFirstYearIncome }: Props) {
   const hasData = LABELS.some(({ key }) => scores[key] != null)
 
   if (!hasData) {
@@ -95,6 +96,17 @@ export default function RadarChart({ scores, schoolAvg }: Props) {
             {desc}
           </div>
         ))}
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          {avgFirstYearIncome != null ? (
+            <p className="text-base font-semibold text-gray-800">
+              📊 毕业首年平均收入：¥{avgFirstYearIncome.toLocaleString('zh-CN')} 元
+            </p>
+          ) : (
+            <p className="text-base font-semibold text-gray-400">
+              📊 毕业首年平均收入：暂无数据
+            </p>
+          )}
+        </div>
       </div>
     </div>
   )
