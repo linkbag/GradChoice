@@ -319,9 +319,9 @@ def list_supervisors(
     rows = q.offset((page - 1) * page_size).limit(page_size).all()
     items = []
     for sup, cc in rows:
-        r = SupervisorResponse.model_validate(sup)
-        r.comment_count = cc or 0
-        items.append(r)
+        d = {c.name: getattr(sup, c.name) for c in sup.__table__.columns}
+        d["comment_count"] = cc or 0
+        items.append(SupervisorResponse.model_validate(d))
     return SupervisorListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
