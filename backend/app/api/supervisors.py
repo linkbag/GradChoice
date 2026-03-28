@@ -286,7 +286,13 @@ def list_supervisors(
     db: Session = Depends(get_db),
 ):
     """获取导师列表（支持分页和过滤）"""
-    q = db.query(Supervisor)
+    comment_count_subq = (
+        db.query(func.count(Comment.id))
+        .filter(Comment.supervisor_id == Supervisor.id, Comment.parent_comment_id.is_(None))
+        .correlate(Supervisor)
+        .scalar_subquery()
+    )
+    q = db.query(Supervisor, comment_count_subq.label("comment_count"))
     if school_code:
         q = q.filter(Supervisor.school_code == school_code)
     if school_name:
@@ -295,7 +301,12 @@ def list_supervisors(
         q = q.filter(Supervisor.province == province)
     if department:
         q = q.filter(Supervisor.department == department)
-    total = q.count()
+    total = db.query(func.count(Supervisor.id)).filter(
+        *([Supervisor.school_code == school_code] if school_code else []),
+        *([Supervisor.school_name == school_name] if school_name else []),
+        *([Supervisor.province == province] if province else []),
+        *([Supervisor.department == department] if department else []),
+    ).scalar()
     if sort_by == "rating":
         q = q.order_by(Supervisor.avg_overall_score.desc().nullslast(), Supervisor.rating_count.desc())
     elif sort_by == "rating_count":
@@ -305,7 +316,12 @@ def list_supervisors(
         is_cjk = and_(first_char_code >= 0x4E00, first_char_code <= 0x9FFF)
         chinese_first = case((is_cjk, 0), else_=1)
         q = q.order_by(chinese_first, Supervisor.school_name, Supervisor.name)
-    items = q.offset((page - 1) * page_size).limit(page_size).all()
+    rows = q.offset((page - 1) * page_size).limit(page_size).all()
+    items = []
+    for sup, cc in rows:
+        r = SupervisorResponse.model_validate(sup)
+        r.comment_count = cc or 0
+        items.append(r)
     return SupervisorListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
