@@ -147,6 +147,14 @@ def get_supervisor_analytics(
         for r in trend_rows
     ]
 
+    # avg_first_year_income — average of non-null values across all ratings (unfiltered by user_status)
+    avg_first_year_income_raw = (
+        db.query(func.avg(Rating.first_year_income))
+        .filter(Rating.supervisor_id == supervisor_id, Rating.first_year_income.isnot(None))
+        .scalar()
+    )
+    avg_first_year_income = _f(avg_first_year_income_raw, 0) if avg_first_year_income_raw is not None else None
+
     # Comment count
     comment_count = (
         db.query(func.count(Comment.id)).filter(Comment.supervisor_id == supervisor_id).scalar() or 0
@@ -264,6 +272,7 @@ def get_supervisor_analytics(
         score_trends=score_trends,
         school_avg_scores=school_avg_scores,
         national_avg_scores=national_avg_scores,
+        avg_first_year_income=avg_first_year_income,
     )
 
 

@@ -197,6 +197,7 @@ export const ratingsApi = {
     score_stipend?: number
     score_resources?: number
     score_ethics?: number
+    first_year_income?: number
   }) => http.post<Rating>('/ratings', data),
 
   getBySupervisor: (

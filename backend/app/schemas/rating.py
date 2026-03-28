@@ -16,6 +16,7 @@ class RatingCreate(BaseModel):
     score_stipend: Optional[float] = None
     score_resources: Optional[float] = None
     score_ethics: Optional[float] = None
+    first_year_income: Optional[int] = None
 
     @field_validator("overall_score", "score_academic", "score_mentoring",
                      "score_wellbeing", "score_stipend", "score_resources", "score_ethics",
@@ -51,6 +52,7 @@ class RatingResponse(BaseModel):
     score_stipend: Optional[float] = None
     score_resources: Optional[float] = None
     score_ethics: Optional[float] = None
+    first_year_income: Optional[int] = None
     upvotes: int = 0
     downvotes: int = 0
     user_vote: Optional[VoteType] = None
