@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-27 12:40*
+*Last updated: 2026-03-27 21:06*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -328,3 +328,7 @@ Review passed — reviewer fixed issues (commit: 00fcc45 fix: search comment cou
 ### Update: 2026-03-27 12:40
 ### claude-gc-reviews-fixes — 2026-03-27 12:40
 Review passed — reviewer fixed issues (commit: 27cb918 fix: 我的评价 — save shows 已保存 + delete no longer forces logout)
+
+### Update: 2026-03-27 21:06
+### claude-gc-disclaimer-ux — 2026-03-27 21:06
+Review passed — reviewer fixed issues (commit: 33ca8fe fix: larger disclaimer on home + add disclaimer to supervisor pages)
