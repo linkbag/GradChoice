@@ -8,6 +8,8 @@ import AutocompleteInput from '@/components/AutocompleteInput'
 const PAGE_SIZE = 20
 
 export default function SearchPage() {
+  const isLoggedIn = !!localStorage.getItem('access_token')
+
   const [query, setQuery] = useState('')
   const [activeQuery, setActiveQuery] = useState('') // last submitted search term
   const [province, setProvince] = useState('')
@@ -28,6 +30,7 @@ export default function SearchPage() {
   const isFirstRender = useRef(true)
 
   useEffect(() => {
+    if (!isLoggedIn) return
     Promise.all([
       supervisorsApi.getProvinces(),
       supervisorsApi.getSchoolNames(),
@@ -104,6 +107,7 @@ export default function SearchPage() {
 
   // Initial load — show all supervisors (browse mode)
   useEffect(() => {
+    if (!isLoggedIn) return
     fetchData(1, false, '', '', '', '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -136,7 +140,7 @@ export default function SearchPage() {
       <h1 className="text-2xl font-bold text-gray-800 mb-6">搜索导师</h1>
 
       {/* Search form */}
-      <form onSubmit={handleSearch} className="flex gap-3 mb-4">
+      <form onSubmit={handleSearch} className={`flex gap-3 mb-4 ${!isLoggedIn ? 'opacity-40 pointer-events-none select-none' : ''}`}>
         <input
           type="text"
           value={query}
@@ -154,7 +158,7 @@ export default function SearchPage() {
       </form>
 
       {/* Filters — changing any triggers an auto-reload */}
-      <div className="flex gap-3 mb-8">
+      <div className={`flex gap-3 mb-8 ${!isLoggedIn ? 'opacity-40 pointer-events-none select-none' : ''}`}>
         <AutocompleteInput
           options={provinceOptions}
           value={province}
@@ -178,8 +182,34 @@ export default function SearchPage() {
         />
       </div>
 
+      {/* Login gate — shown when not logged in */}
+      {!isLoggedIn && (
+        <div className="flex flex-col items-center justify-center py-16 px-6 bg-white rounded-2xl border border-gray-200 shadow-sm text-center">
+          <span className="text-5xl mb-5">🔒</span>
+          <h2 className="text-xl font-bold text-gray-800 mb-3">登录后查看导师数据</h2>
+          <p className="text-gray-500 text-sm mb-8 max-w-sm">
+            研选平台的导师评价数据仅对注册用户开放，请先登录或注册账号。
+          </p>
+          <div className="flex gap-4">
+            <Link
+              to="/login"
+              className="px-6 py-2.5 rounded-full bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors"
+            >
+              登录
+            </Link>
+            <Link
+              to="/register"
+              className="px-6 py-2.5 rounded-full border border-brand-600 text-brand-600 text-sm font-medium hover:bg-brand-50 transition-colors"
+            >
+              免费注册
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Results section — only shown when logged in */}
       {/* Result count + add supervisor link */}
-      {total > 0 && !loading && (
+      {isLoggedIn && total > 0 && !loading && (
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-gray-500">
             {activeQuery ? zh.search.result_count(total) : `共 ${total} 位导师`}
@@ -191,12 +221,12 @@ export default function SearchPage() {
       )}
 
       {/* Loading indicator */}
-      {loading && (
+      {isLoggedIn && loading && (
         <p className="text-gray-400 text-center py-12">加载中…</p>
       )}
 
       {/* Empty state */}
-      {results.length === 0 && !loading && (
+      {isLoggedIn && results.length === 0 && !loading && (
         <div className="text-center py-12">
           <p className="text-gray-400 mb-3">
             {activeQuery ? zh.search.no_results : '暂无导师数据'}
@@ -208,7 +238,7 @@ export default function SearchPage() {
       )}
 
       {/* Results */}
-      {!loading && (
+      {isLoggedIn && !loading && (
         <div className="space-y-4">
           {results.map((s) => (
             <Link
@@ -244,7 +274,7 @@ export default function SearchPage() {
       )}
 
       {/* Load more */}
-      {hasMore && !loading && (
+      {isLoggedIn && hasMore && !loading && (
         <div className="flex justify-center mt-8">
           <button
             onClick={handleLoadMore}
