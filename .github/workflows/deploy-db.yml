@@ -71,4 +71,7 @@ jobs:
           echo "Ensuring is_anonymous column exists..."
           psql "${DATABASE_URL}" -c "ALTER TABLE comments ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN NOT NULL DEFAULT false;"
           psql "${DATABASE_URL}" -c "SELECT column_name FROM information_schema.columns WHERE table_name='comments' AND column_name='is_anonymous';"
+          echo "Ensuring first_year_income column exists..."
+          psql "${DATABASE_URL}" -c "ALTER TABLE ratings ADD COLUMN IF NOT EXISTS first_year_income INTEGER;"
+          psql "${DATABASE_URL}" -c "SELECT column_name FROM information_schema.columns WHERE table_name='ratings' AND column_name='first_year_income';"
           echo "✅ Column check complete"

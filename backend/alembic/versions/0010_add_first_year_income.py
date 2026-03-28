@@ -14,10 +14,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "ratings",
-        sa.Column("first_year_income", sa.Integer(), nullable=True),
-    )
+    # Use raw SQL with IF NOT EXISTS to be safe — column was pre-applied on Neon manually
+    op.execute("ALTER TABLE ratings ADD COLUMN IF NOT EXISTS first_year_income INTEGER")
 
 
 def downgrade() -> None:
