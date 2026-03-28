@@ -894,6 +894,13 @@ export default function SupervisorPage() {
           )}
         </div>
       </div>
+      {/* Legal Disclaimer */}
+      <div className="px-1 pt-6 pb-2">
+        <p className="text-sm font-semibold text-gray-400 mb-1.5">⚖️ 免责声明</p>
+        <p className="text-sm text-gray-400 leading-relaxed">
+          本平台所有评价内容均为用户个人观点，仅代表发布者本人立场，不代表研选 GradChoice 平台立场。平台不对评价内容的真实性、准确性或合法性承担责任。如您认为某条评价侵犯了您的合法权益，请通过平台举报功能联系我们，我们将在核实后依法处理。
+        </p>
+      </div>
     </div>
     {/* Score Popup Modal */}
     {showScorePopup && (
