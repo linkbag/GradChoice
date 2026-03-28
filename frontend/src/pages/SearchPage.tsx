@@ -187,8 +187,11 @@ export default function SearchPage() {
         <div className="flex flex-col items-center justify-center py-16 px-6 bg-white rounded-2xl border border-gray-200 shadow-sm text-center">
           <span className="text-5xl mb-5">🔒</span>
           <h2 className="text-xl font-bold text-gray-800 mb-3">登录后查看导师数据</h2>
-          <p className="text-gray-500 text-sm mb-8 max-w-sm">
+          <p className="text-gray-500 text-sm mb-6 max-w-sm">
             研选平台的导师评价数据仅对注册用户开放，请先登录或注册账号。
+          </p>
+          <p className="text-gray-400 text-xs mb-8 max-w-sm">
+            本网站为公益性质，注册、使用完全免费。如果您想志愿帮助我们改进或维护网站请联系webster@gradchoice.org
           </p>
           <div className="flex gap-4">
             <Link
