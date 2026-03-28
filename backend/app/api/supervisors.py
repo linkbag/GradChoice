@@ -319,9 +319,21 @@ def list_supervisors(
     rows = q.offset((page - 1) * page_size).limit(page_size).all()
     items = []
     for sup, cc in rows:
-        d = {c.name: getattr(sup, c.name) for c in sup.__table__.columns}
-        d["comment_count"] = cc or 0
-        items.append(SupervisorResponse.model_validate(d))
+        result = SupervisorSearchResult(
+            id=sup.id,
+            school_code=sup.school_code,
+            school_name=sup.school_name,
+            province=sup.province,
+            name=sup.name,
+            department=sup.department,
+            title=sup.title,
+            avg_overall_score=sup.avg_overall_score,
+            rating_count=sup.rating_count or 0,
+            comment_count=cc or 0,
+            verified_avg_overall_score=sup.verified_avg_overall_score,
+            verified_rating_count=sup.verified_rating_count or 0,
+        )
+        items.append(result)
     return SupervisorListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
