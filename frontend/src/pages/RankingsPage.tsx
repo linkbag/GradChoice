@@ -205,72 +205,85 @@ export default function RankingsPage() {
         </p>
       </div>
 
-      {/* Dimension tabs + sort toggle */}
-      <div className="flex items-center gap-2 mb-5">
-        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide flex-1">
-          {DIMENSION_TABS.map(({ key, label }) => (
+      {/* Filter controls — blurred for non-logged-in users */}
+      <div className="relative mb-5">
+        <div className={!isLoggedIn ? 'filter blur-sm' : ''}>
+          {/* Dimension tabs + sort toggle */}
+          <div className="flex items-center gap-2 mb-5">
+            <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide flex-1">
+              {DIMENSION_TABS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => handleDimensionChange(key)}
+                  className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    dimension === key
+                      ? 'bg-teal-600 text-white'
+                      : 'bg-white border border-gray-200 text-gray-600 hover:border-teal-300 hover:text-teal-700'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <button
-              key={key}
-              onClick={() => handleDimensionChange(key)}
-              className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                dimension === key
-                  ? 'bg-teal-600 text-white'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:border-teal-300 hover:text-teal-700'
-              }`}
+              onClick={() => { setSortOrder((o) => o === 'desc' ? 'asc' : 'desc'); setPage(1) }}
+              title={sortOrder === 'desc' ? '当前：从高到低，点击切换为从低到高' : '当前：从低到高，点击切换为从高到低'}
+              className="shrink-0 px-3 py-2 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-600 hover:border-teal-300 hover:text-teal-700 transition-colors"
             >
-              {label}
+              {sortOrder === 'desc' ? '↓ 从高到低' : '↑ 从低到高'}
             </button>
-          ))}
+          </div>
+
+          {/* User status toggle */}
+          <div className="flex gap-1 mb-5">
+            {USER_STATUS_TABS.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => handleUserStatusChange(key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  userStatus === key
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Filters */}
+          <div className="flex gap-3 flex-wrap">
+            <AutocompleteInput
+              options={provinceOptions}
+              value={province}
+              onChange={handleProvinceChange}
+              placeholder="按省份筛选"
+              className="flex-1 min-w-[140px]"
+            />
+            <AutocompleteInput
+              options={schoolNameOptions}
+              value={schoolName}
+              onChange={handleSchoolNameChange}
+              placeholder="按院校名称筛选"
+              className="flex-1 min-w-[160px]"
+            />
+            <AutocompleteInput
+              options={departmentOptions}
+              value={department}
+              onChange={handleDepartmentChange}
+              placeholder={schoolCode ? '按院系筛选' : '先选院校再筛选院系'}
+              className="flex-1 min-w-[140px]"
+            />
+          </div>
         </div>
-        <button
-          onClick={() => { setSortOrder((o) => o === 'desc' ? 'asc' : 'desc'); setPage(1) }}
-          title={sortOrder === 'desc' ? '当前：从高到低，点击切换为从低到高' : '当前：从低到高，点击切换为从高到低'}
-          className="shrink-0 px-3 py-2 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-600 hover:border-teal-300 hover:text-teal-700 transition-colors"
-        >
-          {sortOrder === 'desc' ? '↓ 从高到低' : '↑ 从低到高'}
-        </button>
-      </div>
 
-      {/* User status toggle */}
-      <div className="flex gap-1 mb-5">
-        {USER_STATUS_TABS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => handleUserStatusChange(key)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              userStatus === key
-                ? 'bg-gray-800 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Filters — disabled for non-logged-in users */}
-      <div className={`flex gap-3 mb-5 flex-wrap ${!isLoggedIn ? 'opacity-40 pointer-events-none select-none' : ''}`}>
-        <AutocompleteInput
-          options={provinceOptions}
-          value={province}
-          onChange={handleProvinceChange}
-          placeholder="按省份筛选"
-          className="flex-1 min-w-[140px]"
-        />
-        <AutocompleteInput
-          options={schoolNameOptions}
-          value={schoolName}
-          onChange={handleSchoolNameChange}
-          placeholder="按院校名称筛选"
-          className="flex-1 min-w-[160px]"
-        />
-        <AutocompleteInput
-          options={departmentOptions}
-          value={department}
-          onChange={handleDepartmentChange}
-          placeholder={schoolCode ? '按院系筛选' : '先选院校再筛选院系'}
-          className="flex-1 min-w-[140px]"
-        />
+        {!isLoggedIn && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-xl">
+            <p className="text-gray-500 text-sm text-center max-w-md px-4">
+              请先登录或注册账号以查看更多导师使用完整功能。本网站为公益性质，注册、使用完全免费。如果您想志愿帮助我们改进或维护网站请联系webster@gradchoice.org
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Table */}

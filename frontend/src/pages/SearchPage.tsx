@@ -185,47 +185,59 @@ export default function SearchPage() {
     <div className="max-w-4xl mx-auto px-4 py-12">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">搜索导师</h1>
 
-      {/* Search form */}
-      <form onSubmit={handleSearch} className={`flex gap-3 mb-4 ${!isLoggedIn ? 'opacity-50 pointer-events-none select-none' : ''}`}>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={isLoggedIn ? zh.search.placeholder : '登录后可搜索导师'}
-          className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-brand-600 text-white px-6 py-3 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
-        >
-          {loading ? '搜索中…' : '搜索'}
-        </button>
-      </form>
+      {/* Search form + filters — blurred for non-logged-in users */}
+      <div className="relative mb-8">
+        <div className={!isLoggedIn ? 'filter blur-sm' : ''}>
+          <form onSubmit={handleSearch} className="flex gap-3 mb-4">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={zh.search.placeholder}
+              className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-brand-600 text-white px-6 py-3 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
+            >
+              {loading ? '搜索中…' : '搜索'}
+            </button>
+          </form>
 
-      {/* Filters — changing any triggers an auto-reload */}
-      <div className={`flex gap-3 mb-8 ${!isLoggedIn ? 'opacity-50 pointer-events-none select-none' : ''}`}>
-        <AutocompleteInput
-          options={provinceOptions}
-          value={province}
-          onChange={setProvince}
-          placeholder="按省份筛选"
-          className="flex-1"
-        />
-        <AutocompleteInput
-          options={schoolOptions}
-          value={schoolName}
-          onChange={setSchoolName}
-          placeholder="按院校名称筛选"
-          className="flex-1"
-        />
-        <AutocompleteInput
-          options={departmentOptions}
-          value={department}
-          onChange={setDepartment}
-          placeholder={zh.search.filter_department}
-          className="flex-1"
-        />
+          {/* Filters — changing any triggers an auto-reload */}
+          <div className="flex gap-3">
+            <AutocompleteInput
+              options={provinceOptions}
+              value={province}
+              onChange={setProvince}
+              placeholder="按省份筛选"
+              className="flex-1"
+            />
+            <AutocompleteInput
+              options={schoolOptions}
+              value={schoolName}
+              onChange={setSchoolName}
+              placeholder="按院校名称筛选"
+              className="flex-1"
+            />
+            <AutocompleteInput
+              options={departmentOptions}
+              value={department}
+              onChange={setDepartment}
+              placeholder={zh.search.filter_department}
+              className="flex-1"
+            />
+          </div>
+        </div>
+
+        {!isLoggedIn && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-xl">
+            <p className="text-gray-500 text-sm text-center max-w-md px-4">
+              请先登录或注册账号以查看更多导师使用完整功能。本网站为公益性质，注册、使用完全免费。如果您想志愿帮助我们改进或维护网站请联系webster@gradchoice.org
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Teaser section — shown when not logged in */}
