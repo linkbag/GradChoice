@@ -46,7 +46,11 @@ export default function AboutPage() {
           <h2 className="text-xl font-bold text-gray-800 mb-3">参与贡献</h2>
           <p className="text-gray-600 leading-relaxed">
             研选是一个社区驱动的项目。欢迎提交 Pull Request、报告 Bug，或通过社区审核机制参与导师信息的维护。
-            项目代码托管于 GitHub，遵循 MIT 协议。
+            项目代码托管于{' '}
+            <a href="https://github.com/linkbag/GradChoice" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">
+              GitHub
+            </a>
+            ，遵循 MIT 协议。
           </p>
         </div>
       </section>

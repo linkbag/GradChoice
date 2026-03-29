@@ -122,7 +122,7 @@ export default function Layout() {
           <p>研选 GradChoice — 中立 · 公开 · 免费 · 开源</p>
           <p className="mt-1">
             <a
-              href="https://github.com/your-org/gradchoice"
+              href="https://github.com/linkbag/GradChoice"
               className="hover:text-brand-600 transition-colors"
               target="_blank"
               rel="noopener noreferrer"
