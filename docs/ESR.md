@@ -336,3 +336,7 @@ Review passed — reviewer fixed issues (commit: 33ca8fe fix: larger disclaimer 
 ### Update: 2026-03-28 22:15
 ### claude-gc-rankings-blur — 2026-03-28 22:15
 Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
+
+### Update: 2026-03-28 22:15
+### claude-gc-search-teaser — 2026-03-28 22:15
+Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
