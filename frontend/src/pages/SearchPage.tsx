@@ -7,6 +7,38 @@ import AutocompleteInput from '@/components/AutocompleteInput'
 
 const PAGE_SIZE = 20
 
+function SupervisorCard({ s }: { s: SupervisorSearchResult }) {
+  return (
+    <Link
+      to={`/supervisor/${s.id}`}
+      className="block bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow"
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="font-bold text-gray-900">{s.name}</h2>
+          <p className="text-sm text-gray-600 mt-0.5">
+            {s.school_name}{s.department ? ` · ${s.department.replace(/&amp;/g, '&')}` : ''}
+          </p>
+          {s.title && <p className="text-xs text-gray-400 mt-0.5">{s.title}</p>}
+        </div>
+        <div className="text-right shrink-0 ml-4">
+          {s.avg_overall_score != null ? (
+            <span className="text-2xl font-bold text-brand-600">
+              {s.avg_overall_score.toFixed(1)}
+            </span>
+          ) : (
+            <span className="text-gray-400 text-sm">暂无评分</span>
+          )}
+          <p className="text-xs text-gray-400">
+            {zh.supervisor.rating_count(s.rating_count)}
+            {(s.comment_count ?? 0) > 0 && ` · ${s.comment_count} 条评论`}
+          </p>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
 export default function SearchPage() {
   const isLoggedIn = !!localStorage.getItem('access_token')
 
@@ -25,6 +57,10 @@ export default function SearchPage() {
   const [schoolOptions, setSchoolOptions] = useState<string[]>([])
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([])
   const [schoolCodeMap, setSchoolCodeMap] = useState<Record<string, string>>({})
+
+  // Teaser state for non-logged-in users
+  const [teaserResults, setTeaserResults] = useState<SupervisorSearchResult[]>([])
+  const [teaserLoading, setTeaserLoading] = useState(false)
 
   // Skip filter-change effect on first render (initial load uses mount effect)
   const isFirstRender = useRef(true)
@@ -112,6 +148,16 @@ export default function SearchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Fetch teaser results for non-logged-in users
+  useEffect(() => {
+    if (isLoggedIn) return
+    setTeaserLoading(true)
+    supervisorsApi.list({ page_size: 5 })
+      .then((res) => setTeaserResults(res.data.items))
+      .catch(() => {})
+      .finally(() => setTeaserLoading(false))
+  }, [])
+
   // Auto-reload when province, school, or department filter changes (skip first render)
   useEffect(() => {
     if (isFirstRender.current) {
@@ -140,12 +186,12 @@ export default function SearchPage() {
       <h1 className="text-2xl font-bold text-gray-800 mb-6">搜索导师</h1>
 
       {/* Search form */}
-      <form onSubmit={handleSearch} className={`flex gap-3 mb-4 ${!isLoggedIn ? 'opacity-40 pointer-events-none select-none' : ''}`}>
+      <form onSubmit={handleSearch} className={`flex gap-3 mb-4 ${!isLoggedIn ? 'opacity-50 pointer-events-none select-none' : ''}`}>
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={zh.search.placeholder}
+          placeholder={isLoggedIn ? zh.search.placeholder : '登录后可搜索导师'}
           className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
         <button
@@ -158,7 +204,7 @@ export default function SearchPage() {
       </form>
 
       {/* Filters — changing any triggers an auto-reload */}
-      <div className={`flex gap-3 mb-8 ${!isLoggedIn ? 'opacity-40 pointer-events-none select-none' : ''}`}>
+      <div className={`flex gap-3 mb-8 ${!isLoggedIn ? 'opacity-50 pointer-events-none select-none' : ''}`}>
         <AutocompleteInput
           options={provinceOptions}
           value={province}
@@ -182,32 +228,85 @@ export default function SearchPage() {
         />
       </div>
 
-      {/* Login gate — shown when not logged in */}
+      {/* Teaser section — shown when not logged in */}
       {!isLoggedIn && (
-        <div className="flex flex-col items-center justify-center py-16 px-6 bg-white rounded-2xl border border-gray-200 shadow-sm text-center">
-          <span className="text-5xl mb-5">🔒</span>
-          <h2 className="text-xl font-bold text-gray-800 mb-3">登录后查看导师数据</h2>
-          <p className="text-gray-500 text-sm mb-6 max-w-sm">
-            研选平台的导师评价数据仅对注册用户开放，请先登录或注册账号。
-          </p>
-          <p className="text-gray-400 text-xs mb-8 max-w-sm">
-            本网站为公益性质，注册、使用完全免费。如果您想志愿帮助我们改进或维护网站请联系webster@gradchoice.org
-          </p>
-          <div className="flex gap-4">
-            <Link
-              to="/login"
-              className="px-6 py-2.5 rounded-full bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors"
-            >
-              登录
-            </Link>
-            <Link
-              to="/register"
-              className="px-6 py-2.5 rounded-full border border-brand-600 text-brand-600 text-sm font-medium hover:bg-brand-50 transition-colors"
-            >
-              免费注册
-            </Link>
-          </div>
-        </div>
+        <>
+          {teaserLoading && (
+            <p className="text-gray-400 text-center py-12">加载中…</p>
+          )}
+
+          {/* First 5 results — fully visible */}
+          {!teaserLoading && teaserResults.length > 0 && (
+            <div className="space-y-4 mb-4">
+              {teaserResults.map((s) => (
+                <SupervisorCard key={s.id} s={s} />
+              ))}
+            </div>
+          )}
+
+          {/* Blurred "more results" section with CTA */}
+          {!teaserLoading && (
+            <div className="relative">
+              {/* Skeleton rows behind the blur */}
+              <div className="space-y-4">
+                {[...Array(4)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="bg-white rounded-xl border border-gray-200 p-5"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-200 rounded w-24 mb-2" />
+                        <div className="h-3 bg-gray-100 rounded w-48" />
+                      </div>
+                      <div className="ml-4 text-right">
+                        <div className="h-7 bg-gray-200 rounded w-12 mb-1" />
+                        <div className="h-3 bg-gray-100 rounded w-16" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Blur overlay */}
+              <div
+                className="absolute inset-0 flex items-center justify-center"
+                style={{
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
+                  background: 'linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.7) 100%)',
+                }}
+              >
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8 text-center max-w-md mx-4">
+                  <span className="text-4xl mb-4 block">🔒</span>
+                  <h2 className="text-lg font-bold text-gray-800 mb-3">
+                    登录后查看更多导师并使用搜索功能
+                  </h2>
+                  <p className="text-gray-500 text-sm mb-3">
+                    研选平台的导师评价数据仅对注册用户完整开放。
+                  </p>
+                  <p className="text-gray-400 text-xs mb-6">
+                    本网站为公益性质，注册、使用完全免费。如果您想志愿帮助我们改进或维护网站请联系webster@gradchoice.org
+                  </p>
+                  <div className="flex gap-4 justify-center">
+                    <Link
+                      to="/login"
+                      className="px-6 py-2.5 rounded-full bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors"
+                    >
+                      登录
+                    </Link>
+                    <Link
+                      to="/register"
+                      className="px-6 py-2.5 rounded-full border border-brand-600 text-brand-600 text-sm font-medium hover:bg-brand-50 transition-colors"
+                    >
+                      免费注册
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Results section — only shown when logged in */}
@@ -244,34 +343,7 @@ export default function SearchPage() {
       {isLoggedIn && !loading && (
         <div className="space-y-4">
           {results.map((s) => (
-            <Link
-              key={s.id}
-              to={`/supervisor/${s.id}`}
-              className="block bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="font-bold text-gray-900">{s.name}</h2>
-                  <p className="text-sm text-gray-600 mt-0.5">
-                    {s.school_name}{s.department ? ` · ${s.department.replace(/&amp;/g, '&')}` : ''}
-                  </p>
-                  {s.title && <p className="text-xs text-gray-400 mt-0.5">{s.title}</p>}
-                </div>
-                <div className="text-right shrink-0 ml-4">
-                  {s.avg_overall_score != null ? (
-                    <span className="text-2xl font-bold text-brand-600">
-                      {s.avg_overall_score.toFixed(1)}
-                    </span>
-                  ) : (
-                    <span className="text-gray-400 text-sm">暂无评分</span>
-                  )}
-                  <p className="text-xs text-gray-400">
-                    {zh.supervisor.rating_count(s.rating_count)}
-                    {(s.comment_count ?? 0) > 0 && ` · ${s.comment_count} 条评论`}
-                  </p>
-                </div>
-              </div>
-            </Link>
+            <SupervisorCard key={s.id} s={s} />
           ))}
         </div>
       )}
