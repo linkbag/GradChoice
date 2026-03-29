@@ -11,7 +11,7 @@ function SupervisorCard({ s }: { s: SupervisorSearchResult }) {
   return (
     <Link
       to={`/supervisor/${s.id}`}
-      className="block bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow"
+      className="block bg-white rounded-xl border border-gray-200 p-3 md:p-5 hover:shadow-md transition-shadow"
     >
       <div className="flex items-start justify-between">
         <div>
@@ -182,11 +182,11 @@ export default function SearchPage() {
   const hasMore = results.length < total
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">搜索导师</h1>
+    <div className="max-w-4xl mx-auto px-4 py-6 md:py-12">
+      <h1 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 md:mb-6">搜索导师</h1>
 
       {/* Search form */}
-      <form onSubmit={handleSearch} className={`flex gap-3 mb-4 ${!isLoggedIn ? 'opacity-50 pointer-events-none select-none' : ''}`}>
+      <form onSubmit={handleSearch} className={`flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4 ${!isLoggedIn ? 'opacity-50 pointer-events-none select-none' : ''}`}>
         <input
           type="text"
           value={query}
@@ -197,14 +197,14 @@ export default function SearchPage() {
         <button
           type="submit"
           disabled={loading}
-          className="bg-brand-600 text-white px-6 py-3 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
+          className="w-full sm:w-auto bg-brand-600 text-white px-6 py-3 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
         >
           {loading ? '搜索中…' : '搜索'}
         </button>
       </form>
 
       {/* Filters — changing any triggers an auto-reload */}
-      <div className={`flex gap-3 mb-8 ${!isLoggedIn ? 'opacity-50 pointer-events-none select-none' : ''}`}>
+      <div className={`flex flex-col sm:flex-row gap-2 sm:gap-3 mb-6 md:mb-8 ${!isLoggedIn ? 'opacity-50 pointer-events-none select-none' : ''}`}>
         <AutocompleteInput
           options={provinceOptions}
           value={province}
@@ -277,7 +277,7 @@ export default function SearchPage() {
                   background: 'linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.7) 100%)',
                 }}
               >
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8 text-center max-w-md mx-4">
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-5 md:p-8 text-center max-w-md mx-4">
                   <span className="text-4xl mb-4 block">🔒</span>
                   <h2 className="text-lg font-bold text-gray-800 mb-3">
                     登录后查看更多导师并使用搜索功能

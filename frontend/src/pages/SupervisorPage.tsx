@@ -506,15 +506,15 @@ export default function SupervisorPage() {
 
   return (
     <>
-    <div className="max-w-4xl mx-auto px-4 py-12">
+    <div className="max-w-4xl mx-auto px-4 py-6 md:py-12">
       {/* Supervisor info header */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-8 mb-6">
+      <div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-8 mb-4 md:mb-6">
         <p className="text-xs text-gray-400 mb-2">导师主页</p>
         {loading ? (
           <h1 className="text-2xl font-bold text-gray-400">加载中…</h1>
         ) : supervisor ? (
           <>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">{supervisor.name}</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">{supervisor.name}</h1>
             <p className="text-gray-600">
               {supervisor.school_name} · {supervisor.department}
             </p>
@@ -537,7 +537,7 @@ export default function SupervisorPage() {
       {!loading && (
         <>
           {/* Score overview + radar */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-8 mb-6">
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-8 mb-4 md:mb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-bold text-gray-800">评分概览</h2>
               {hasScores && (
@@ -601,7 +601,7 @@ export default function SupervisorPage() {
                   avgFirstYearIncome={analytics!.avg_first_year_income}
                 />
 
-                <div className="grid grid-cols-3 gap-3 mt-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 mt-4 md:mt-6">
                   {Object.entries(zh.supervisor.score_labels).map(([key, label]) =>
                     key !== 'overall' ? (
                       <div key={key} className="text-center bg-gray-50 rounded-xl p-3">
@@ -631,7 +631,7 @@ export default function SupervisorPage() {
 
           {/* Percentile rankings */}
           {analytics?.percentiles && (
-            <div className="bg-white rounded-2xl border border-gray-200 p-8 mb-6">
+            <div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-8 mb-4 md:mb-6">
               <h2 className="font-bold text-gray-800 mb-4">百分位排名</h2>
               <PercentileDisplay percentiles={analytics.percentiles} />
               <p className="text-xs text-gray-400 mt-3 text-center">
@@ -642,7 +642,7 @@ export default function SupervisorPage() {
 
           {/* Score distribution */}
           {analytics && hasScores && (
-            <div className="bg-white rounded-2xl border border-gray-200 p-8 mb-6">
+            <div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-8 mb-4 md:mb-6">
               <h2 className="font-bold text-gray-800 mb-4">评分分布</h2>
               <DistributionChart distribution={analytics.score_distribution} />
             </div>
@@ -651,8 +651,8 @@ export default function SupervisorPage() {
       )}
 
       {/* Ratings & Comments */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-8">
+        <div className="flex items-center justify-between mb-4 md:mb-6">
           <h2 className="font-bold text-gray-800">
             学生评分
             {ratingsTotal > 0 && (
