@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-28 22:42*
+*Last updated: 2026-03-28 23:46*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -353,3 +353,7 @@ Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indi
 ### Update: 2026-03-28 22:42
 ### claude-gc-blur-controls — 2026-03-28 22:42
 Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
+
+### Update: 2026-03-28 23:46
+### claude-gc-mobile-layout — 2026-03-28 23:46
+Review passed — reviewer fixed issues (commit: 5de84c6 fix: remove duplicate 免责声明 prefix from disclaimer text)
