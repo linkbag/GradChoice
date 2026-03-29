@@ -209,22 +209,22 @@ export default function Layout() {
                 </button>
               </>
             ) : (
-              <div className="flex gap-3 px-3 pt-1 pb-1">
+              <>
                 <Link
                   to="/login"
-                  className="text-sm text-gray-700 hover:text-brand-600 transition-colors"
+                  className="text-sm text-gray-700 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md transition-colors"
                   onClick={closeMobileMenu}
                 >
                   {zh.nav.login}
                 </Link>
                 <Link
                   to="/register"
-                  className="text-sm bg-brand-600 text-white px-4 py-1.5 rounded-full hover:bg-brand-700 transition-colors"
+                  className="text-sm text-brand-600 hover:text-brand-700 hover:bg-gray-50 px-3 py-2 rounded-md transition-colors"
                   onClick={closeMobileMenu}
                 >
                   {zh.nav.register}
                 </Link>
-              </div>
+              </>
             )}
           </div>
         </div>
