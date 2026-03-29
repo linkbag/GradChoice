@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-28 22:17*
+*Last updated: 2026-03-28 22:21*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -344,3 +344,8 @@ Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indi
 ### Update: 2026-03-28 22:17
 ### claude-gc-open-source — 2026-03-28 22:17
 Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
+
+### Update: 2026-03-28 22:21
+### Integration Review — 2026-03-28 22:21
+**Subteams:** claude-gc-rankings-blur claude-gc-search-teaser claude-gc-open-source
+**Result:** No cross-subteam conflicts. Three branches modify completely separate code files (RankingsPage.tsx, SearchPage.tsx, data/ files). Consistent UX patterns across blur overlays. TypeScript compiles clean. Only shared file is docs/ESR.md which is trivially mergeable. Open-source branch correctly excludes user_id from ratings CSV and updates .gitignore for secrets.
