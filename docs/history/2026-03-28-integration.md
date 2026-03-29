@@ -155,3 +155,155 @@
 - **Build verified:** PASS — `tsc --noEmit` clean on main
 - **Fixes applied:** None needed
 - **Remaining concerns:** The open-source branch has a known issue: dev SECRET_KEY in `.en` file remains in git history (commit 4a4ddf9). If this key was ever used in production, it should be rotated. The `seed_dump.sql.gz` also remains in history. Neither is a blocker for integration but should be addressed before public release if not already handled.
+
+---
+
+# Integration Log: GradChoice Mobile Responsive
+**Project:** GradChoice
+**Subteams:** claude-gc-mobile-layout claude-gc-mobile-home claude-gc-mobile-pages
+**Started:** 2026-03-28 23:53:26
+
+## Subteam Summaries
+
+
+========================================
+## Subteam: claude-gc-mobile-layout
+========================================
+# Work Log: claude-gc-mobile-layout
+## Task: gc-mobile-layout (GradChoice)
+## Branch: feat/gc-mobile-layout
+---
+
+### [Step 1] Read existing Layout.tsx and index.html
+- **Files changed:** none (read-only)
+- **What:** Reviewed existing desktop-only navbar and footer
+- **Why:** Understand structure before modifying
+
+### [Step 2] Rewrite Layout.tsx with responsive navbar + footer
+- **Files changed:** frontend/src/components/Layout.tsx
+- **What:** Added hamburger button (md:hidden), hidden desktop nav (hidden md:flex), mobile dropdown with max-h transition, footer responsive padding
+- **Why:** Mobile screens had cramped, overlapping nav items
+- **Decisions:** Used max-h CSS transition for dropdown (no extra JS/animation library needed); close menu on route change via useEffect on location.pathname
+- **Issues found:** None
+
+### Decision: Mobile menu close behavior
+- **Choice:** Close on route change (useEffect) + onClick on each link
+- **Why:** Belt-and-suspenders — Link onClick closes immediately, useEffect handles any edge cases (programmatic navigation)
+- **Alternatives considered:** Only useEffect (slight delay visible); only onClick (misses programmatic nav)
+- **Impact:** Better UX, no state leaks
+
+### [Step 3] Build verification
+- **Files changed:** none
+- **What:** Ran npm install + npm run build
+- **Why:** Confirm TypeScript and Vite build pass
+- **Issues found:** node_modules missing in worktree — ran npm install first
+
+## Handoff
+- **What changed:** frontend/src/components/Layout.tsx — added hamburger mobile menu, hidden desktop nav on mobile, responsive footer padding; index.html unchanged (viewport tag already present)
+- **How to verify:** `cd frontend && npm run build` (passes); open on mobile viewport to see hamburger; open on desktop to see original horizontal nav
+- **Known issues:** None
+- **Integration notes:** No API changes, no routing changes, no shared state changes
+- **Decisions made:** max-h CSS transition for dropdown (no deps); close menu on route change + link click
+- **Build status:** PASS — `npm run build` (tsc + vite build, 30s)
+
+### Review Round 1
+- Verdict: Review passed — reviewer fixed issues (commit: 5de84c6 fix: remove duplicate 免责声明 prefix from disclaimer text)
+
+========================================
+## Subteam: claude-gc-mobile-home
+========================================
+# Work Log: claude-gc-mobile-home
+## Task: gc-mobile-home (GradChoice)
+## Branch: feat/gc-mobile-home
+---
+
+### [Step 1] Read and updated HomePage.tsx with responsive Tailwind classes
+- **Files changed:** frontend/src/pages/HomePage.tsx
+- **What:** Added responsive breakpoints throughout all sections
+- **Why:** Mobile layout had overlapping stats numbers and excessive padding
+- **Decisions:** Used grid-cols-2 md:grid-cols-3 (not 4) since there are only 3 stat items; used flex-col sm:flex-row for CTA card to stack on mobile
+- **Issues found:** node_modules not present in worktree — ran npm install first
+
+### Decision: Stats grid columns
+- **Choice:** grid-cols-2 md:grid-cols-3
+- **Why:** There are 3 stat items; grid-cols-4 would leave an orphaned cell
+- **Alternatives considered:** grid-cols-1 (too sparse); grid-cols-2 md:grid-cols-4 as spec'd (would leave 1 cell empty)
+- **Impact:** Stats display correctly as 2-col mobile / 3-col desktop
+
+## Handoff
+- **What changed:** frontend/src/pages/HomePage.tsx — responsive Tailwind breakpoints added to all sections
+- **How to verify:** Open at 375px viewport; stats show 2×2, hero text is readable, CTA button is full-width
+- **Known issues:** None
+- **Integration notes:** Pure CSS/Tailwind change, no API or routing changes
+- **Decisions made:** grid-cols-2 md:grid-cols-3 for stats (3 items, not 4)
+- **Build status:** PASS — `vite build` completed in 31.75s
+
+### Review Round 1
+- Verdict: Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
+
+========================================
+## Subteam: claude-gc-mobile-pages
+========================================
+# Work Log: claude-gc-mobile-pages
+## Task: gc-mobile-pages (GradChoice)
+## Branch: feat/gc-mobile-pages
+---
+
+### [Step 1] Read all page files
+- **Files changed:** None (read-only)
+- **What:** Read all 10 target pages to understand current layout and class structure
+- **Why:** Needed to understand what responsive changes are required before editing
+- **Decisions:** Identified key pain points: fixed paddings, non-stacking flex rows, fixed-width table columns, desktop-only height constraints
+- **Issues found:** node_modules missing from worktree (symlinked from main repo to fix)
+
+### [Step 2] Apply responsive Tailwind breakpoints to all pages
+- **Files changed:** SearchPage.tsx, RankingsPage.tsx, SupervisorPage.tsx, RatePage.tsx, InboxPage.tsx, AboutPage.tsx, LoginPage.tsx, RegisterPage.tsx, ForgotPasswordPage.tsx, ProfilePage.tsx, MyReviewsPage.tsx
+- **What:** Added sm:/md: breakpoints for padding, font sizes, flex direction, grid columns
+- **Why:** Pages had no mobile breakpoints — they overflowed on 375px viewports
+- **Decisions:** Used flex-col + sm/md:flex-row for filter rows; overflow-x-auto for rankings table; flex-col md:flex-row for InboxPage layout; p-4 md:p-8 for card paddings; py-6 md:py-12 for vertical spacing
+- **Issues found:** None
+
+### Decision: InboxPage layout approach
+- **Choice:** flex-col md:flex-row with max-h-48 on chat list when stacked
+- **Why:** Avoids logic changes (would have needed state to toggle between list/chat views)
+- **Alternatives considered:** Toggle-based hide/show — rejected because it requires logic changes which violates the constraint
+- **Impact:** On mobile, chat list shows compact at top, messages below. Simple and correct.
+
+### Decision: Rankings table approach
+- **Choice:** overflow-x-auto wrapper + smaller grid column sizes on mobile
+- **Why:** Grid with fixed pixel columns can't shrink on narrow screens; horizontal scroll is standard for data tables
+- **Alternatives considered:** Collapsing columns — rejected as too complex and changes content
+- **Impact:** Table scrolls horizontally on mobile, preserving all data
+
+## Handoff
+- **What changed:**
+  - SearchPage.tsx: search form stacks on mobile, filters stack, card padding responsive, CTA padding responsive
+  - RankingsPage.tsx: table overflow-x-auto, row/header padding and font responsive, filter dropdowns stack, CTA padding responsive
+  - SupervisorPage.tsx: all card padding responsive (p-4 md:p-8), score grid 2-col on mobile, heading size responsive
+  - RatePage.tsx: card padding responsive, action buttons stack on mobile
+  - InboxPage.tsx: flex-col md:flex-row layout, chat list max-h on mobile, message pane min-height set
+  - AboutPage.tsx: padding and heading sizes all responsive
+  - LoginPage.tsx: vertical padding and card padding responsive
+  - RegisterPage.tsx: vertical padding and card padding responsive
+  - ForgotPasswordPage.tsx: vertical padding and card padding responsive
+  - ProfilePage.tsx: card padding responsive, school email inputs stack on mobile
+  - MyReviewsPage.tsx: card padding responsive, vertical spacing responsive
+- **How to verify:** Resize browser to 375px width, check each page for horizontal overflow and readability
+- **Known issues:** None
+- **Integration notes:** No API changes, no routing changes, no logic changes — pure CSS class updates
+- **Decisions made:** overflow-x-auto for rankings table; flex-col for InboxPage mobile; min-h on message pane; symlinked node_modules for build verification
+- **Build status:** PASS — npm run build (tsc + vite build) ✓
+
+### Review Round 1
+- Verdict: Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
+
+---
+## Integration Review
+
+### Integration Round 1
+- **Timestamp:** 2026-03-28 23:53:33
+- **Cross-team conflicts found:** None — all 3 branches touch completely separate files (Layout.tsx, HomePage.tsx, 11 other pages)
+- **Duplicated code merged:** None — no duplicate patterns found
+- **Build verified:** PASS — tsc + vite build clean (27.53s)
+- **Fixes applied:** None needed — all 3 branches merged cleanly with no conflicts
+- **Remaining concerns:** None — responsive Tailwind breakpoints are consistent across all files (sm/md pattern); mobile menu state correctly scoped to Layout only
