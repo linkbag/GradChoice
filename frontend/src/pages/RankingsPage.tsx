@@ -25,8 +25,11 @@ const USER_STATUS_TABS: { key: UserStatus; label: string }[] = [
 ]
 
 const PAGE_SIZE = 20
+const FREE_ROWS = 5
 
 export default function RankingsPage() {
+  const isLoggedIn = !!localStorage.getItem('access_token')
+
   const [dimension, setDimension] = useState<Dimension>('overall')
   const [userStatus, setUserStatus] = useState<UserStatus>('all')
   const [province, setProvince] = useState('')
@@ -130,6 +133,68 @@ export default function RankingsPage() {
     return 'bg-gray-50 text-gray-500'
   }
 
+  // Shared row renderer (used for both logged-in full view and non-logged-in visible rows)
+  function renderRow(item: RankingEntry, clickable = true) {
+    const inner = (
+      <>
+        <div className="flex justify-center">
+          <span
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${medalColor(item.rank)}`}
+          >
+            {item.rank}
+          </span>
+        </div>
+        <div>
+          <div className="font-medium text-gray-900 group-hover:text-teal-700 transition-colors">
+            {item.supervisor_name}
+          </div>
+        </div>
+        <div>
+          <div className="text-sm text-gray-700">{item.school_name}</div>
+          <div className="text-xs text-gray-400 truncate max-w-[200px]">
+            {item.department}
+          </div>
+        </div>
+        <div className="text-right">
+          <span className="text-lg font-bold text-teal-600">
+            {item.avg_score.toFixed(2)}
+          </span>
+        </div>
+        <div className="text-right text-sm text-gray-500">{item.rating_count}</div>
+      </>
+    )
+
+    if (clickable) {
+      return (
+        <Link
+          key={item.supervisor_id}
+          to={`/supervisor/${item.supervisor_id}`}
+          className="grid grid-cols-[56px_1fr_1fr_80px_80px] gap-4 px-6 py-4 border-b border-gray-50 hover:bg-gray-50 transition-colors group items-center"
+        >
+          {inner}
+        </Link>
+      )
+    }
+    return (
+      <div
+        key={item.supervisor_id}
+        className="grid grid-cols-[56px_1fr_1fr_80px_80px] gap-4 px-6 py-4 border-b border-gray-50 items-center"
+      >
+        {inner}
+      </div>
+    )
+  }
+
+  const tableHeader = (
+    <div className="grid grid-cols-[56px_1fr_1fr_80px_80px] gap-4 px-6 py-3 bg-gray-50 text-xs font-medium text-gray-500 border-b border-gray-100">
+      <div className="text-center">排名</div>
+      <div>导师</div>
+      <div>院校 / 院系</div>
+      <div className="text-right">评分</div>
+      <div className="text-right">打分数</div>
+    </div>
+  )
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       {/* Header */}
@@ -183,8 +248,8 @@ export default function RankingsPage() {
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-3 mb-5 flex-wrap">
+      {/* Filters — disabled for non-logged-in users */}
+      <div className={`flex gap-3 mb-5 flex-wrap ${!isLoggedIn ? 'opacity-40 pointer-events-none select-none' : ''}`}>
         <AutocompleteInput
           options={provinceOptions}
           value={province}
@@ -217,55 +282,73 @@ export default function RankingsPage() {
             <div className="text-4xl mb-3">📊</div>
             <div>暂无符合条件的导师数据</div>
           </div>
+        ) : isLoggedIn ? (
+          <>
+            {tableHeader}
+            {items.map((item) => renderRow(item, true))}
+          </>
         ) : (
           <>
-            {/* Table header */}
-            <div className="grid grid-cols-[56px_1fr_1fr_80px_80px] gap-4 px-6 py-3 bg-gray-50 text-xs font-medium text-gray-500 border-b border-gray-100">
-              <div className="text-center">排名</div>
-              <div>导师</div>
-              <div>院校 / 院系</div>
-              <div className="text-right">评分</div>
-              <div className="text-right">打分数</div>
-            </div>
+            {tableHeader}
 
-            {items.map((item) => (
-              <Link
-                key={item.supervisor_id}
-                to={`/supervisor/${item.supervisor_id}`}
-                className="grid grid-cols-[56px_1fr_1fr_80px_80px] gap-4 px-6 py-4 border-b border-gray-50 hover:bg-gray-50 transition-colors group items-center"
-              >
-                <div className="flex justify-center">
-                  <span
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${medalColor(item.rank)}`}
-                  >
-                    {item.rank}
-                  </span>
-                </div>
-                <div>
-                  <div className="font-medium text-gray-900 group-hover:text-teal-700 transition-colors">
-                    {item.supervisor_name}
+            {/* First FREE_ROWS rows — visible and clickable */}
+            {items.slice(0, FREE_ROWS).map((item) => renderRow(item, true))}
+
+            {/* Blurred section with login gate */}
+            <div className="relative overflow-hidden">
+              {/* Rows beyond FREE_ROWS — rendered but blurred */}
+              <div className="pointer-events-none select-none">
+                {items.slice(FREE_ROWS).map((item) => renderRow(item, false))}
+                {/* Ensure minimum height for the CTA even if few rows */}
+                {items.length <= FREE_ROWS && <div className="h-48" />}
+              </div>
+
+              {/* Blur + gradient overlay */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
+                  background: 'linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.7) 100%)',
+                }}
+              />
+
+              {/* CTA card */}
+              <div className="absolute inset-0 flex items-center justify-center p-6">
+                <div className="bg-white/95 rounded-2xl border border-gray-200 shadow-sm px-8 py-7 text-center max-w-sm w-full">
+                  <span className="text-4xl mb-4 block">🔒</span>
+                  <h2 className="text-lg font-bold text-gray-800 mb-3">
+                    登录后查看完整排行榜
+                  </h2>
+                  <p className="text-sm text-gray-500 mb-3">
+                    研选平台的导师排行数据仅对注册用户完整开放，请先登录或注册账号。
+                  </p>
+                  <p className="text-xs text-gray-400 mb-6">
+                    本网站为公益性质，注册、使用完全免费。
+                  </p>
+                  <div className="flex gap-4 justify-center">
+                    <Link
+                      to="/login"
+                      className="px-6 py-2.5 rounded-full bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors"
+                    >
+                      登录
+                    </Link>
+                    <Link
+                      to="/register"
+                      className="px-6 py-2.5 rounded-full border border-brand-600 text-brand-600 text-sm font-medium hover:bg-brand-50 transition-colors"
+                    >
+                      免费注册
+                    </Link>
                   </div>
                 </div>
-                <div>
-                  <div className="text-sm text-gray-700">{item.school_name}</div>
-                  <div className="text-xs text-gray-400 truncate max-w-[200px]">
-                    {item.department}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-lg font-bold text-teal-600">
-                    {item.avg_score.toFixed(2)}
-                  </span>
-                </div>
-                <div className="text-right text-sm text-gray-500">{item.rating_count}</div>
-              </Link>
-            ))}
+              </div>
+            </div>
           </>
         )}
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
+      {/* Pagination — hidden for non-logged-in users */}
+      {isLoggedIn && totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 mt-6">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
