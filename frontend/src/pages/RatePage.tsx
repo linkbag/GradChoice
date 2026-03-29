@@ -136,15 +136,15 @@ export default function RatePage() {
 
   if (loadError) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-12 text-center text-red-500">
+      <div className="max-w-2xl mx-auto px-4 py-6 md:py-12 text-center text-red-500">
         导师不存在或加载失败
       </div>
     )
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
-      <div className="bg-white rounded-2xl border border-gray-200 p-8">
+    <div className="max-w-2xl mx-auto px-4 py-6 md:py-12">
+      <div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-8">
         {/* Header */}
         <div className="mb-6">
           <p className="text-xs text-gray-400 mb-1">写评价</p>
@@ -217,18 +217,18 @@ export default function RatePage() {
           )}
 
           {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-2">
             <button
               type="button"
               onClick={() => navigate(`/supervisor/${id}`)}
-              className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+              className="w-full sm:flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors"
             >
               取消
             </button>
             <button
               type="submit"
               disabled={overallScore == null || submitting}
-              className="flex-1 bg-teal-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full sm:flex-1 bg-teal-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {submitting ? '提交中…' : '提交评价'}
             </button>

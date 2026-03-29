@@ -137,8 +137,8 @@ export default function RegisterPage() {
 
   // ── Render ───────────────────────────────────────────────────
   return (
-    <div className="max-w-md mx-auto px-4 py-20">
-      <div className="bg-white rounded-2xl border border-gray-200 p-8">
+    <div className="max-w-md mx-auto px-4 py-10 md:py-20">
+      <div className="bg-white rounded-2xl border border-gray-200 p-5 md:p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">{zh.auth.register_title}</h1>
         <p className="text-sm text-gray-400 mb-6">{zh.auth.register_steps[step]}</p>
 

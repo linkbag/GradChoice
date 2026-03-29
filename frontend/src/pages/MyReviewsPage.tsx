@@ -118,7 +118,7 @@ function RatingCard({
   const date = new Date(rating.created_at).toLocaleDateString('zh-CN')
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5">
+    <div className="bg-white border border-gray-200 rounded-xl p-3 md:p-5">
       <div className="flex items-start justify-between gap-2 mb-3">
         <div>
           <Link
@@ -310,7 +310,7 @@ function CommentCard({
   const date = new Date(comment.created_at).toLocaleDateString('zh-CN')
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5">
+    <div className="bg-white border border-gray-200 rounded-xl p-3 md:p-5">
       <div className="flex items-start justify-between gap-2 mb-3">
         <div>
           <Link
@@ -438,7 +438,7 @@ export default function MyReviewsPage() {
   const totalCommentPages = Math.ceil(commentsTotal / PAGE_SIZE)
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10">
+    <div className="max-w-3xl mx-auto px-4 py-6 md:py-10">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">我的评价</h1>
 
       {/* Tabs */}

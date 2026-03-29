@@ -130,8 +130,8 @@ export default function ProfilePage() {
   const schoolNone = !user.school_email
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
-      <div className="bg-white rounded-2xl border border-gray-200 p-8">
+    <div className="max-w-2xl mx-auto px-4 py-6 md:py-12">
+      <div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">我的主页</h1>
 
         <div className="space-y-4">
@@ -248,7 +248,7 @@ export default function ProfilePage() {
                 <span className="text-sm text-gray-700">{user.school_email}</span>
                 <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">待验证</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                 <input
                   type="text"
                   value={verificationCode}
@@ -281,13 +281,13 @@ export default function ProfilePage() {
               <p className="text-sm text-gray-500">
                 添加学校邮箱（.edu / .edu.cn / .org）完成学生身份认证
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                 <input
                   type="email"
                   value={schoolEmail}
                   onChange={(e) => setSchoolEmail(e.target.value)}
                   placeholder="yourname@university.edu.cn"
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full sm:flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSendCode() }}
                 />
                 <button
