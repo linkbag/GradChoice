@@ -10,7 +10,14 @@ dist/
 
 # Environment
 .env
+.en
 *.env.local
+*.pem
+*.key
+
+# Database dumps (may contain user data)
+data/*.sql.gz
+data/*.dump
 
 # Node
 node_modules/
