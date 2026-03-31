@@ -105,6 +105,9 @@ export const authApi = {
   sendResetVerification: (email: string) =>
     http.post<{ message: string }>('/auth/send-reset-verification', { email }),
 
+  verifyResetCode: (email: string, code: string) =>
+    http.post<{ message: string }>('/auth/verify-reset-code', { email, code }),
+
   resetPassword: (email: string, code: string, new_password: string) =>
     http.post<{ message: string }>('/auth/reset-password', { email, code, new_password }),
 

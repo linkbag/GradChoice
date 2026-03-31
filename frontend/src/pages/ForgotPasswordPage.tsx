@@ -73,8 +73,8 @@ export default function ForgotPasswordPage() {
     }
   }
 
-  // Step 2: verify code (just advance to step 3)
-  const handleVerifyCode = (e: React.FormEvent) => {
+  // Step 2: verify code
+  const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     if (code.length !== 6) {
@@ -82,9 +82,14 @@ export default function ForgotPasswordPage() {
       return
     }
     setVerifying(true)
-    // Code will be validated server-side on reset
-    setVerifying(false)
-    setStep('password')
+    try {
+      await authApi.verifyResetCode(email, code)
+      setStep('password')
+    } catch (err) {
+      setError(extractError(err, '验证码错误，请重试'))
+    } finally {
+      setVerifying(false)
+    }
   }
 
   // Step 3: reset password

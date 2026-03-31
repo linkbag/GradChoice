@@ -265,6 +265,22 @@ def send_reset_verification(body: SendSignupVerificationRequest, db: Session = D
         return {"message": "验证码已发送，如未收到请稍后重试"}
 
 
+@router.post("/verify-reset-code")
+def verify_reset_code(body: VerifySignupCodeRequest):
+    """验证密码重置验证码"""
+    email = body.email.lower()
+    entry = _signup_verifications.get(email)
+    if not entry:
+        raise HTTPException(status_code=400, detail="请先发送验证码")
+    if datetime.now(timezone.utc) > entry["expires_at"]:
+        _signup_verifications.pop(email, None)
+        raise HTTPException(status_code=400, detail="验证码已过期，请重新发送")
+    if body.code != entry["code"]:
+        raise HTTPException(status_code=400, detail="验证码错误")
+
+    return {"message": "验证码正确"}
+
+
 @router.post("/reset-password")
 def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
     """重置密码（使用邮箱验证码）"""
