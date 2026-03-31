@@ -81,6 +81,7 @@ export const authApi = {
     form.append('password', password)
     return http.post<Token>('/auth/login', form, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      skipAuthRedirect: true,
     })
   },
 
