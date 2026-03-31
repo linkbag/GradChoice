@@ -1,3 +1,5 @@
+import { useI18n } from '@/i18n'
+
 interface Props {
   distribution: Record<string, number>
 }
@@ -10,20 +12,23 @@ const STAR_COLORS: Record<string, string> = {
   '1': '#ef4444',
 }
 
-const STAR_LABELS: Record<string, string> = {
-  '5': '5星',
-  '4': '4星',
-  '3': '3星',
-  '2': '2星',
-  '1': '1星',
-}
-
 export default function DistributionChart({ distribution }: Props) {
+  const { t } = useI18n()
+  const d = t.components.distribution
+
+  const STAR_LABELS: Record<string, string> = {
+    '5': d.star_5,
+    '4': d.star_4,
+    '3': d.star_3,
+    '2': d.star_2,
+    '1': d.star_1,
+  }
+
   const total = Object.values(distribution).reduce((sum, v) => sum + v, 0)
 
   if (total === 0) {
     return (
-      <div className="text-center text-gray-400 text-sm py-4">暂无评价数据</div>
+      <div className="text-center text-gray-400 text-sm py-4">{d.no_data}</div>
     )
   }
 
@@ -49,7 +54,7 @@ export default function DistributionChart({ distribution }: Props) {
           </div>
         )
       })}
-      <p className="text-xs text-gray-400 text-right pt-1">共 {total} 条评价</p>
+      <p className="text-xs text-gray-400 text-right pt-1">{d.total(total)}</p>
     </div>
   )
 }
