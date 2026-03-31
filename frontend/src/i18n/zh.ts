@@ -1,6 +1,8 @@
 // 中文界面文本
 export const zh = {
   nav: {
+    brand: '研选',
+    brand_sub: 'GradChoice',
     home: '首页',
     search: '搜索导师',
     about: '关于我们',
@@ -115,6 +117,10 @@ export const zh = {
     tos_agreement: '我了解并同意本站',
     tos_link: '服务条款与免责声明',
   },
+  footer: {
+    tagline: '研选 GradChoice — 中立 · 公开 · 免费 · 开源',
+    about: '关于我们',
+  },
 }
 
-export type ZhKeys = typeof zh
+export type Translations = typeof zh
