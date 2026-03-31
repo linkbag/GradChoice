@@ -131,7 +131,7 @@ export default function Layout() {
                   <circle cx="12" cy="12" r="10" strokeWidth={1.5} />
                   <path strokeWidth={1.5} d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                 </svg>
-                {locale === 'zh' ? '中' : 'EN'}
+                {locale === 'zh' ? 'EN' : '中'}
               </button>
             </div>
 
@@ -142,7 +142,7 @@ export default function Layout() {
                 className="p-2 rounded-md text-gray-600 hover:text-brand-600 hover:bg-gray-100 transition-colors text-sm font-medium"
                 aria-label="Switch language"
               >
-                {locale === 'zh' ? '中' : 'EN'}
+                {locale === 'zh' ? 'EN' : '中'}
               </button>
               <button
                 className="p-2 rounded-md text-gray-600 hover:text-brand-600 hover:bg-gray-100 transition-colors"
