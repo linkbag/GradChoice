@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-30 22:49*
+*Last updated: 2026-03-31 10:31*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -407,3 +407,7 @@ Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indi
 ### Integration Review — 2026-03-30 22:49
 **Subteams:** claude-gc-login-error claude-gc-search-placeholder claude-gc-reset-email-check
 **Result:** All three branches merge cleanly with no conflicts. Changes are fully independent: LoginPage error styling, search placeholder text, and reset-email registration check. No cross-team dependency conflicts, no duplicated code, no API contract breaks.
+
+### Update: 2026-03-31 10:31
+### claude-gc-i18n-core — 2026-03-31 10:31
+Review passed — reviewer fixed issues (commit: 12942d8 fix: update hero stat to 400+ 覆盖院校 (includes international HEIs))
