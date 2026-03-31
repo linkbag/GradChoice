@@ -8,6 +8,7 @@ import {
   Tooltip,
 } from 'recharts'
 import type { ScoreBreakdown } from '@/types'
+import { useI18n } from '@/i18n'
 
 interface Props {
   scores: ScoreBreakdown
@@ -15,38 +16,44 @@ interface Props {
   avgFirstYearIncome?: number | null
 }
 
-const LABELS: { key: keyof ScoreBreakdown; label: string; desc: string }[] = [
-  { key: 'avg_academic', label: '学术水平', desc: '导师的科研能力、学术影响力与专业深度' },
-  { key: 'avg_mentoring', label: '学生培养', desc: '对学生的指导投入、培养质量与成长关注' },
-  { key: 'avg_wellbeing', label: '身心健康', desc: '学生的身体健康和精神压力水平' },
-  { key: 'avg_resources', label: '科研资源', desc: '实验条件、经费充裕度与平台资源' },
-  { key: 'avg_stipend', label: '生活补助', desc: '补助津贴水平、发放及时性与生活保障' },
-  { key: 'avg_ethics', label: '学术道德', desc: '学术诚信、署名公正与师德规范' },
-]
+type DimKey = keyof ScoreBreakdown
 
 function buildData(
+  labels: { key: DimKey; label: string }[],
   scores: ScoreBreakdown,
   schoolAvg?: ScoreBreakdown,
 ) {
-  return LABELS.map(({ key, label }) => ({
+  return labels.map(({ key, label }) => ({
     subject: label,
-    该导师: scores[key] ?? 0,
-    校均值: schoolAvg?.[key] ?? 0,
+    supervisor: scores[key] ?? 0,
+    school_avg: schoolAvg?.[key] ?? 0,
   }))
 }
 
 export default function RadarChart({ scores, schoolAvg, avgFirstYearIncome }: Props) {
+  const { t } = useI18n()
+  const r = t.components.radar
+
+  const LABELS: { key: DimKey; label: string; desc: string }[] = [
+    { key: 'avg_academic', label: r.dim_academic_label, desc: r.dim_academic_desc },
+    { key: 'avg_mentoring', label: r.dim_mentoring_label, desc: r.dim_mentoring_desc },
+    { key: 'avg_wellbeing', label: r.dim_wellbeing_label, desc: r.dim_wellbeing_desc },
+    { key: 'avg_resources', label: r.dim_resources_label, desc: r.dim_resources_desc },
+    { key: 'avg_stipend', label: r.dim_stipend_label, desc: r.dim_stipend_desc },
+    { key: 'avg_ethics', label: r.dim_ethics_label, desc: r.dim_ethics_desc },
+  ]
+
   const hasData = LABELS.some(({ key }) => scores[key] != null)
 
   if (!hasData) {
     return (
       <div className="h-48 flex items-center justify-center text-gray-400 text-sm">
-        暂无足够评分数据
+        {r.no_data}
       </div>
     )
   }
 
-  const data = buildData(scores, schoolAvg)
+  const data = buildData(LABELS, scores, schoolAvg)
 
   return (
     <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
@@ -63,8 +70,8 @@ export default function RadarChart({ scores, schoolAvg, avgFirstYearIncome }: Pr
               contentStyle={{ fontSize: 12, borderRadius: 8 }}
             />
             <Radar
-              name="该导师"
-              dataKey="该导师"
+              name={r.this_supervisor}
+              dataKey="supervisor"
               stroke="#0d9488"
               fill="#0d9488"
               fillOpacity={0.25}
@@ -72,8 +79,8 @@ export default function RadarChart({ scores, schoolAvg, avgFirstYearIncome }: Pr
             />
             {schoolAvg && (
               <Radar
-                name="校均值"
-                dataKey="校均值"
+                name={r.school_avg}
+                dataKey="school_avg"
                 stroke="#f59e0b"
                 fill="#f59e0b"
                 fillOpacity={0.15}
@@ -99,11 +106,11 @@ export default function RadarChart({ scores, schoolAvg, avgFirstYearIncome }: Pr
         <div className="mt-3 pt-3 border-t border-gray-100">
           {avgFirstYearIncome != null ? (
             <p className="text-base font-semibold text-gray-800">
-              📊 毕业首年平均收入：¥{avgFirstYearIncome.toLocaleString('zh-CN')} 元
+              {r.income(avgFirstYearIncome.toLocaleString('zh-CN'))}
             </p>
           ) : (
             <p className="text-base font-semibold text-gray-400">
-              📊 毕业首年平均收入：暂无数据
+              {r.income_no_data}
             </p>
           )}
         </div>

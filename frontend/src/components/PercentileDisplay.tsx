@@ -1,13 +1,8 @@
 import type { PercentileRankings } from '@/types'
+import { useI18n } from '@/i18n'
 
 interface Props {
   percentiles: PercentileRankings
-}
-
-interface PercentileItem {
-  label: string
-  value: number | null
-  sublabel: string
 }
 
 function colorClass(pct: number): string {
@@ -38,11 +33,14 @@ function PercentileBar({ value }: { value: number | null }) {
 }
 
 export default function PercentileDisplay({ percentiles }: Props) {
-  const items: PercentileItem[] = [
-    { label: '院系排名', value: percentiles.dept_percentile, sublabel: '同院系同校导师中' },
-    { label: '校内排名', value: percentiles.school_percentile, sublabel: '同校所有导师中' },
-    { label: '省内排名', value: percentiles.province_percentile, sublabel: '同省所有导师中' },
-    { label: '全国排名', value: percentiles.national_percentile, sublabel: '全国所有导师中' },
+  const { t } = useI18n()
+  const p = t.components.percentile
+
+  const items = [
+    { label: p.dept_rank, value: percentiles.dept_percentile, sublabel: p.dept_rank_sub },
+    { label: p.school_rank, value: percentiles.school_percentile, sublabel: p.school_rank_sub },
+    { label: p.province_rank, value: percentiles.province_percentile, sublabel: p.province_rank_sub },
+    { label: p.national_rank, value: percentiles.national_percentile, sublabel: p.national_rank_sub },
   ]
 
   return (
@@ -55,13 +53,13 @@ export default function PercentileDisplay({ percentiles }: Props) {
             {pct != null ? (
               <>
                 <div className={`text-lg font-bold ${colorClass(value!)}`}>
-                  超过 {pct}%
+                  {p.beats(pct)}
                 </div>
                 <div className="text-xs text-gray-400 mb-2">{sublabel}</div>
                 <PercentileBar value={value} />
               </>
             ) : (
-              <div className="text-sm text-gray-400">数据不足</div>
+              <div className="text-sm text-gray-400">{p.insufficient}</div>
             )}
           </div>
         )

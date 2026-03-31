@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useI18n } from '@/i18n'
 
 interface AutocompleteInputProps {
   options: string[]
@@ -15,6 +16,7 @@ export default function AutocompleteInput({
   placeholder,
   className = '',
 }: AutocompleteInputProps) {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [inputValue, setInputValue] = useState(value)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -81,7 +83,7 @@ export default function AutocompleteInput({
           ))}
           {filtered.length > 50 && (
             <li className="px-4 py-2 text-xs text-gray-400 text-center">
-              输入更多字符以缩小范围…
+              {t.components.autocomplete.narrow_down}
             </li>
           )}
         </ul>
