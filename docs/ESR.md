@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-30 16:16*
+*Last updated: 2026-03-30 20:18*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -374,3 +374,7 @@ Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indi
 ### Update: 2026-03-30 16:16
 ### codex-gc-verify-email-debug — 2026-03-30 16:16
 Review passed — reviewer fixed issues (commit: e094c44 fix: stack login/register buttons vertically in mobile menu)
+
+### Update: 2026-03-30 20:18
+### claude-gc-email-auth-fix — 2026-03-30 20:18
+Review passed — reviewer fixed issues (commit: d2f407d fix: resolve auth NameError + remove dead code in email verification flows)
