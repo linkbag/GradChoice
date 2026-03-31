@@ -3,32 +3,34 @@ import { Link } from 'react-router-dom'
 import { analyticsApi, supervisorsApi } from '@/services/api'
 import type { RankingEntry, ProvinceListItem } from '@/types'
 import AutocompleteInput from '@/components/AutocompleteInput'
-import { zh } from '@/i18n/zh'
+import { useI18n } from '@/i18n'
 
 type Dimension = 'overall' | 'academic' | 'mentoring' | 'wellbeing' | 'stipend' | 'resources' | 'ethics'
 type UserStatus = 'all' | 'verified' | 'unverified'
-
-const DIMENSION_TABS: { key: Dimension; label: string }[] = [
-  { key: 'overall', label: '综合排名' },
-  { key: 'academic', label: '学术水平' },
-  { key: 'mentoring', label: '学生培养' },
-  { key: 'wellbeing', label: '身心健康' },
-  { key: 'stipend', label: '生活补助' },
-  { key: 'resources', label: '科研资源' },
-  { key: 'ethics', label: '学术道德' },
-]
-
-const USER_STATUS_TABS: { key: UserStatus; label: string }[] = [
-  { key: 'all', label: zh.supervisor.user_status_all },
-  { key: 'verified', label: zh.supervisor.user_status_verified },
-  { key: 'unverified', label: zh.supervisor.user_status_unverified },
-]
 
 const PAGE_SIZE = 20
 const FREE_ROWS = 5
 
 export default function RankingsPage() {
+  const { t } = useI18n()
   const isLoggedIn = !!localStorage.getItem('access_token')
+
+  // Dimension tabs — computed from translations so they respond to locale changes
+  const DIMENSION_TABS: { key: Dimension; label: string }[] = [
+    { key: 'overall', label: t.rankings.dimension_overall },
+    { key: 'academic', label: t.supervisor.score_labels.academic },
+    { key: 'mentoring', label: t.supervisor.score_labels.mentoring },
+    { key: 'wellbeing', label: t.supervisor.score_labels.wellbeing },
+    { key: 'stipend', label: t.supervisor.score_labels.stipend },
+    { key: 'resources', label: t.supervisor.score_labels.resources },
+    { key: 'ethics', label: t.supervisor.score_labels.ethics },
+  ]
+
+  const USER_STATUS_TABS: { key: UserStatus; label: string }[] = [
+    { key: 'all', label: t.supervisor.user_status_all },
+    { key: 'verified', label: t.supervisor.user_status_verified },
+    { key: 'unverified', label: t.supervisor.user_status_unverified },
+  ]
 
   const [dimension, setDimension] = useState<Dimension>('overall')
   const [userStatus, setUserStatus] = useState<UserStatus>('all')
@@ -187,11 +189,11 @@ export default function RankingsPage() {
 
   const tableHeader = (
     <div className="grid grid-cols-[44px_1fr_1fr_64px_64px] md:grid-cols-[56px_1fr_1fr_80px_80px] gap-2 md:gap-4 px-3 md:px-6 py-2 md:py-3 bg-gray-50 text-xs font-medium text-gray-500 border-b border-gray-100">
-      <div className="text-center">排名</div>
-      <div>导师</div>
-      <div>院校 / 院系</div>
-      <div className="text-right">评分</div>
-      <div className="text-right">打分数</div>
+      <div className="text-center">{t.rankings.header_rank}</div>
+      <div>{t.rankings.header_supervisor}</div>
+      <div>{t.rankings.header_school}</div>
+      <div className="text-right">{t.rankings.header_score}</div>
+      <div className="text-right">{t.rankings.header_count}</div>
     </div>
   )
 
@@ -199,9 +201,9 @@ export default function RankingsPage() {
     <div className="max-w-5xl mx-auto px-4 py-6 md:py-10">
       {/* Header */}
       <div className="mb-4 md:mb-6">
-        <h1 className="text-xl md:text-2xl font-bold text-gray-900">导师排行榜</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900">{t.rankings.title}</h1>
         <p className="text-sm text-gray-500 mt-1">
-          仅展示获得至少 1 条打分的导师 · 数据实时更新
+          {t.rankings.subtitle}
         </p>
       </div>
 
@@ -227,10 +229,10 @@ export default function RankingsPage() {
             </div>
             <button
               onClick={() => { setSortOrder((o) => o === 'desc' ? 'asc' : 'desc'); setPage(1) }}
-              title={sortOrder === 'desc' ? '当前：从高到低，点击切换为从低到高' : '当前：从低到高，点击切换为从高到低'}
+              title={sortOrder === 'desc' ? t.rankings.sort_title_desc : t.rankings.sort_title_asc}
               className="shrink-0 px-3 py-2 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-600 hover:border-teal-300 hover:text-teal-700 transition-colors"
             >
-              {sortOrder === 'desc' ? '↓ 从高到低' : '↑ 从低到高'}
+              {sortOrder === 'desc' ? t.rankings.sort_desc : t.rankings.sort_asc}
             </button>
           </div>
 
@@ -257,21 +259,21 @@ export default function RankingsPage() {
           options={provinceOptions}
           value={province}
           onChange={handleProvinceChange}
-          placeholder="按省份筛选"
+          placeholder={t.rankings.filter_province}
           className="flex-1 min-w-[140px]"
         />
         <AutocompleteInput
           options={schoolNameOptions}
           value={schoolName}
           onChange={handleSchoolNameChange}
-          placeholder="按院校名称筛选"
+          placeholder={t.rankings.filter_school}
           className="flex-1 min-w-[160px]"
         />
         <AutocompleteInput
           options={departmentOptions}
           value={department}
           onChange={handleDepartmentChange}
-          placeholder={schoolCode ? '按院系筛选' : '先选院校再筛选院系'}
+          placeholder={schoolCode ? t.rankings.filter_dept : t.rankings.filter_dept_hint}
           className="flex-1 min-w-[140px]"
         />
           </div>
@@ -280,7 +282,7 @@ export default function RankingsPage() {
         {!isLoggedIn && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-xl z-10">
             <p className="text-gray-500 text-sm text-center max-w-md px-4">
-              请先登录或注册账号以查看更多导师使用完整功能。本网站为公益性质，注册、使用完全免费。如果您想志愿帮助我们改进或维护网站请联系webster@gradchoice.org
+              {t.rankings.login_hint}
             </p>
           </div>
         )}
@@ -289,11 +291,11 @@ export default function RankingsPage() {
       {/* Table */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-x-auto">
         {loading ? (
-          <div className="py-16 text-center text-gray-400">加载中…</div>
+          <div className="py-16 text-center text-gray-400">{t.rankings.loading}</div>
         ) : items.length === 0 ? (
           <div className="py-16 text-center text-gray-400">
             <div className="text-4xl mb-3">📊</div>
-            <div>暂无符合条件的导师数据</div>
+            <div>{t.rankings.no_data}</div>
           </div>
         ) : isLoggedIn ? (
           <>
@@ -331,26 +333,26 @@ export default function RankingsPage() {
                 <div className="bg-white/95 rounded-2xl border border-gray-200 shadow-sm px-5 py-5 md:px-8 md:py-7 text-center max-w-sm w-full">
                   <span className="text-4xl mb-4 block">🔒</span>
                   <h2 className="text-lg font-bold text-gray-800 mb-3">
-                    登录后查看完整排行榜
+                    {t.rankings.locked_title}
                   </h2>
                   <p className="text-sm text-gray-500 mb-3">
-                    研选平台的导师排行数据仅对注册用户完整开放，请先登录或注册账号。
+                    {t.rankings.locked_desc}
                   </p>
                   <p className="text-xs text-gray-400 mb-6">
-                    本网站为公益性质，注册、使用完全免费。
+                    {t.rankings.locked_note}
                   </p>
                   <div className="flex gap-4 justify-center">
                     <Link
                       to="/login"
                       className="px-6 py-2.5 rounded-full bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors"
                     >
-                      登录
+                      {t.rankings.login_btn}
                     </Link>
                     <Link
                       to="/register"
                       className="px-6 py-2.5 rounded-full border border-brand-600 text-brand-600 text-sm font-medium hover:bg-brand-50 transition-colors"
                     >
-                      免费注册
+                      {t.rankings.register_btn}
                     </Link>
                   </div>
                 </div>
@@ -368,17 +370,17 @@ export default function RankingsPage() {
             disabled={page === 1}
             className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 disabled:opacity-40 hover:border-teal-300 transition-colors"
           >
-            上一页
+            {t.rankings.prev_page}
           </button>
           <span className="text-sm text-gray-500">
-            第 {page} / {totalPages} 页 · 共 {total} 位已评分导师
+            {t.rankings.page_info(page, totalPages, total)}
           </span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
             className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 disabled:opacity-40 hover:border-teal-300 transition-colors"
           >
-            下一页
+            {t.rankings.next_page}
           </button>
         </div>
       )}
