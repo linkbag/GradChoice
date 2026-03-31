@@ -230,7 +230,7 @@ def search_supervisors(
     """搜索导师（按姓名、院校、院系 — ILIKE 模糊搜索）"""
     comment_count_subq = (
         db.query(func.count(Comment.id))
-        .filter(Comment.supervisor_id == Supervisor.id, Comment.parent_comment_id.is_(None))
+        .filter(Comment.supervisor_id == Supervisor.id, Comment.parent_comment_id.is_(None), Comment.is_deleted.is_(False))
         .correlate(Supervisor)
         .scalar_subquery()
     )
@@ -288,7 +288,7 @@ def list_supervisors(
     """获取导师列表（支持分页和过滤）"""
     comment_count_subq = (
         db.query(func.count(Comment.id))
-        .filter(Comment.supervisor_id == Supervisor.id, Comment.parent_comment_id.is_(None))
+        .filter(Comment.supervisor_id == Supervisor.id, Comment.parent_comment_id.is_(None), Comment.is_deleted.is_(False))
         .correlate(Supervisor)
         .scalar_subquery()
     )
