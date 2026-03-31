@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { usersApi, authApi } from '@/services/api'
+import { useI18n } from '@/i18n'
 import type { User } from '@/types'
 
 export default function ProfilePage() {
+  const { t } = useI18n()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -28,8 +30,8 @@ export default function ProfilePage() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="text-center py-20 text-gray-400">加载中…</div>
-  if (!user) return <div className="text-center py-20 text-gray-400">请先登录</div>
+  if (loading) return <div className="text-center py-20 text-gray-400">{t.profile.loading}</div>
+  if (!user) return <div className="text-center py-20 text-gray-400">{t.profile.login_required}</div>
 
   // ---------- Username editing ----------
   const startEditName = () => {
@@ -76,19 +78,19 @@ export default function ProfilePage() {
   const handleSendCode = async () => {
     setVerifyMsg(null)
     if (!isSchoolEmail(schoolEmail)) {
-      setVerifyMsg({ type: 'err', text: '仅支持 .edu / .edu.xx / .org 邮箱（如 .edu.cn, .edu.uk, .edu.au 等）' })
+      setVerifyMsg({ type: 'err', text: t.profile.school_email_only })
       return
     }
     setSendingCode(true)
     try {
       await authApi.sendVerification(schoolEmail)
-      setVerifyMsg({ type: 'ok', text: '验证码已发送，请查看邮箱' })
+      setVerifyMsg({ type: 'ok', text: t.profile.code_sent })
       // Refresh user to get school_email stored
       const res = await usersApi.getMe()
       setUser(res.data)
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setVerifyMsg({ type: 'err', text: detail || '发送失败，请稍后重试' })
+      setVerifyMsg({ type: 'err', text: detail || t.profile.send_failed })
     } finally {
       setSendingCode(false)
     }
@@ -97,18 +99,18 @@ export default function ProfilePage() {
   const handleVerifyCode = async () => {
     setVerifyMsg(null)
     if (verificationCode.length !== 6) {
-      setVerifyMsg({ type: 'err', text: '请输入 6 位验证码' })
+      setVerifyMsg({ type: 'err', text: t.auth.error_enter_6_digit })
       return
     }
     setVerifying(true)
     try {
       await authApi.verifySchoolEmail(verificationCode)
-      setVerifyMsg({ type: 'ok', text: '学校邮箱验证成功！' })
+      setVerifyMsg({ type: 'ok', text: t.profile.school_email_verified })
       const res = await usersApi.getMe()
       setUser(res.data)
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setVerifyMsg({ type: 'err', text: detail || '验证失败，请重试' })
+      setVerifyMsg({ type: 'err', text: detail || t.profile.verify_failed })
     } finally {
       setVerifying(false)
     }
@@ -119,9 +121,9 @@ export default function ProfilePage() {
     setSendingCode(true)
     try {
       await authApi.sendVerification(user.school_email!)
-      setVerifyMsg({ type: 'ok', text: '验证码已重新发送' })
+      setVerifyMsg({ type: 'ok', text: t.profile.code_resent })
     } catch {
-      setVerifyMsg({ type: 'err', text: '发送失败，请稍后重试' })
+      setVerifyMsg({ type: 'err', text: t.profile.send_failed })
     } finally {
       setSendingCode(false)
     }
@@ -135,12 +137,12 @@ export default function ProfilePage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 md:py-12">
       <div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">我的主页</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">{t.profile.page_title}</h1>
 
         <div className="space-y-4">
-          {/* 昵称 — editable */}
+          {/* Display name — editable */}
           <div>
-            <p className="text-sm text-gray-500">昵称</p>
+            <p className="text-sm text-gray-500">{t.profile.display_name}</p>
             {editingName ? (
               <div className="flex items-center gap-2 mt-1">
                 <input
@@ -148,7 +150,7 @@ export default function ProfilePage() {
                   value={nameDraft}
                   onChange={(e) => setNameDraft(e.target.value)}
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  placeholder="输入昵称"
+                  placeholder={t.profile.display_name_placeholder}
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') saveName()
@@ -160,37 +162,37 @@ export default function ProfilePage() {
                   disabled={nameSaving}
                   className="text-sm bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50"
                 >
-                  {nameSaving ? '保存中…' : '保存'}
+                  {nameSaving ? t.profile.saving : t.profile.save}
                 </button>
                 <button
                   onClick={cancelEditName}
                   className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5"
                 >
-                  取消
+                  {t.profile.cancel}
                 </button>
               </div>
             ) : (
               <div className="flex items-center gap-2 mt-1">
-                <p className="font-medium">{user.display_name ?? '未设置'}</p>
+                <p className="font-medium">{user.display_name ?? t.profile.not_set}</p>
                 <button
                   onClick={startEditName}
                   className="text-xs text-brand-600 hover:text-brand-700 hover:underline"
                 >
-                  编辑
+                  {t.profile.edit}
                 </button>
               </div>
             )}
           </div>
 
-          {/* 邮箱 — personal, no verification badge needed */}
+          {/* Email */}
           <div>
-            <p className="text-sm text-gray-500">邮箱</p>
+            <p className="text-sm text-gray-500">{t.profile.email}</p>
             <p className="font-medium">{user.email}</p>
           </div>
 
-          {/* 邮件通知 toggle */}
+          {/* Email notifications toggle */}
           <div>
-            <p className="text-sm text-gray-500">接收新私信邮件通知</p>
+            <p className="text-sm text-gray-500">{t.profile.email_notifications}</p>
             <div className="flex items-center gap-3 mt-1">
               <button
                 role="switch"
@@ -208,58 +210,58 @@ export default function ProfilePage() {
                 />
               </button>
               <span className="text-sm text-gray-600">
-                {user.email_notifications_enabled ? '已开启' : '已关闭'}
+                {user.email_notifications_enabled ? t.profile.notif_on : t.profile.notif_off}
               </span>
             </div>
           </div>
 
-          {/* 认证状态 */}
+          {/* Verification status */}
           <div>
-            <p className="text-sm text-gray-500">认证状态</p>
+            <p className="text-sm text-gray-500">{t.profile.verification_status}</p>
             <div className="flex gap-2 mt-1">
               {user.is_student_verified && (
-                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">认证学生</span>
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{t.profile.verified_student}</span>
               )}
               {!user.is_student_verified && (
-                <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">未认证</span>
+                <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{t.profile.unverified}</span>
               )}
             </div>
           </div>
 
           {user.bio && (
             <div>
-              <p className="text-sm text-gray-500">个人简介</p>
+              <p className="text-sm text-gray-500">{t.profile.bio}</p>
               <p className="text-gray-700">{user.bio}</p>
             </div>
           )}
         </div>
 
-        {/* 学校邮箱认证 section */}
+        {/* School email verification section */}
         <div className="mt-8 pt-6 border-t border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">学校邮箱认证</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.profile.school_email_section}</h2>
 
           {schoolVerified && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-700">{user.school_email}</span>
-              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">已认证</span>
+              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{t.profile.verified}</span>
             </div>
           )}
 
           {schoolPending && (
             <div className="space-y-3">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <p className="text-amber-800 text-sm font-medium">⚠️ 如未收到验证码，请务必检查垃圾邮箱（Spam/Junk）</p>
+                <p className="text-amber-800 text-sm font-medium">{t.auth.spam_check_hint}</p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-700">{user.school_email}</span>
-                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">待验证</span>
+                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">{t.profile.pending_verification}</span>
               </div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                 <input
                   type="text"
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="输入 6 位验证码"
+                  placeholder={t.profile.enter_code_placeholder}
                   maxLength={6}
                   className="w-40 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   onKeyDown={(e) => { if (e.key === 'Enter') handleVerifyCode() }}
@@ -269,14 +271,14 @@ export default function ProfilePage() {
                   disabled={verifying}
                   className="text-sm bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50"
                 >
-                  {verifying ? '验证中…' : '验证'}
+                  {verifying ? t.profile.verifying : t.profile.verify}
                 </button>
                 <button
                   onClick={handleResendCode}
                   disabled={sendingCode}
                   className="text-xs text-brand-600 hover:underline disabled:opacity-50"
                 >
-                  重新发送
+                  {t.profile.resend}
                 </button>
               </div>
             </div>
@@ -285,7 +287,7 @@ export default function ProfilePage() {
           {schoolNone && (
             <div className="space-y-3">
               <p className="text-sm text-gray-500">
-                添加学校邮箱（.edu / .edu.cn / .edu.xx / .org）完成学生身份认证
+                {t.profile.add_school_email_hint}
               </p>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                 <input
@@ -301,7 +303,7 @@ export default function ProfilePage() {
                   disabled={sendingCode}
                   className="text-sm bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50 whitespace-nowrap"
                 >
-                  {sendingCode ? '发送中…' : '发送验证码'}
+                  {sendingCode ? t.profile.sending : t.profile.send_code}
                 </button>
               </div>
             </div>

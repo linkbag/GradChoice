@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { authApi } from '@/services/api'
+import { useI18n } from '@/i18n'
 import axios from 'axios'
 
 type Step = 'email' | 'code' | 'password'
 
-function extractError(err: unknown, fallback: string): string {
+function extractError(err: unknown, fallback: string, noConnectionMsg?: string): string {
   if (axios.isAxiosError(err)) {
     const detail = err.response?.data?.detail
     if (typeof detail === 'string') return detail
-    if (!err.response) return '无法连接到服务器，请检查网络或稍后重试'
+    if (!err.response) return noConnectionMsg ?? fallback
   }
   return fallback
 }
@@ -23,6 +24,7 @@ function ErrorBox({ message }: { message: string }) {
 }
 
 export default function ForgotPasswordPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
 
   const [step, setStep] = useState<Step>('email')
@@ -39,8 +41,8 @@ export default function ForgotPasswordPage() {
 
   useEffect(() => {
     if (countdown <= 0) return
-    const t = setTimeout(() => setCountdown((c) => c - 1), 1000)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000)
+    return () => clearTimeout(timer)
   }, [countdown])
 
   // Step 1: send reset code
@@ -53,7 +55,7 @@ export default function ForgotPasswordPage() {
       setStep('code')
       setCountdown(60)
     } catch (err) {
-      setError(extractError(err, '发送验证码失败，请稍后重试'))
+      setError(extractError(err, t.auth.error_send_code, t.auth.error_no_connection))
     } finally {
       setSending(false)
     }
@@ -67,7 +69,7 @@ export default function ForgotPasswordPage() {
       await authApi.sendResetVerification(email)
       setCountdown(60)
     } catch (err) {
-      setError(extractError(err, '重新发送失败，请稍后重试'))
+      setError(extractError(err, t.auth.error_resend, t.auth.error_no_connection))
     } finally {
       setSending(false)
     }
@@ -78,7 +80,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault()
     setError(null)
     if (code.length !== 6) {
-      setError('请输入 6 位验证码')
+      setError(t.auth.error_enter_6_digit)
       return
     }
     setVerifying(true)
@@ -86,7 +88,7 @@ export default function ForgotPasswordPage() {
       await authApi.verifyResetCode(email, code)
       setStep('password')
     } catch (err) {
-      setError(extractError(err, '验证码错误，请重试'))
+      setError(extractError(err, t.auth.error_code_wrong, t.auth.error_no_connection))
     } finally {
       setVerifying(false)
     }
@@ -97,36 +99,31 @@ export default function ForgotPasswordPage() {
     e.preventDefault()
     setError(null)
     if (newPassword.length < 8) {
-      setError('密码长度至少为 8 个字符')
+      setError(t.auth.error_password_length)
       return
     }
     if (newPassword !== confirmPassword) {
-      setError('两次输入的密码不一致')
+      setError(t.auth.error_password_mismatch)
       return
     }
     setResetting(true)
     try {
       await authApi.resetPassword(email, code, newPassword)
-      navigate('/login', { state: { message: '密码重置成功，请使用新密码登录' } })
+      navigate('/login', { state: { message: t.auth.reset_password_success } })
     } catch (err) {
-      setError(extractError(err, '重置密码失败，请稍后重试'))
+      setError(extractError(err, t.auth.error_reset_password, t.auth.error_no_connection))
     } finally {
       setResetting(false)
     }
   }
 
-  const stepLabels: Record<Step, string> = {
-    email: '输入注册邮箱',
-    code: '验证邮箱',
-    password: '设置新密码',
-  }
   const steps: Step[] = ['email', 'code', 'password']
 
   return (
     <div className="max-w-md mx-auto px-4 py-10 md:py-20">
       <div className="bg-white rounded-2xl border border-gray-200 p-5 md:p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">找回密码</h1>
-        <p className="text-sm text-gray-400 mb-6">{stepLabels[step]}</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t.auth.forgot_password_title}</h1>
+        <p className="text-sm text-gray-400 mb-6">{t.auth.forgot_steps[step]}</p>
 
         {/* Step indicator */}
         <div className="flex items-center gap-2 mb-6">
@@ -152,7 +149,9 @@ export default function ForgotPasswordPage() {
         {step === 'email' && (
           <form onSubmit={handleSendCode} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">注册邮箱</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t.auth.registered_email_label}
+              </label>
               <input
                 type="email"
                 value={email}
@@ -171,7 +170,7 @@ export default function ForgotPasswordPage() {
               disabled={sending || !email}
               className="w-full bg-brand-600 text-white py-2.5 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 font-medium"
             >
-              {sending ? '发送中…' : '发送验证码'}
+              {sending ? t.auth.sending : t.auth.send_code_btn}
             </button>
           </form>
         )}
@@ -181,12 +180,14 @@ export default function ForgotPasswordPage() {
           <form onSubmit={handleVerifyCode} className="space-y-4">
             <div>
               <p className="text-sm text-gray-600 mb-3">
-                验证码已发送至 <span className="font-medium text-gray-800">{email}</span>
+                {t.auth.code_sent_to} <span className="font-medium text-gray-800">{email}</span>
               </p>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-                <p className="text-amber-800 text-sm font-medium">⚠️ 如未收到验证码，请务必检查垃圾邮箱（Spam/Junk）</p>
+                <p className="text-amber-800 text-sm font-medium">{t.auth.spam_check_hint}</p>
               </div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">6 位验证码</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t.auth.six_digit_code_label}
+              </label>
               <input
                 type="text"
                 value={code}
@@ -206,7 +207,7 @@ export default function ForgotPasswordPage() {
               disabled={verifying || code.length !== 6}
               className="w-full bg-brand-600 text-white py-2.5 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 font-medium"
             >
-              {verifying ? '验证中…' : '下一步'}
+              {verifying ? t.auth.verifying : t.auth.next_step}
             </button>
 
             <div className="text-center">
@@ -216,7 +217,7 @@ export default function ForgotPasswordPage() {
                 disabled={countdown > 0 || sending}
                 className="text-sm text-brand-600 hover:underline disabled:opacity-40 disabled:no-underline"
               >
-                {countdown > 0 ? `重新发送 (${countdown}s)` : '重新发送验证码'}
+                {countdown > 0 ? t.auth.resend_countdown(countdown) : t.auth.resend_code}
               </button>
               <span className="text-gray-300 mx-2">·</span>
               <button
@@ -224,7 +225,7 @@ export default function ForgotPasswordPage() {
                 onClick={() => { setStep('email'); setCode(''); setError(null) }}
                 className="text-sm text-gray-400 hover:underline"
               >
-                更换邮箱
+                {t.auth.change_email}
               </button>
             </div>
           </form>
@@ -234,7 +235,9 @@ export default function ForgotPasswordPage() {
         {step === 'password' && (
           <form onSubmit={handleReset} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">新密码</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t.auth.new_password_label}
+              </label>
               <input
                 type="password"
                 value={newPassword}
@@ -244,11 +247,13 @@ export default function ForgotPasswordPage() {
                 minLength={8}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
-              <p className="text-xs text-gray-400 mt-1">至少 8 个字符</p>
+              <p className="text-xs text-gray-400 mt-1">{t.auth.password_min_chars}</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">确认新密码</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t.auth.confirm_password_label}
+              </label>
               <input
                 type="password"
                 value={confirmPassword}
@@ -265,15 +270,15 @@ export default function ForgotPasswordPage() {
               disabled={resetting}
               className="w-full bg-brand-600 text-white py-2.5 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 font-medium"
             >
-              {resetting ? '重置中…' : '重置密码'}
+              {resetting ? t.auth.resetting : t.auth.reset_password_btn}
             </button>
           </form>
         )}
 
         <p className="text-sm text-center text-gray-500 mt-6">
-          想起密码了？{' '}
+          {t.auth.remembered_password}{' '}
           <Link to="/login" className="text-brand-600 hover:underline">
-            返回登录
+            {t.auth.back_to_login}
           </Link>
         </p>
       </div>

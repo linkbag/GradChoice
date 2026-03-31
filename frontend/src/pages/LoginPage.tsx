@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { authApi } from '@/services/api'
-import { zh } from '@/i18n/zh'
+import { useI18n } from '@/i18n'
 
 export default function LoginPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const location = useLocation()
   const successMessage = (location.state as { message?: string })?.message || null
@@ -21,7 +22,7 @@ export default function LoginPage() {
       localStorage.setItem('access_token', res.data.access_token)
       navigate('/')
     } catch {
-      setError('邮箱或密码错误，请重试')
+      setError(t.auth.error_login_failed)
     } finally {
       setLoading(false)
     }
@@ -30,7 +31,7 @@ export default function LoginPage() {
   return (
     <div className="max-w-md mx-auto px-4 py-10 md:py-20">
       <div className="bg-white rounded-2xl border border-gray-200 p-5 md:p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">{zh.auth.login_title}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">{t.auth.login_title}</h1>
 
         {successMessage && (
           <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700 mb-4">
@@ -41,7 +42,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {zh.auth.email_label}
+              {t.auth.email_label}
             </label>
             <input
               type="email"
@@ -54,7 +55,7 @@ export default function LoginPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {zh.auth.password_label}
+              {t.auth.password_label}
             </label>
             <input
               type="password"
@@ -76,20 +77,20 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-brand-600 text-white py-2.5 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 font-medium"
           >
-            {loading ? '登录中…' : zh.auth.login_btn}
+            {loading ? t.auth.login_loading : t.auth.login_btn}
           </button>
 
           <div className="text-right">
             <Link to="/forgot-password" className="text-sm text-gray-400 hover:text-brand-600 hover:underline">
-              忘记密码？
+              {t.auth.forgot_password}
             </Link>
           </div>
         </form>
 
         <p className="text-sm text-center text-gray-500 mt-6">
-          {zh.auth.no_account}{' '}
+          {t.auth.no_account}{' '}
           <Link to="/register" className="text-brand-600 hover:underline">
-            {zh.auth.register_btn}
+            {t.auth.register_btn}
           </Link>
         </p>
       </div>
