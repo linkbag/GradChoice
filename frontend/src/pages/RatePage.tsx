@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supervisorsApi, ratingsApi } from '@/services/api'
-import { zh } from '@/i18n/zh'
+import { useI18n } from '@/i18n'
 import type { Supervisor } from '@/types'
 
 const SUB_SCORE_KEYS = [
@@ -26,6 +26,7 @@ function StarPicker({
   onChange: (v: number | null) => void
   required?: boolean
 }) {
+  const { t } = useI18n()
   return (
     <div className="flex items-center justify-between py-2">
       <span className="text-sm text-gray-700 w-24 shrink-0">
@@ -41,7 +42,7 @@ function StarPicker({
             className={`text-2xl transition-colors ${
               value != null && star <= value ? 'text-yellow-400' : 'text-gray-300'
             } hover:text-yellow-400`}
-            aria-label={`${star}星`}
+            aria-label={t.rate.star_aria(star)}
           >
             ★
           </button>
@@ -52,7 +53,7 @@ function StarPicker({
             onClick={() => onChange(null)}
             className="text-xs text-gray-400 hover:text-gray-600 ml-1"
           >
-            清除
+            {t.rate.star_clear}
           </button>
         )}
         {value != null && (
@@ -66,6 +67,7 @@ function StarPicker({
 export default function RatePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { t } = useI18n()
 
   const [supervisor, setSupervisor] = useState<Supervisor | null>(null)
   const [loadError, setLoadError] = useState(false)
@@ -123,11 +125,11 @@ export default function RatePage() {
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number; data?: { detail?: string } } }
       if (axiosErr.response?.status === 409) {
-        setError('您已评价过该导师，每位导师只能评价一次')
+        setError(t.rate.already_rated)
       } else if (axiosErr.response?.data?.detail) {
         setError(axiosErr.response.data.detail)
       } else {
-        setError(zh.errors.network)
+        setError(t.errors.network)
       }
     } finally {
       setSubmitting(false)
@@ -137,7 +139,7 @@ export default function RatePage() {
   if (loadError) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-6 md:py-12 text-center text-red-500">
-        导师不存在或加载失败
+        {t.rate.load_error}
       </div>
     )
   }
@@ -147,7 +149,7 @@ export default function RatePage() {
       <div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-8">
         {/* Header */}
         <div className="mb-6">
-          <p className="text-xs text-gray-400 mb-1">写评价</p>
+          <p className="text-xs text-gray-400 mb-1">{t.rate.write_review_label}</p>
           {supervisor ? (
             <>
               <h1 className="text-xl font-bold text-gray-900">{supervisor.name}</h1>
@@ -164,10 +166,10 @@ export default function RatePage() {
           {/* Overall score */}
           <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
             <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
-              综合评分 <span className="text-red-500">*</span>
+              {t.rate.overall_score_section} <span className="text-red-500">*</span>
             </p>
             <StarPicker
-              label={zh.supervisor.score_labels.overall}
+              label={t.supervisor.score_labels.overall}
               value={overallScore}
               onChange={setOverallScore}
               required
@@ -177,13 +179,13 @@ export default function RatePage() {
           {/* Sub-scores */}
           <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
             <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
-              分项评分（可选）
+              {t.rate.sub_scores_section}
             </p>
             <div className="divide-y divide-gray-100">
               {SUB_SCORE_KEYS.map((key) => (
                 <StarPicker
                   key={key}
-                  label={zh.supervisor.score_labels[key]}
+                  label={t.supervisor.score_labels[key]}
                   value={subScores[key]}
                   onChange={(v) => setSubScore(key, v)}
                 />
@@ -194,7 +196,7 @@ export default function RatePage() {
           {/* First-year income */}
           <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
             <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
-              毕业首年收入（可选）
+              {t.rate.income_section}
             </p>
             <div className="flex flex-col gap-1">
               <input
@@ -202,10 +204,10 @@ export default function RatePage() {
                 min={0}
                 value={firstYearIncome}
                 onChange={(e) => setFirstYearIncome(e.target.value)}
-                placeholder="请输入数字，单位：人民币"
+                placeholder={t.rate.income_placeholder}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
               />
-              <p className="text-xs text-gray-400">仅供参考，严格保密</p>
+              <p className="text-xs text-gray-400">{t.rate.income_note}</p>
             </div>
           </div>
 
@@ -223,14 +225,14 @@ export default function RatePage() {
               onClick={() => navigate(`/supervisor/${id}`)}
               className="w-full sm:flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors"
             >
-              取消
+              {t.rate.cancel}
             </button>
             <button
               type="submit"
               disabled={overallScore == null || submitting}
               className="w-full sm:flex-1 bg-teal-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {submitting ? '提交中…' : '提交评价'}
+              {submitting ? t.rate.submitting : t.rate.submit_btn}
             </button>
           </div>
         </form>
