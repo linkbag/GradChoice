@@ -67,13 +67,16 @@ export default function ProfilePage() {
   }
 
   // ---------- School email verification ----------
-  const isSchoolEmail = (email: string) =>
-    email.endsWith('.edu') || email.endsWith('.edu.cn') || email.endsWith('.org')
+  const isSchoolEmail = (email: string) => {
+    const lower = email.toLowerCase()
+    const domain = lower.split('@')[1] || ''
+    return domain.endsWith('.edu') || domain.includes('.edu.') || domain.endsWith('.org')
+  }
 
   const handleSendCode = async () => {
     setVerifyMsg(null)
     if (!isSchoolEmail(schoolEmail)) {
-      setVerifyMsg({ type: 'err', text: '仅支持 .edu / .edu.cn / .org 邮箱' })
+      setVerifyMsg({ type: 'err', text: '仅支持 .edu / .edu.xx / .org 邮箱（如 .edu.cn, .edu.uk, .edu.au 等）' })
       return
     }
     setSendingCode(true)
@@ -244,6 +247,9 @@ export default function ProfilePage() {
 
           {schoolPending && (
             <div className="space-y-3">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-amber-800 text-sm font-medium">⚠️ 如未收到验证码，请务必检查垃圾邮箱（Spam/Junk）</p>
+              </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-700">{user.school_email}</span>
                 <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">待验证</span>
@@ -279,7 +285,7 @@ export default function ProfilePage() {
           {schoolNone && (
             <div className="space-y-3">
               <p className="text-sm text-gray-500">
-                添加学校邮箱（.edu / .edu.cn / .org）完成学生身份认证
+                添加学校邮箱（.edu / .edu.cn / .edu.xx / .org）完成学生身份认证
               </p>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                 <input
