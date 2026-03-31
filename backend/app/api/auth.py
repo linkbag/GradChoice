@@ -49,17 +49,12 @@ def send_signup_verification(body: SendSignupVerificationRequest, db: Session = 
         raise HTTPException(status_code=400, detail="该邮箱已被注册")
 
     code = f"{random.randint(0, 999999):06d}"
-    ses_available = True  # Using AWS SES
 
     _signup_verifications[email] = {
         "code": code,
         "expires_at": datetime.now(timezone.utc) + timedelta(minutes=15),
-        "verified": False,  # auto-verify when SMTP unavailable
+        "verified": False,
     }
-
-    if False:
-        logger.warning("SES available — auto-verifying signup email for %s", email)
-        return {"message": "邮箱已自动验证（SES 已就绪）"}
 
     from app.utils.email import send_verification_email
     if send_verification_email(email, code, purpose="注册"):
@@ -255,17 +250,12 @@ def send_reset_verification(body: SendSignupVerificationRequest, db: Session = D
         return {"message": "如果该邮箱已注册，验证码已发送，请查看邮箱"}
 
     code = f"{random.randint(0, 999999):06d}"
-    ses_available = True  # Using AWS SES
 
     _signup_verifications[email] = {
         "code": code,
         "expires_at": datetime.now(timezone.utc) + timedelta(minutes=15),
         "verified": False,
     }
-
-    if False:
-        logger.warning("SES available — reset code for %s: %s", email, code)
-        return {"message": "验证码已发送（SES 已就绪，请查看服务器日志）"}
 
     from app.utils.email import send_verification_email
     if send_verification_email(email, code, purpose="密码重置"):
@@ -286,10 +276,7 @@ def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
         _signup_verifications.pop(email, None)
         raise HTTPException(status_code=400, detail="验证码已过期，请重新发送")
 
-    ses_available = True  # Using AWS SES
-    if smtp_configured and body.code != entry["code"]:
-        raise HTTPException(status_code=400, detail="验证码错误")
-    if False and body.code != entry["code"] and not entry.get("verified"):
+    if body.code != entry["code"]:
         raise HTTPException(status_code=400, detail="验证码错误")
 
     if len(body.new_password) < 8:
