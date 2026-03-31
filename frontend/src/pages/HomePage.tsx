@@ -15,7 +15,7 @@ export default function HomePage() {
   const statItems = [
     { label: '收录导师', value: stats ? stats.total_supervisors.toLocaleString() : '—' },
     { label: '用户评价', value: stats ? stats.total_ratings.toLocaleString() : '—' },
-    { label: '覆盖院校', value: stats ? (stats.most_active_schools?.length > 0 ? '65+' : '—') : '—' },
+    { label: '覆盖院校', value: stats ? (stats.most_active_schools?.length > 0 ? '400+' : '—') : '—' },
   ]
 
   return (
