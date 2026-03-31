@@ -1,18 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { usersApi, ratingsApi, commentsApi } from '@/services/api'
+import { useI18n } from '@/i18n'
 import type { Rating, Comment } from '@/types'
-import { zh } from '@/i18n/zh'
-
-const SCORE_LABELS: Record<string, string> = {
-  overall_score: zh.supervisor.score_labels.overall,
-  score_academic: zh.supervisor.score_labels.academic,
-  score_mentoring: zh.supervisor.score_labels.mentoring,
-  score_wellbeing: zh.supervisor.score_labels.wellbeing,
-  score_stipend: zh.supervisor.score_labels.stipend,
-  score_resources: zh.supervisor.score_labels.resources,
-  score_ethics: zh.supervisor.score_labels.ethics,
-}
 
 function ScoreDot({ value }: { value: number }) {
   const color =
@@ -43,6 +33,7 @@ function RatingCard({
   onDeleted: (id: string) => void
   onUpdated: (r: Rating) => void
 }) {
+  const { t, locale } = useI18n()
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -56,6 +47,16 @@ function RatingCard({
     score_resources: rating.score_resources,
     score_ethics: rating.score_ethics,
   })
+
+  const scoreLabels: Record<string, string> = {
+    overall_score: t.supervisor.score_labels.overall,
+    score_academic: t.supervisor.score_labels.academic,
+    score_mentoring: t.supervisor.score_labels.mentoring,
+    score_wellbeing: t.supervisor.score_labels.wellbeing,
+    score_stipend: t.supervisor.score_labels.stipend,
+    score_resources: t.supervisor.score_labels.resources,
+    score_ethics: t.supervisor.score_labels.ethics,
+  }
 
   const startEdit = () => {
     setDraft({
@@ -92,7 +93,7 @@ function RatingCard({
   }
 
   const handleDelete = async () => {
-    if (!confirm('确认删除这条评分？')) return
+    if (!confirm(t.my_reviews.confirm_delete_rating)) return
     setDeleting(true)
     try {
       await ratingsApi.delete(rating.id)
@@ -107,15 +108,16 @@ function RatingCard({
   }
 
   const subScores: Array<{ key: keyof EditRatingState; label: string }> = [
-    { key: 'score_academic', label: SCORE_LABELS.score_academic },
-    { key: 'score_mentoring', label: SCORE_LABELS.score_mentoring },
-    { key: 'score_wellbeing', label: SCORE_LABELS.score_wellbeing },
-    { key: 'score_stipend', label: SCORE_LABELS.score_stipend },
-    { key: 'score_resources', label: SCORE_LABELS.score_resources },
-    { key: 'score_ethics', label: SCORE_LABELS.score_ethics },
+    { key: 'score_academic', label: scoreLabels.score_academic },
+    { key: 'score_mentoring', label: scoreLabels.score_mentoring },
+    { key: 'score_wellbeing', label: scoreLabels.score_wellbeing },
+    { key: 'score_stipend', label: scoreLabels.score_stipend },
+    { key: 'score_resources', label: scoreLabels.score_resources },
+    { key: 'score_ethics', label: scoreLabels.score_ethics },
   ]
 
-  const date = new Date(rating.created_at).toLocaleDateString('zh-CN')
+  const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
+  const date = new Date(rating.created_at).toLocaleDateString(dateLocale)
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-3 md:p-5">
@@ -125,7 +127,7 @@ function RatingCard({
             to={`/supervisor/${rating.supervisor_id}`}
             className="font-semibold text-gray-900 hover:text-brand-600 transition-colors"
           >
-            {rating.supervisor_name ?? '未知导师'}
+            {rating.supervisor_name ?? t.my_reviews.unknown_supervisor}
           </Link>
           <p className="text-xs text-gray-400 mt-0.5">{date}</p>
         </div>
@@ -135,14 +137,14 @@ function RatingCard({
             disabled={editing || deleting}
             className="text-xs text-brand-600 hover:underline disabled:opacity-40"
           >
-            编辑
+            {t.my_reviews.edit}
           </button>
           <button
             onClick={handleDelete}
             disabled={deleting}
             className="text-xs text-red-500 hover:underline disabled:opacity-40"
           >
-            {deleting ? '删除中…' : '删除'}
+            {deleting ? t.my_reviews.deleting : t.my_reviews.delete}
           </button>
         </div>
       </div>
@@ -151,7 +153,7 @@ function RatingCard({
         <div className="space-y-3">
           {/* Overall score */}
           <div>
-            <p className="text-xs text-gray-500 mb-1">{SCORE_LABELS.overall_score}（必填）</p>
+            <p className="text-xs text-gray-500 mb-1">{scoreLabels.overall_score}{t.my_reviews.required}</p>
             <ScoreInput
               value={draft.overall_score}
               onChange={(v) => setScore('overall_score', v)}
@@ -161,7 +163,7 @@ function RatingCard({
           <div className="grid grid-cols-2 gap-2">
             {subScores.map(({ key, label }) => (
               <div key={key}>
-                <p className="text-xs text-gray-500 mb-1">{label}（可选）</p>
+                <p className="text-xs text-gray-500 mb-1">{label}{t.my_reviews.optional}</p>
                 <ScoreInput
                   value={draft[key] ?? null}
                   onChange={(v) => setScore(key, v)}
@@ -176,14 +178,14 @@ function RatingCard({
               disabled={saving}
               className="text-sm bg-brand-600 text-white px-4 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50"
             >
-              {saving ? '保存中…' : saved ? '✓ 已保存' : '保存'}
+              {saving ? t.my_reviews.saving : saved ? t.my_reviews.saved : t.my_reviews.save}
             </button>
             <button
               onClick={() => setEditing(false)}
               disabled={saving || saved}
               className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 disabled:opacity-40"
             >
-              取消
+              {t.my_reviews.cancel}
             </button>
           </div>
         </div>
@@ -192,10 +194,10 @@ function RatingCard({
           <div className="flex items-center gap-2">
             <ScoreDot value={rating.overall_score} />
             <span className="text-sm font-medium text-gray-800">
-              {SCORE_LABELS.overall_score}：{rating.overall_score.toFixed(1)}
+              {scoreLabels.overall_score}：{rating.overall_score.toFixed(1)}
             </span>
             {rating.is_verified_rating && (
-              <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">已认证</span>
+              <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">{t.my_reviews.verified}</span>
             )}
           </div>
           {subScores.some(({ key }) => rating[key] != null) && (
@@ -224,6 +226,7 @@ function ScoreInput({
   onChange: (v: number) => void
   nullable?: boolean
 }) {
+  const { t } = useI18n()
   return (
     <div className="flex gap-1">
       {nullable && (
@@ -236,7 +239,7 @@ function ScoreInput({
               : 'border-gray-200 text-gray-400 hover:border-gray-300'
           }`}
         >
-          不评
+          {t.my_reviews.skip_score}
         </button>
       )}
       {[1, 2, 3, 4, 5].map((n) => (
@@ -268,6 +271,7 @@ function CommentCard({
   onDeleted: (id: string) => void
   onUpdated: (c: Comment) => void
 }) {
+  const { t, locale } = useI18n()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(comment.content)
   const [saving, setSaving] = useState(false)
@@ -297,7 +301,7 @@ function CommentCard({
   }
 
   const handleDelete = async () => {
-    if (!confirm('确认删除这条评论？')) return
+    if (!confirm(t.my_reviews.confirm_delete_comment)) return
     setDeleting(true)
     try {
       await commentsApi.delete(comment.id)
@@ -307,7 +311,8 @@ function CommentCard({
     }
   }
 
-  const date = new Date(comment.created_at).toLocaleDateString('zh-CN')
+  const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
+  const date = new Date(comment.created_at).toLocaleDateString(dateLocale)
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-3 md:p-5">
@@ -317,18 +322,18 @@ function CommentCard({
             to={`/supervisor/${comment.supervisor_id}`}
             className="font-semibold text-gray-900 hover:text-brand-600 transition-colors"
           >
-            {comment.supervisor_name ?? '未知导师'}
+            {comment.supervisor_name ?? t.my_reviews.unknown_supervisor}
           </Link>
           <div className="flex items-center gap-2 mt-0.5">
             <p className="text-xs text-gray-400">{date}</p>
             {comment.is_anonymous && (
-              <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">匿名</span>
+              <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{t.my_reviews.anonymous}</span>
             )}
             {comment.is_edited && (
-              <span className="text-xs text-gray-400">（已编辑）</span>
+              <span className="text-xs text-gray-400">{t.my_reviews.edited}</span>
             )}
             {comment.is_verified_comment && (
-              <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">已认证</span>
+              <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">{t.my_reviews.verified}</span>
             )}
           </div>
         </div>
@@ -338,14 +343,14 @@ function CommentCard({
             disabled={editing || deleting}
             className="text-xs text-brand-600 hover:underline disabled:opacity-40"
           >
-            编辑
+            {t.my_reviews.edit}
           </button>
           <button
             onClick={handleDelete}
             disabled={deleting}
             className="text-xs text-red-500 hover:underline disabled:opacity-40"
           >
-            {deleting ? '删除中…' : '删除'}
+            {deleting ? t.my_reviews.deleting : t.my_reviews.delete}
           </button>
         </div>
       </div>
@@ -365,14 +370,14 @@ function CommentCard({
               disabled={saving || !draft.trim()}
               className="text-sm bg-brand-600 text-white px-4 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50"
             >
-              {saving ? '保存中…' : saved ? '✓ 已保存' : '保存'}
+              {saving ? t.my_reviews.saving : saved ? t.my_reviews.saved : t.my_reviews.save}
             </button>
             <button
               onClick={() => setEditing(false)}
               disabled={saving || saved}
               className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 disabled:opacity-40"
             >
-              取消
+              {t.my_reviews.cancel}
             </button>
           </div>
         </div>
@@ -388,6 +393,7 @@ function CommentCard({
 type Tab = 'ratings' | 'comments'
 
 export default function MyReviewsPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('ratings')
 
@@ -439,13 +445,13 @@ export default function MyReviewsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 md:py-10">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">我的评价</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">{t.my_reviews.page_title}</h1>
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200 mb-6">
         {([
-          { key: 'ratings', label: `我的评分（${ratingsTotal}）` },
-          { key: 'comments', label: `我的评论（${commentsTotal}）` },
+          { key: 'ratings', label: t.my_reviews.ratings_tab(ratingsTotal) },
+          { key: 'comments', label: t.my_reviews.comments_tab(commentsTotal) },
         ] as { key: Tab; label: string }[]).map(({ key, label }) => (
           <button
             key={key}
@@ -465,12 +471,12 @@ export default function MyReviewsPage() {
       {tab === 'ratings' && (
         <div>
           {ratingsLoading ? (
-            <p className="text-center py-16 text-gray-400">加载中…</p>
+            <p className="text-center py-16 text-gray-400">{t.my_reviews.loading}</p>
           ) : ratings.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
-              <p className="mb-3">还没有提交过评分</p>
+              <p className="mb-3">{t.my_reviews.no_ratings}</p>
               <Link to="/search" className="text-sm text-brand-600 hover:underline">
-                去搜索导师并评分
+                {t.my_reviews.search_to_rate}
               </Link>
             </div>
           ) : (
@@ -481,7 +487,7 @@ export default function MyReviewsPage() {
                   rating={r}
                   onDeleted={(id) => {
                     setRatings((prev) => prev.filter((x) => x.id !== id))
-                    setRatingsTotal((t) => t - 1)
+                    setRatingsTotal((total) => total - 1)
                   }}
                   onUpdated={(updated) =>
                     setRatings((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))
@@ -504,12 +510,12 @@ export default function MyReviewsPage() {
       {tab === 'comments' && (
         <div>
           {commentsLoading ? (
-            <p className="text-center py-16 text-gray-400">加载中…</p>
+            <p className="text-center py-16 text-gray-400">{t.my_reviews.loading}</p>
           ) : comments.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
-              <p className="mb-3">还没有发表过评论</p>
+              <p className="mb-3">{t.my_reviews.no_comments}</p>
               <Link to="/search" className="text-sm text-brand-600 hover:underline">
-                去搜索导师并评论
+                {t.my_reviews.search_to_comment}
               </Link>
             </div>
           ) : (
@@ -520,7 +526,7 @@ export default function MyReviewsPage() {
                   comment={c}
                   onDeleted={(id) => {
                     setComments((prev) => prev.filter((x) => x.id !== id))
-                    setCommentsTotal((t) => t - 1)
+                    setCommentsTotal((total) => total - 1)
                   }}
                   onUpdated={(updated) =>
                     setComments((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))
@@ -551,6 +557,7 @@ function Pagination({
   totalPages: number
   onChange: (p: number) => void
 }) {
+  const { t } = useI18n()
   return (
     <div className="flex justify-center gap-2 pt-4">
       <button
@@ -558,7 +565,7 @@ function Pagination({
         disabled={page <= 1}
         className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:border-brand-400 hover:text-brand-600"
       >
-        上一页
+        {t.my_reviews.prev_page}
       </button>
       <span className="px-3 py-1.5 text-sm text-gray-500">
         {page} / {totalPages}
@@ -568,7 +575,7 @@ function Pagination({
         disabled={page >= totalPages}
         className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:border-brand-400 hover:text-brand-600"
       >
-        下一页
+        {t.my_reviews.next_page}
       </button>
     </div>
   )

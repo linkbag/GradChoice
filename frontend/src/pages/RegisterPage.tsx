@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { authApi } from '@/services/api'
-import { zh } from '@/i18n/zh'
+import { useI18n } from '@/i18n'
 import axios from 'axios'
 
 type Step = 'email' | 'code' | 'details'
@@ -19,7 +19,17 @@ function maskEmail(email: string): string {
   return `${maskedLocal}@${maskedDomain}`
 }
 
+function extractError(err: unknown, fallback: string, noConnectionMsg?: string): string {
+  if (axios.isAxiosError(err)) {
+    const detail = err.response?.data?.detail
+    if (typeof detail === 'string') return detail
+    if (!err.response) return noConnectionMsg ?? fallback
+  }
+  return fallback
+}
+
 export default function RegisterPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
 
   const [step, setStep] = useState<Step>('email')
@@ -38,8 +48,8 @@ export default function RegisterPage() {
   const [countdown, setCountdown] = useState(0)
   useEffect(() => {
     if (countdown <= 0) return
-    const t = setTimeout(() => setCountdown((c) => c - 1), 1000)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000)
+    return () => clearTimeout(timer)
   }, [countdown])
 
   // ── Step 1: send verification code ──────────────────────────
@@ -52,7 +62,7 @@ export default function RegisterPage() {
       setStep('code')
       setCountdown(60)
     } catch (err) {
-      setError(extractError(err, '发送验证码失败，请稍后重试'))
+      setError(extractError(err, t.auth.error_send_code, t.auth.error_no_connection))
     } finally {
       setSendingCode(false)
     }
@@ -66,7 +76,7 @@ export default function RegisterPage() {
       await authApi.sendSignupVerification(email)
       setCountdown(60)
     } catch (err) {
-      setError(extractError(err, '重新发送失败，请稍后重试'))
+      setError(extractError(err, t.auth.error_resend, t.auth.error_no_connection))
     } finally {
       setSendingCode(false)
     }
@@ -81,7 +91,7 @@ export default function RegisterPage() {
       await authApi.verifySignupCode(email, code)
       setStep('details')
     } catch (err) {
-      setError(extractError(err, '验证失败，请检查验证码'))
+      setError(extractError(err, t.auth.error_verify_code, t.auth.error_no_connection))
     } finally {
       setVerifyingCode(false)
     }
@@ -93,12 +103,12 @@ export default function RegisterPage() {
     setError(null)
 
     if (password.length < 8) {
-      setError('密码长度至少为 8 个字符')
+      setError(t.auth.error_password_length)
       return
     }
 
     if (!tosAgreed) {
-      setError('请先同意服务条款与免责声明')
+      setError(t.auth.error_tos_required)
       return
     }
 
@@ -117,18 +127,18 @@ export default function RegisterPage() {
           const errors = err.response?.data?.detail
           if (Array.isArray(errors) && errors.length > 0) {
             const field = errors[0].loc?.slice(-1)[0] || ''
-            const msg = errors[0].msg || '输入格式有误'
+            const msg = errors[0].msg || t.auth.error_invalid_format
             setError(field ? `${field}: ${msg}` : msg)
           } else {
-            setError('输入格式有误，请检查各项信息')
+            setError(t.auth.error_invalid_format_full)
           }
         } else if (!err.response) {
-          setError('无法连接到服务器，请检查网络或稍后重试')
+          setError(t.auth.error_no_connection)
         } else {
-          setError(`注册失败（${err.response.status}）`)
+          setError(t.auth.error_register_with_status(err.response.status))
         }
       } else {
-        setError('注册失败，请稍后重试')
+        setError(t.auth.error_register)
       }
     } finally {
       setLoading(false)
@@ -139,8 +149,8 @@ export default function RegisterPage() {
   return (
     <div className="max-w-md mx-auto px-4 py-10 md:py-20">
       <div className="bg-white rounded-2xl border border-gray-200 p-5 md:p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{zh.auth.register_title}</h1>
-        <p className="text-sm text-gray-400 mb-6">{zh.auth.register_steps[step]}</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t.auth.register_title}</h1>
+        <p className="text-sm text-gray-400 mb-6">{t.auth.register_steps[step]}</p>
 
         {/* Step indicator */}
         <div className="flex items-center gap-2 mb-6">
@@ -167,7 +177,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSendCode} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {zh.auth.email_label}
+                {t.auth.email_label}
               </label>
               <input
                 type="email"
@@ -179,7 +189,7 @@ export default function RegisterPage() {
                 className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               <p className="text-xs text-gray-400 mt-1">
-                (可选) 使用 .edu 或 .org 邮箱注册可自动完成学生身份认证，信息严格保密，仅会获得已验证标签以增加评价可信度
+                {t.auth.edu_email_hint}
               </p>
             </div>
 
@@ -190,7 +200,7 @@ export default function RegisterPage() {
               disabled={sendingCode || !email}
               className="w-full bg-brand-600 text-white py-2.5 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 font-medium"
             >
-              {sendingCode ? '发送中…' : zh.auth.send_code_btn}
+              {sendingCode ? t.auth.sending : t.auth.send_code_btn}
             </button>
           </form>
         )}
@@ -200,14 +210,14 @@ export default function RegisterPage() {
           <form onSubmit={handleVerifyCode} className="space-y-4">
             <div>
               <p className="text-sm text-gray-600 mb-3">
-                {zh.auth.code_sent_to}{' '}
+                {t.auth.code_sent_to}{' '}
                 <span className="font-medium text-gray-800">{maskEmail(email)}</span>
               </p>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-                <p className="text-amber-800 text-sm font-medium">⚠️ 如未收到验证码，请务必检查垃圾邮箱（Spam/Junk）</p>
+                <p className="text-amber-800 text-sm font-medium">{t.auth.spam_check_hint}</p>
               </div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {zh.auth.verification_code_label}
+                {t.auth.verification_code_label}
               </label>
               <input
                 type="text"
@@ -228,7 +238,7 @@ export default function RegisterPage() {
               disabled={verifyingCode || code.length !== 6}
               className="w-full bg-brand-600 text-white py-2.5 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 font-medium"
             >
-              {verifyingCode ? '验证中…' : zh.auth.verify_code_btn}
+              {verifyingCode ? t.auth.verifying : t.auth.verify_code_btn}
             </button>
 
             <div className="text-center">
@@ -238,7 +248,7 @@ export default function RegisterPage() {
                 disabled={countdown > 0 || sendingCode}
                 className="text-sm text-brand-600 hover:underline disabled:opacity-40 disabled:no-underline"
               >
-                {countdown > 0 ? `重新发送 (${countdown}s)` : '重新发送验证码'}
+                {countdown > 0 ? t.auth.resend_countdown(countdown) : t.auth.resend_code}
               </button>
               <span className="text-gray-300 mx-2">·</span>
               <button
@@ -246,7 +256,7 @@ export default function RegisterPage() {
                 onClick={() => { setStep('email'); setCode(''); setError(null) }}
                 className="text-sm text-gray-400 hover:underline"
               >
-                更换邮箱
+                {t.auth.change_email}
               </button>
             </div>
           </form>
@@ -257,7 +267,7 @@ export default function RegisterPage() {
           <form onSubmit={handleRegister} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {zh.auth.password_label}
+                {t.auth.password_label}
               </label>
               <input
                 type="password"
@@ -268,12 +278,12 @@ export default function RegisterPage() {
                 minLength={8}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
-              <p className="text-xs text-gray-400 mt-1">至少 8 个字符</p>
+              <p className="text-xs text-gray-400 mt-1">{t.auth.password_min_chars}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {zh.auth.display_name_label}
+                {t.auth.display_name_label}
               </label>
               <input
                 type="text"
@@ -292,14 +302,14 @@ export default function RegisterPage() {
                 className="mt-0.5 h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 shrink-0"
               />
               <label htmlFor="tos-agree" className="text-sm text-gray-600 leading-snug cursor-pointer">
-                我了解并同意本站{' '}
+                {t.auth.tos_agreement}{' '}
                 <Link
                   to="/terms"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-brand-600 hover:underline"
                 >
-                  服务条款与免责声明
+                  {t.auth.tos_link}
                 </Link>
               </label>
             </div>
@@ -311,15 +321,15 @@ export default function RegisterPage() {
               disabled={loading || !tosAgreed}
               className="w-full bg-brand-600 text-white py-2.5 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 font-medium"
             >
-              {loading ? '注册中…' : zh.auth.register_btn}
+              {loading ? t.auth.registering : t.auth.register_btn}
             </button>
           </form>
         )}
 
         <p className="text-sm text-center text-gray-500 mt-6">
-          {zh.auth.has_account}{' '}
+          {t.auth.has_account}{' '}
           <Link to="/login" className="text-brand-600 hover:underline">
-            {zh.auth.login_btn}
+            {t.auth.login_btn}
           </Link>
         </p>
       </div>
@@ -333,13 +343,4 @@ function ErrorBox({ message }: { message: string }) {
       {message}
     </div>
   )
-}
-
-function extractError(err: unknown, fallback: string): string {
-  if (axios.isAxiosError(err)) {
-    const detail = err.response?.data?.detail
-    if (typeof detail === 'string') return detail
-    if (!err.response) return '无法连接到服务器，请检查网络或稍后重试'
-  }
-  return fallback
 }
