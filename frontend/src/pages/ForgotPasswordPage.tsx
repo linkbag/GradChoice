@@ -175,9 +175,12 @@ export default function ForgotPasswordPage() {
         {step === 'code' && (
           <form onSubmit={handleVerifyCode} className="space-y-4">
             <div>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-600 mb-3">
                 验证码已发送至 <span className="font-medium text-gray-800">{email}</span>
               </p>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <p className="text-amber-800 text-sm font-medium">⚠️ 如未收到验证码，请务必检查垃圾邮箱（Spam/Junk）</p>
+              </div>
               <label className="block text-sm font-medium text-gray-700 mb-1">6 位验证码</label>
               <input
                 type="text"
