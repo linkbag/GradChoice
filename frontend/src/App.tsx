@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
+import { I18nProvider } from '@/i18n'
 import Layout from '@/components/Layout'
 import HomePage from '@/pages/HomePage'
 import SearchPage from '@/pages/SearchPage'
@@ -24,28 +25,30 @@ function SupervisorRateRedirect() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<HomePage />} />
-          <Route path="search" element={<SearchPage />} />
-          <Route path="supervisor/:id" element={<SupervisorPage />} />
-          <Route path="supervisor/:id/rate" element={<SupervisorRateRedirect />} />
-          <Route path="rankings" element={<RankingsPage />} />
-          <Route path="school/:code/analytics" element={<SchoolAnalyticsPage />} />
-          <Route path="login" element={<LoginPage />} />
-          <Route path="register" element={<RegisterPage />} />
-          <Route path="profile" element={<ProfilePage />} />
-          <Route path="inbox" element={<InboxPage />} />
-          <Route path="about" element={<AboutPage />} />
-          <Route path="users/:userId/profile" element={<PublicProfilePage />} />
-          <Route path="add-supervisor" element={<AddSupervisorPage />} />
-          <Route path="terms" element={<TermsPage />} />
-          <Route path="my-reviews" element={<MyReviewsPage />} />
-          <Route path="forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <I18nProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<HomePage />} />
+            <Route path="search" element={<SearchPage />} />
+            <Route path="supervisor/:id" element={<SupervisorPage />} />
+            <Route path="supervisor/:id/rate" element={<SupervisorRateRedirect />} />
+            <Route path="rankings" element={<RankingsPage />} />
+            <Route path="school/:code/analytics" element={<SchoolAnalyticsPage />} />
+            <Route path="login" element={<LoginPage />} />
+            <Route path="register" element={<RegisterPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="inbox" element={<InboxPage />} />
+            <Route path="about" element={<AboutPage />} />
+            <Route path="users/:userId/profile" element={<PublicProfilePage />} />
+            <Route path="add-supervisor" element={<AddSupervisorPage />} />
+            <Route path="terms" element={<TermsPage />} />
+            <Route path="my-reviews" element={<MyReviewsPage />} />
+            <Route path="forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </I18nProvider>
   )
 }
