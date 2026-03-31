@@ -246,8 +246,7 @@ def send_reset_verification(body: SendSignupVerificationRequest, db: Session = D
     email = body.email.lower()
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        # Don't reveal whether email is registered; silently succeed
-        return {"message": "如果该邮箱已注册，验证码已发送，请查看邮箱"}
+        raise HTTPException(status_code=400, detail="该邮箱尚未注册，请先注册账号")
 
     code = f"{random.randint(0, 999999):06d}"
 
