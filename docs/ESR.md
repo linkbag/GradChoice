@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-03-31 10:31*
+*Last updated: 2026-03-31 11:08*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -411,3 +411,11 @@ Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indi
 ### Update: 2026-03-31 10:31
 ### claude-gc-i18n-core — 2026-03-31 10:31
 Review passed — reviewer fixed issues (commit: 12942d8 fix: update hero stat to 400+ 覆盖院校 (includes international HEIs))
+
+### Update: 2026-03-31 11:08
+### codex-gc-i18n-pages-b — 2026-03-31 11:08
+Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
+
+### Update: 2026-03-31 11:08
+### codex-gc-i18n-pages-a — 2026-03-31 11:08
+Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
