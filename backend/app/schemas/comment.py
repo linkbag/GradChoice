@@ -34,6 +34,7 @@ class CommentResponse(BaseModel):
     parent_comment_id: Optional[uuid.UUID] = None
     content: str
     is_verified_comment: bool = False
+    is_verified: bool = False
     is_deleted: bool = False
     is_edited: bool = False
     is_anonymous: bool = False
