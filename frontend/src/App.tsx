@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import Layout from '@/components/Layout'
 import HomePage from '@/pages/HomePage'
 import SearchPage from '@/pages/SearchPage'
@@ -11,12 +11,16 @@ import AboutPage from '@/pages/AboutPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import RankingsPage from '@/pages/RankingsPage'
 import SchoolAnalyticsPage from '@/pages/SchoolAnalyticsPage'
-import RatePage from '@/pages/RatePage'
 import PublicProfilePage from '@/pages/PublicProfilePage'
 import AddSupervisorPage from '@/pages/AddSupervisorPage'
 import TermsPage from '@/pages/TermsPage'
 import MyReviewsPage from '@/pages/MyReviewsPage'
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
+
+function SupervisorRateRedirect() {
+  const { id } = useParams<{ id: string }>()
+  return <Navigate to={`/supervisor/${id}`} replace />
+}
 
 export default function App() {
   return (
@@ -26,7 +30,7 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="supervisor/:id" element={<SupervisorPage />} />
-          <Route path="supervisor/:id/rate" element={<RatePage />} />
+          <Route path="supervisor/:id/rate" element={<SupervisorRateRedirect />} />
           <Route path="rankings" element={<RankingsPage />} />
           <Route path="school/:code/analytics" element={<SchoolAnalyticsPage />} />
           <Route path="login" element={<LoginPage />} />
