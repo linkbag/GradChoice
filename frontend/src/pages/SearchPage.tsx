@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { zh } from '@/i18n/zh'
+import { useI18n } from '@/i18n'
 import { supervisorsApi } from '@/services/api'
 import type { SupervisorSearchResult, ProvinceListItem } from '@/types'
 import AutocompleteInput from '@/components/AutocompleteInput'
@@ -8,6 +8,7 @@ import AutocompleteInput from '@/components/AutocompleteInput'
 const PAGE_SIZE = 20
 
 function SupervisorCard({ s }: { s: SupervisorSearchResult }) {
+  const { t } = useI18n()
   return (
     <Link
       to={`/supervisor/${s.id}`}
@@ -27,11 +28,11 @@ function SupervisorCard({ s }: { s: SupervisorSearchResult }) {
               {s.avg_overall_score.toFixed(1)}
             </span>
           ) : (
-            <span className="text-gray-400 text-sm">暂无评分</span>
+            <span className="text-gray-400 text-sm">{t.search.no_score}</span>
           )}
           <p className="text-xs text-gray-400">
-            {zh.supervisor.rating_count(s.rating_count)}
-            {(s.comment_count ?? 0) > 0 && ` · ${s.comment_count} 条评论`}
+            {t.supervisor.rating_count(s.rating_count)}
+            {(s.comment_count ?? 0) > 0 && ` ${t.search.comment_count(s.comment_count ?? 0)}`}
           </p>
         </div>
       </div>
@@ -40,6 +41,7 @@ function SupervisorCard({ s }: { s: SupervisorSearchResult }) {
 }
 
 export default function SearchPage() {
+  const { t } = useI18n()
   const isLoggedIn = !!localStorage.getItem('access_token')
 
   const [query, setQuery] = useState('')
@@ -183,7 +185,7 @@ export default function SearchPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 md:py-12">
-      <h1 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 md:mb-6">搜索导师</h1>
+      <h1 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 md:mb-6">{t.search.title}</h1>
 
       {/* Search form */}
       <form onSubmit={handleSearch} className={`flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4 ${!isLoggedIn ? 'opacity-50 pointer-events-none select-none' : ''}`}>
@@ -191,7 +193,7 @@ export default function SearchPage() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={isLoggedIn ? zh.search.placeholder : '登录后可搜索导师'}
+          placeholder={isLoggedIn ? t.search.placeholder : t.search.login_to_search}
           className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
         <button
@@ -199,7 +201,7 @@ export default function SearchPage() {
           disabled={loading}
           className="w-full sm:w-auto bg-brand-600 text-white px-6 py-3 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
         >
-          {loading ? '搜索中…' : '搜索'}
+          {loading ? t.search.searching : t.search.search_btn}
         </button>
       </form>
 
@@ -209,21 +211,21 @@ export default function SearchPage() {
           options={provinceOptions}
           value={province}
           onChange={setProvince}
-          placeholder="按省份筛选"
+          placeholder={t.search.filter_province_placeholder}
           className="flex-1"
         />
         <AutocompleteInput
           options={schoolOptions}
           value={schoolName}
           onChange={setSchoolName}
-          placeholder="按院校名称筛选"
+          placeholder={t.search.filter_school_placeholder}
           className="flex-1"
         />
         <AutocompleteInput
           options={departmentOptions}
           value={department}
           onChange={setDepartment}
-          placeholder={zh.search.filter_department}
+          placeholder={t.search.filter_department}
           className="flex-1"
         />
       </div>
@@ -232,7 +234,7 @@ export default function SearchPage() {
       {!isLoggedIn && (
         <>
           {teaserLoading && (
-            <p className="text-gray-400 text-center py-12">加载中…</p>
+            <p className="text-gray-400 text-center py-12">{t.search.loading}</p>
           )}
 
           {/* First 5 results — fully visible */}
@@ -280,26 +282,26 @@ export default function SearchPage() {
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-5 md:p-8 text-center max-w-md mx-4">
                   <span className="text-4xl mb-4 block">🔒</span>
                   <h2 className="text-lg font-bold text-gray-800 mb-3">
-                    登录后查看更多导师并使用搜索功能
+                    {t.search.login_cta_title}
                   </h2>
                   <p className="text-gray-500 text-sm mb-3">
-                    研选平台的导师评价数据仅对注册用户完整开放。
+                    {t.search.login_cta_desc}
                   </p>
                   <p className="text-gray-400 text-xs mb-6">
-                    本网站为公益性质，注册、使用完全免费。如果您想志愿帮助我们改进或维护网站请联系webster@gradchoice.org
+                    {t.search.login_cta_note}
                   </p>
                   <div className="flex gap-4 justify-center">
                     <Link
                       to="/login"
                       className="px-6 py-2.5 rounded-full bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors"
                     >
-                      登录
+                      {t.search.login_btn}
                     </Link>
                     <Link
                       to="/register"
                       className="px-6 py-2.5 rounded-full border border-brand-600 text-brand-600 text-sm font-medium hover:bg-brand-50 transition-colors"
                     >
-                      免费注册
+                      {t.search.register_btn}
                     </Link>
                   </div>
                 </div>
@@ -314,27 +316,27 @@ export default function SearchPage() {
       {isLoggedIn && total > 0 && !loading && (
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-gray-500">
-            {activeQuery ? zh.search.result_count(total) : `共 ${total} 位导师`}
+            {activeQuery ? t.search.result_count(total) : t.search.total_count(total)}
           </p>
           <Link to="/add-supervisor" className="text-sm text-teal-600 hover:underline">
-            {zh.search.add_supervisor_link}
+            {t.search.add_supervisor_link}
           </Link>
         </div>
       )}
 
       {/* Loading indicator */}
       {isLoggedIn && loading && (
-        <p className="text-gray-400 text-center py-12">加载中…</p>
+        <p className="text-gray-400 text-center py-12">{t.search.loading}</p>
       )}
 
       {/* Empty state */}
       {isLoggedIn && results.length === 0 && !loading && (
         <div className="text-center py-12">
           <p className="text-gray-400 mb-3">
-            {activeQuery ? zh.search.no_results : '暂无导师数据'}
+            {activeQuery ? t.search.no_results : t.search.no_data}
           </p>
           <Link to="/add-supervisor" className="text-sm text-teal-600 hover:underline">
-            {zh.search.add_supervisor_link}
+            {t.search.add_supervisor_link}
           </Link>
         </div>
       )}
@@ -356,7 +358,7 @@ export default function SearchPage() {
             disabled={loadingMore}
             className="px-6 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 hover:border-brand-300 hover:text-brand-700 transition-colors disabled:opacity-50"
           >
-            {loadingMore ? '加载中…' : `加载更多（已显示 ${results.length} / ${total}）`}
+            {loadingMore ? t.search.loading : t.search.load_more(results.length, total)}
           </button>
         </div>
       )}

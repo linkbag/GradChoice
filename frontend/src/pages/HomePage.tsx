@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { zh } from '@/i18n/zh'
+import { useI18n } from '@/i18n'
 import { analyticsApi } from '@/services/api'
 import type { OverviewStats } from '@/types'
 
 export default function HomePage() {
-  const principles = zh.home.principles
+  const { t } = useI18n()
+  const principles = t.home.principles
   const [stats, setStats] = useState<OverviewStats | null>(null)
 
   useEffect(() => {
@@ -13,9 +14,9 @@ export default function HomePage() {
   }, [])
 
   const statItems = [
-    { label: '收录导师', value: stats ? stats.total_supervisors.toLocaleString() : '—' },
-    { label: '用户评价', value: stats ? stats.total_ratings.toLocaleString() : '—' },
-    { label: '覆盖院校', value: stats ? (stats.most_active_schools?.length > 0 ? '400+' : '—') : '—' },
+    { label: t.home.stat_supervisors, value: stats ? stats.total_supervisors.toLocaleString() : '—' },
+    { label: t.home.stat_ratings, value: stats ? stats.total_ratings.toLocaleString() : '—' },
+    { label: t.home.stat_schools, value: stats ? (stats.most_active_schools?.length > 0 ? '400+' : '—') : '—' },
   ]
 
   return (
@@ -23,21 +24,21 @@ export default function HomePage() {
       {/* Hero */}
       <section className="bg-gradient-to-br from-brand-700 to-brand-900 text-white py-10 md:py-16 px-4 md:px-6">
         <div className="max-w-3xl mx-auto text-center">
-          <h1 className="text-2xl md:text-4xl font-bold mb-4">{zh.home.hero_title}</h1>
-          <p className="text-sm md:text-base text-brand-100 mb-8">{zh.home.hero_subtitle}</p>
+          <h1 className="text-2xl md:text-4xl font-bold mb-4">{t.home.hero_title}</h1>
+          <p className="text-sm md:text-base text-brand-100 mb-8">{t.home.hero_subtitle}</p>
           <Link
             to="/search"
             className="block w-full md:w-auto md:inline-block bg-white text-brand-700 font-semibold px-8 py-3 rounded-full hover:bg-brand-50 transition-colors text-lg"
           >
-            {zh.home.hero_cta}
+            {t.home.hero_cta}
           </Link>
         </div>
       </section>
 
       {/* Mission */}
       <section className="max-w-6xl mx-auto px-4 py-8 md:py-16">
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">{zh.home.mission_title}</h2>
-        <p className="text-center text-gray-600 mb-8 md:mb-12 max-w-xl mx-auto">{zh.home.mission_text}</p>
+        <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">{t.home.mission_title}</h2>
+        <p className="text-center text-gray-600 mb-8 md:mb-12 max-w-xl mx-auto">{t.home.mission_text}</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-8">
           {principles.map((p) => (
@@ -68,14 +69,14 @@ export default function HomePage() {
       <section className="max-w-4xl mx-auto px-4 pt-10 pb-2">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-teal-50 border border-teal-200 rounded-2xl p-4 md:px-6 md:py-5 gap-4">
           <div>
-            <h3 className="font-semibold text-teal-800 mb-1">{zh.home.add_cta_title}</h3>
-            <p className="text-sm text-teal-700">{zh.home.add_cta_desc}</p>
+            <h3 className="font-semibold text-teal-800 mb-1">{t.home.add_cta_title}</h3>
+            <p className="text-sm text-teal-700">{t.home.add_cta_desc}</p>
           </div>
           <Link
             to="/add-supervisor"
             className="w-full sm:w-auto shrink-0 bg-teal-600 text-white text-sm font-medium px-5 py-2 rounded-full hover:bg-teal-700 transition-colors text-center"
           >
-            {zh.home.add_cta_btn}
+            {t.home.add_cta_btn}
           </Link>
         </div>
       </section>
@@ -85,8 +86,8 @@ export default function HomePage() {
         <div className="flex gap-3 items-start bg-sky-50 border border-sky-200 rounded-2xl p-4 md:px-5 md:py-4">
           <span className="text-sky-500 text-lg leading-none mt-0.5">ℹ</span>
           <div>
-            <p className="text-xs md:text-sm font-semibold text-sky-800 mb-1">{zh.home.score_disclaimer_title}</p>
-            <p className="text-xs md:text-sm text-sky-700 leading-relaxed">{zh.home.score_disclaimer_body}</p>
+            <p className="text-xs md:text-sm font-semibold text-sky-800 mb-1">{t.home.score_disclaimer_title}</p>
+            <p className="text-xs md:text-sm text-sky-700 leading-relaxed">{t.home.score_disclaimer_body}</p>
           </div>
         </div>
       </section>
@@ -94,9 +95,9 @@ export default function HomePage() {
       {/* Attribution */}
       <section className="max-w-4xl mx-auto px-4 py-8 md:py-12">
         <div className="bg-white rounded-2xl border border-gray-100 p-4 md:p-8">
-          <h3 className="text-lg font-semibold text-gray-700 mb-3">数据致谢</h3>
+          <h3 className="text-lg font-semibold text-gray-700 mb-3">{t.home.attribution_title}</h3>
           <p className="text-sm text-gray-600 mb-3">
-            本站部分历史评价数据转载自开源社区，包括：
+            {t.home.attribution_desc}
           </p>
           <ul className="text-sm text-gray-600 list-disc list-inside mb-3 space-y-1">
             <li>
@@ -106,9 +107,9 @@ export default function HomePage() {
                 rel="noopener noreferrer"
                 className="text-brand-600 hover:underline"
               >
-                导师评价网
+                {t.home.attribution_site1_name}
               </a>
-              （原 mysupervisor.org / ratemysupervisor.org）
+              {t.home.attribution_site1_note}
             </li>
             <li>
               <a
@@ -117,13 +118,13 @@ export default function HomePage() {
                 rel="noopener noreferrer"
                 className="text-brand-600 hover:underline"
               >
-                研控
+                {t.home.attribution_site2_name}
               </a>
             </li>
-            <li>及其他开源贡献者</li>
+            <li>{t.home.attribution_others}</li>
           </ul>
           <p className="text-sm text-gray-500">
-            感谢所有先驱者为保护研究生权益所做的贡献。如有任何版权或数据问题，请联系我们。
+            {t.home.attribution_thanks}
           </p>
         </div>
       </section>
@@ -131,9 +132,9 @@ export default function HomePage() {
       {/* Legal Disclaimer */}
       <section className="max-w-4xl mx-auto px-4 pb-8 md:pb-12">
         <div className="px-4 md:px-5 py-4">
-          <p className="text-xs md:text-sm font-semibold text-gray-400 mb-1.5">⚖️ 免责声明</p>
+          <p className="text-xs md:text-sm font-semibold text-gray-400 mb-1.5">{t.home.disclaimer_title}</p>
           <p className="text-xs md:text-sm text-gray-400 leading-relaxed">
-            本平台所有评价内容均为用户个人观点，仅代表发布者本人立场，不代表研选 GradChoice 平台立场。平台不对评价内容的真实性、准确性或合法性承担责任。如您认为某条评价侵犯了您的合法权益，请通过平台举报功能联系我们，我们将在核实后依法处理。
+            {t.home.disclaimer_body}
           </p>
         </div>
       </section>

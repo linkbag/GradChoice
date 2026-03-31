@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { zh } from '@/i18n/zh'
+import { useI18n } from '@/i18n'
 import { supervisorsApi, analyticsApi, ratingsApi, commentsApi, editProposalsApi, usersApi, chatsApi } from '@/services/api'
 import type { Supervisor, SupervisorAnalytics, ScoreBreakdown, Rating, Comment } from '@/types'
 import RadarChart from '@/components/RadarChart'
@@ -29,6 +29,7 @@ function PopupStarPicker({
   onChange: (v: number | null) => void
   required?: boolean
 }) {
+  const { t } = useI18n()
   return (
     <div className="flex items-center justify-between py-2">
       <span className="text-sm text-gray-700 w-24 shrink-0">
@@ -44,7 +45,7 @@ function PopupStarPicker({
             className={`text-2xl transition-colors ${
               value != null && star <= value ? 'text-yellow-400' : 'text-gray-300'
             } hover:text-yellow-400`}
-            aria-label={`${star}星`}
+            aria-label={t.supervisor.star_aria(star)}
           >
             ★
           </button>
@@ -55,7 +56,7 @@ function PopupStarPicker({
             onClick={() => onChange(null)}
             className="text-xs text-gray-400 hover:text-gray-600 ml-1"
           >
-            清除
+            {t.supervisor.clear}
           </button>
         )}
         {value != null && (
@@ -65,12 +66,6 @@ function PopupStarPicker({
     </div>
   )
 }
-
-const USER_STATUS_TABS: { key: UserStatus; label: string }[] = [
-  { key: 'all', label: zh.supervisor.user_status_all },
-  { key: 'verified', label: zh.supervisor.user_status_verified },
-  { key: 'unverified', label: zh.supervisor.user_status_unverified },
-]
 
 const KEY_TO_SCORE_FIELD: Record<string, keyof ScoreBreakdown> = {
   academic: 'avg_academic',
@@ -94,14 +89,15 @@ function formatDate(iso: string): string {
 
 function StarRow({ score }: { score: number }) {
   return (
-    <span className="text-yellow-400 text-sm" aria-label={`${score}分`}>
+    <span className="text-yellow-400 text-sm" aria-label={`${score}`}>
       {'★'.repeat(score)}{'☆'.repeat(5 - score)}
     </span>
   )
 }
 
 function RatingCard({ rating }: { rating: Rating }) {
-  const subScores = Object.entries(zh.supervisor.score_labels)
+  const { t } = useI18n()
+  const subScores = Object.entries(t.supervisor.score_labels)
     .filter(([k]) => k !== 'overall')
     .map(([k, label]) => {
       const val = rating[`score_${k}` as keyof Rating] as number | null
@@ -117,11 +113,11 @@ function RatingCard({ rating }: { rating: Rating }) {
             to={`/users/${rating.user_id}/profile`}
             className="text-sm font-medium text-teal-600 hover:underline cursor-pointer"
           >
-            {rating.display_name || '匿名'}
+            {rating.display_name || t.supervisor.anonymous}
           </Link>
           {rating.is_verified_rating && (
             <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full">
-              {zh.supervisor.verified_badge}
+              {t.supervisor.verified_badge}
             </span>
           )}
         </div>
@@ -158,33 +154,34 @@ interface CommentCardProps {
 }
 
 function CommentCard({ comment, isLoggedIn, currentUserId, onVote, onReply, onChat }: CommentCardProps) {
+  const { t } = useI18n()
   return (
     <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {comment.is_anonymous ? (
-            <span className="text-sm font-medium text-gray-700">匿名用户</span>
+            <span className="text-sm font-medium text-gray-700">{t.supervisor.anonymous_user}</span>
           ) : comment.author?.id ? (
             <Link
               to={`/users/${comment.author.id}/profile`}
               className="text-sm font-medium text-teal-600 hover:underline cursor-pointer"
             >
-              {comment.author.display_name || '匿名'}
+              {comment.author.display_name || t.supervisor.anonymous}
             </Link>
           ) : (
-            <span className="text-sm font-medium text-gray-700">匿名</span>
+            <span className="text-sm font-medium text-gray-700">{t.supervisor.anonymous}</span>
           )}
           {comment.is_verified_comment ? (
             <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full">
-              ✅ {zh.supervisor.verified_badge}
+              ✅ {t.supervisor.verified_badge}
             </span>
           ) : (
             <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
-              {zh.supervisor.unverified_badge}
+              {t.supervisor.unverified_badge}
             </span>
           )}
           {comment.is_edited && (
-            <span className="text-xs text-gray-400">（已编辑）</span>
+            <span className="text-xs text-gray-400">{t.supervisor.edited_badge}</span>
           )}
         </div>
         <span className="text-xs text-gray-400">{formatDate(comment.created_at)}</span>
@@ -196,7 +193,7 @@ function CommentCard({ comment, isLoggedIn, currentUserId, onVote, onReply, onCh
           className={`flex items-center gap-1 transition-colors hover:text-teal-600 ${
             comment.user_vote === 'up' ? 'text-teal-600 font-medium' : 'text-gray-400'
           }`}
-          title={isLoggedIn ? '点赞' : '登录后点赞'}
+          title={isLoggedIn ? t.supervisor.upvote : t.supervisor.upvote_login}
         >
           👍 {comment.likes_count}
         </button>
@@ -205,26 +202,26 @@ function CommentCard({ comment, isLoggedIn, currentUserId, onVote, onReply, onCh
           className={`flex items-center gap-1 transition-colors hover:text-red-500 ${
             comment.user_vote === 'down' ? 'text-red-500 font-medium' : 'text-gray-400'
           }`}
-          title={isLoggedIn ? '踩' : '登录后踩'}
+          title={isLoggedIn ? t.supervisor.downvote : t.supervisor.downvote_login}
         >
           👎 {comment.dislikes_count}
         </button>
         <button
-          onClick={() => onReply(comment.id, comment.author?.display_name || '匿名')}
+          onClick={() => onReply(comment.id, comment.author?.display_name || t.supervisor.anonymous)}
           className="text-gray-400 hover:text-teal-600 transition-colors"
         >
-          回复
+          {t.supervisor.reply}
         </button>
         {isLoggedIn && !comment.is_anonymous && comment.author?.id && comment.author.id !== currentUserId && (
           <button
             onClick={() => onChat(comment)}
             className="text-gray-400 hover:text-teal-600 transition-colors"
           >
-            私信
+            {t.supervisor.dm}
           </button>
         )}
         {comment.reply_count > 0 && (
-          <span className="text-gray-400">💬 {comment.reply_count} 条回复</span>
+          <span className="text-gray-400">{t.supervisor.reply_count(comment.reply_count)}</span>
         )}
       </div>
       {comment.replies?.length > 0 && (
@@ -232,27 +229,27 @@ function CommentCard({ comment, isLoggedIn, currentUserId, onVote, onReply, onCh
           {comment.replies.map((r) => (
             <div key={r.id} className="text-sm">
               {r.is_anonymous ? (
-                <span className="font-medium text-gray-600">匿名用户</span>
+                <span className="font-medium text-gray-600">{t.supervisor.anonymous_user}</span>
               ) : r.author?.id ? (
                 <Link
                   to={`/users/${r.author.id}/profile`}
                   className="font-medium text-teal-600 hover:underline cursor-pointer"
                 >
-                  {r.author.display_name || '匿名'}
+                  {r.author.display_name || t.supervisor.anonymous}
                 </Link>
               ) : (
-                <span className="font-medium text-gray-600">匿名</span>
+                <span className="font-medium text-gray-600">{t.supervisor.anonymous}</span>
               )}
               {r.is_verified_comment ? (
                 <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full mx-1">
-                  ✅ {zh.supervisor.verified_badge}
+                  ✅ {t.supervisor.verified_badge}
                 </span>
               ) : (
                 <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full mx-1">
-                  {zh.supervisor.unverified_badge}
+                  {t.supervisor.unverified_badge}
                 </span>
               )}
-              <span className="text-gray-600">：</span>
+              <span className="text-gray-600">{t.supervisor.reply_separator}</span>
               <span className="text-gray-700">{r.content}</span>
             </div>
           ))}
@@ -274,7 +271,8 @@ interface CombinedCardProps {
 }
 
 function CombinedCard({ rating, comment, isLoggedIn, currentUserId, onVote, onReply, onChat }: CombinedCardProps) {
-  const subScores = Object.entries(zh.supervisor.score_labels)
+  const { t } = useI18n()
+  const subScores = Object.entries(t.supervisor.score_labels)
     .filter(([k]) => k !== 'overall')
     .map(([k, label]) => {
       const val = rating[`score_${k}` as keyof Rating] as number | null
@@ -288,28 +286,28 @@ function CombinedCard({ rating, comment, isLoggedIn, currentUserId, onVote, onRe
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {comment.is_anonymous ? (
-            <span className="text-sm font-medium text-gray-700">匿名用户</span>
+            <span className="text-sm font-medium text-gray-700">{t.supervisor.anonymous_user}</span>
           ) : comment.author?.id ? (
             <Link
               to={`/users/${comment.author.id}/profile`}
               className="text-sm font-medium text-teal-600 hover:underline cursor-pointer"
             >
-              {comment.author.display_name || '匿名'}
+              {comment.author.display_name || t.supervisor.anonymous}
             </Link>
           ) : (
-            <span className="text-sm font-medium text-gray-700">匿名</span>
+            <span className="text-sm font-medium text-gray-700">{t.supervisor.anonymous}</span>
           )}
           {comment.is_verified_comment ? (
             <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full">
-              ✅ {zh.supervisor.verified_badge}
+              ✅ {t.supervisor.verified_badge}
             </span>
           ) : (
             <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
-              {zh.supervisor.unverified_badge}
+              {t.supervisor.unverified_badge}
             </span>
           )}
           {comment.is_edited && (
-            <span className="text-xs text-gray-400">（已编辑）</span>
+            <span className="text-xs text-gray-400">{t.supervisor.edited_badge}</span>
           )}
         </div>
         <span className="text-xs text-gray-400">{formatDate(comment.created_at)}</span>
@@ -342,7 +340,7 @@ function CombinedCard({ rating, comment, isLoggedIn, currentUserId, onVote, onRe
           className={`flex items-center gap-1 transition-colors hover:text-teal-600 ${
             comment.user_vote === 'up' ? 'text-teal-600 font-medium' : 'text-gray-400'
           }`}
-          title={isLoggedIn ? '点赞' : '登录后点赞'}
+          title={isLoggedIn ? t.supervisor.upvote : t.supervisor.upvote_login}
         >
           👍 {comment.likes_count}
         </button>
@@ -351,26 +349,26 @@ function CombinedCard({ rating, comment, isLoggedIn, currentUserId, onVote, onRe
           className={`flex items-center gap-1 transition-colors hover:text-red-500 ${
             comment.user_vote === 'down' ? 'text-red-500 font-medium' : 'text-gray-400'
           }`}
-          title={isLoggedIn ? '踩' : '登录后踩'}
+          title={isLoggedIn ? t.supervisor.downvote : t.supervisor.downvote_login}
         >
           👎 {comment.dislikes_count}
         </button>
         <button
-          onClick={() => onReply(comment.id, comment.author?.display_name || '匿名')}
+          onClick={() => onReply(comment.id, comment.author?.display_name || t.supervisor.anonymous)}
           className="text-gray-400 hover:text-teal-600 transition-colors"
         >
-          回复
+          {t.supervisor.reply}
         </button>
         {isLoggedIn && !comment.is_anonymous && comment.author?.id && comment.author.id !== currentUserId && (
           <button
             onClick={() => onChat(comment)}
             className="text-gray-400 hover:text-teal-600 transition-colors"
           >
-            私信
+            {t.supervisor.dm}
           </button>
         )}
         {comment.reply_count > 0 && (
-          <span className="text-gray-400">💬 {comment.reply_count} 条回复</span>
+          <span className="text-gray-400">{t.supervisor.reply_count(comment.reply_count)}</span>
         )}
       </div>
 
@@ -380,27 +378,27 @@ function CombinedCard({ rating, comment, isLoggedIn, currentUserId, onVote, onRe
           {comment.replies.map((r) => (
             <div key={r.id} className="text-sm">
               {r.is_anonymous ? (
-                <span className="font-medium text-gray-600">匿名用户</span>
+                <span className="font-medium text-gray-600">{t.supervisor.anonymous_user}</span>
               ) : r.author?.id ? (
                 <Link
                   to={`/users/${r.author.id}/profile`}
                   className="font-medium text-teal-600 hover:underline cursor-pointer"
                 >
-                  {r.author.display_name || '匿名'}
+                  {r.author.display_name || t.supervisor.anonymous}
                 </Link>
               ) : (
-                <span className="font-medium text-gray-600">匿名</span>
+                <span className="font-medium text-gray-600">{t.supervisor.anonymous}</span>
               )}
               {r.is_verified_comment ? (
                 <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full mx-1">
-                  ✅ {zh.supervisor.verified_badge}
+                  ✅ {t.supervisor.verified_badge}
                 </span>
               ) : (
                 <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full mx-1">
-                  {zh.supervisor.unverified_badge}
+                  {t.supervisor.unverified_badge}
                 </span>
               )}
-              <span className="text-gray-600">：</span>
+              <span className="text-gray-600">{t.supervisor.reply_separator}</span>
               <span className="text-gray-700">{r.content}</span>
             </div>
           ))}
@@ -411,6 +409,7 @@ function CombinedCard({ rating, comment, isLoggedIn, currentUserId, onVote, onRe
 }
 
 export default function SupervisorPage() {
+  const { t } = useI18n()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [supervisor, setSupervisor] = useState<Supervisor | null>(null)
@@ -461,6 +460,22 @@ export default function SupervisorPage() {
 
   // Ref for scrolling to comment form
   const commentTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // User status tabs — computed from translations
+  const USER_STATUS_TABS: { key: UserStatus; label: string }[] = [
+    { key: 'all', label: t.supervisor.user_status_all },
+    { key: 'verified', label: t.supervisor.user_status_verified },
+    { key: 'unverified', label: t.supervisor.user_status_unverified },
+  ]
+
+  // Edit form field definitions
+  const editFormFields = [
+    { key: 'title', label: t.supervisor.edit_field_title },
+    { key: 'affiliated_unit', label: t.supervisor.edit_field_unit },
+    { key: 'webpage_url_1', label: t.supervisor.edit_field_url1 },
+    { key: 'webpage_url_2', label: t.supervisor.edit_field_url2 },
+    { key: 'webpage_url_3', label: t.supervisor.edit_field_url3 },
+  ]
 
   useEffect(() => {
     if (!isLoggedIn) return
@@ -574,7 +589,7 @@ export default function SupervisorPage() {
       return
     }
     if (!commentTosAgreed) {
-      setCommentError('请先同意服务条款与免责声明')
+      setCommentError(t.supervisor.error_tos)
       return
     }
     // Reset and show score popup
@@ -621,7 +636,7 @@ export default function SupervisorPage() {
       await refreshComments()
     } catch (e: unknown) {
       const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setPopupError(detail || '发布失败，请重试')
+      setPopupError(detail || t.supervisor.error_post)
     } finally {
       setPopupSubmitting(false)
     }
@@ -646,7 +661,7 @@ export default function SupervisorPage() {
       await refreshComments()
     } catch (e: unknown) {
       const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setReplyError(detail || '回复失败，请重试')
+      setReplyError(detail || t.supervisor.error_reply)
     } finally {
       setSubmittingReply(false)
     }
@@ -662,7 +677,7 @@ export default function SupervisorPage() {
       await commentsApi.vote(commentId, voteType)
       await refreshComments()
     } catch {
-      setVoteError('投票失败，请重试')
+      setVoteError(t.supervisor.error_vote)
     }
   }
 
@@ -679,7 +694,7 @@ export default function SupervisorPage() {
     if (!isLoggedIn) { navigate('/login'); return }
     if (!comment.author?.id) return
     try {
-      const quoteContent = `【引用评论】\n${comment.content}\n【/引用评论】`
+      const quoteContent = `${t.supervisor.quote_prefix}\n${comment.content}\n${t.supervisor.quote_suffix}`
       const res = await chatsApi.create({
         recipient_id: comment.author.id,
         supervisor_id: id,
@@ -697,9 +712,9 @@ export default function SupervisorPage() {
     <div className="max-w-4xl mx-auto px-4 py-6 md:py-12">
       {/* Supervisor info header */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-8 mb-4 md:mb-6">
-        <p className="text-xs text-gray-400 mb-2">导师主页</p>
+        <p className="text-xs text-gray-400 mb-2">{t.supervisor.page_breadcrumb}</p>
         {loading ? (
-          <h1 className="text-2xl font-bold text-gray-400">加载中…</h1>
+          <h1 className="text-2xl font-bold text-gray-400">{t.supervisor.loading}</h1>
         ) : supervisor ? (
           <>
             <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">{supervisor.name}</h1>
@@ -713,11 +728,11 @@ export default function SupervisorPage() {
               to={`/school/${supervisor.school_code}/analytics`}
               className="mt-3 inline-flex items-center gap-1 text-xs text-teal-600 hover:text-teal-800 transition-colors"
             >
-              查看院校数据 →
+              {t.supervisor.view_school_analytics}
             </Link>
           </>
         ) : (
-          <h1 className="text-xl text-red-500">导师不存在</h1>
+          <h1 className="text-xl text-red-500">{t.supervisor.not_found}</h1>
         )}
       </div>
 
@@ -727,10 +742,10 @@ export default function SupervisorPage() {
           {/* Score overview + radar */}
           <div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-8 mb-4 md:mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-gray-800">评分概览</h2>
+              <h2 className="font-bold text-gray-800">{t.supervisor.score_overview}</h2>
               {hasScores && (
                 <span className="text-xs text-gray-400">
-                  {scores!.total_ratings} 条评价（{scores!.verified_ratings} 条认证）
+                  {t.supervisor.rating_verified_count(scores!.total_ratings, scores!.verified_ratings)}
                 </span>
               )}
             </div>
@@ -751,13 +766,13 @@ export default function SupervisorPage() {
                 </button>
               ))}
               {analyticsLoading && (
-                <span className="text-xs text-gray-400 self-center ml-2">更新中…</span>
+                <span className="text-xs text-gray-400 self-center ml-2">{t.supervisor.updating}</span>
               )}
             </div>
 
             <div className="flex items-start gap-1.5 text-xs text-sky-600 bg-sky-50 border border-sky-100 rounded-lg px-3 py-2 mb-4">
               <span className="shrink-0 mt-px">ℹ</span>
-              <span>{zh.supervisor.score_disclaimer}</span>
+              <span>{t.supervisor.score_disclaimer}</span>
             </div>
 
             {hasScores ? (
@@ -768,7 +783,7 @@ export default function SupervisorPage() {
                       {scores!.avg_overall?.toFixed(2)}
                     </span>
                     <span className="text-gray-400 mb-1">/ 5.00</span>
-                    <span className="text-sm text-gray-400 mb-1 ml-1">综合评分</span>
+                    <span className="text-sm text-gray-400 mb-1 ml-1">{t.supervisor.score_labels.overall}</span>
                   </div>
                   {analyticsUserStatus === 'all' && hasVerifiedScores && verifiedScores!.avg_overall != null && (
                     <div className="flex items-end gap-1.5 bg-teal-50 border border-teal-100 rounded-xl px-3 py-1.5">
@@ -776,8 +791,8 @@ export default function SupervisorPage() {
                         {verifiedScores!.avg_overall.toFixed(2)}
                       </span>
                       <div className="mb-0.5">
-                        <div className="text-xs text-teal-600 font-medium leading-tight">认证学生</div>
-                        <div className="text-xs text-teal-500 leading-tight">({verifiedScores!.total_ratings} 条)</div>
+                        <div className="text-xs text-teal-600 font-medium leading-tight">{t.supervisor.verified_student}</div>
+                        <div className="text-xs text-teal-500 leading-tight">{t.supervisor.verified_count(verifiedScores!.total_ratings)}</div>
                       </div>
                     </div>
                   )}
@@ -790,7 +805,7 @@ export default function SupervisorPage() {
                 />
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 mt-4 md:mt-6">
-                  {Object.entries(zh.supervisor.score_labels).map(([key, label]) =>
+                  {Object.entries(t.supervisor.score_labels).map(([key, label]) =>
                     key !== 'overall' ? (
                       <div key={key} className="text-center bg-gray-50 rounded-xl p-3">
                         <div className="text-xl font-bold text-gray-800">
@@ -804,15 +819,16 @@ export default function SupervisorPage() {
 
                 {analytics!.school_avg_scores.avg_overall != null && (
                   <div className="mt-4 text-xs text-gray-400 text-center">
-                    与校均值对比 · 校均 {analytics!.school_avg_scores.avg_overall.toFixed(2)} ·
-                    全国均 {analytics!.national_avg_scores.avg_overall?.toFixed(2) ?? '—'}
+                    {t.supervisor.school_comparison
+                      .replace('{school}', analytics!.school_avg_scores.avg_overall.toFixed(2))
+                      .replace('{national}', analytics!.national_avg_scores.avg_overall?.toFixed(2) ?? '—')}
                   </div>
                 )}
               </>
             ) : (
               <div className="h-48 flex flex-col items-center justify-center text-gray-400 gap-2">
                 <span className="text-3xl">📊</span>
-                <span>新导师，暂无足够评价数据</span>
+                <span>{t.supervisor.no_data}</span>
               </div>
             )}
           </div>
@@ -820,10 +836,10 @@ export default function SupervisorPage() {
           {/* Percentile rankings */}
           {analytics?.percentiles && (
             <div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-8 mb-4 md:mb-6">
-              <h2 className="font-bold text-gray-800 mb-4">百分位排名</h2>
+              <h2 className="font-bold text-gray-800 mb-4">{t.supervisor.percentile_title}</h2>
               <PercentileDisplay percentiles={analytics.percentiles} />
               <p className="text-xs text-gray-400 mt-3 text-center">
-                * 超过 X% 的导师 = 该导师评分高于 X% 的同类导师（至少 3 条评价才计入排名）
+                {t.supervisor.percentile_note}
               </p>
             </div>
           )}
@@ -831,21 +847,21 @@ export default function SupervisorPage() {
           {/* Score distribution */}
           {analytics && hasScores && (
             <div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-8 mb-4 md:mb-6">
-              <h2 className="font-bold text-gray-800 mb-4">评分分布</h2>
+              <h2 className="font-bold text-gray-800 mb-4">{t.supervisor.distribution_title}</h2>
               <DistributionChart distribution={analytics.score_distribution} />
             </div>
           )}
         </>
       )}
 
-      {/* 评分讨论区 — unified feed */}
+      {/* Discussion feed */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-8">
         <div className="flex items-center justify-between mb-4 md:mb-6">
           <h2 className="font-bold text-gray-800">
-            评分讨论区
+            {t.supervisor.discussion_title}
             {(ratingsTotal + commentsTotal) > 0 && (
               <span className="ml-2 text-sm font-normal text-gray-400">
-                {ratingsTotal + commentsTotal} 条
+                {t.supervisor.discussion_count(ratingsTotal + commentsTotal)}
               </span>
             )}
           </h2>
@@ -854,7 +870,7 @@ export default function SupervisorPage() {
               onClick={() => { setShowEditForm((v) => !v); setEditDone(false) }}
               className="text-xs text-gray-400 hover:text-teal-600 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors"
             >
-              建议修改信息
+              {t.supervisor.suggest_edit}
             </button>
           )}
         </div>
@@ -863,15 +879,9 @@ export default function SupervisorPage() {
         {showEditForm && (
           <form onSubmit={handleEditSubmit} className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
             <p className="text-xs text-gray-500 mb-2">
-              填写需要修改的字段（留空的字段不会被修改），提交后由两位认证学生审核通过才会生效。
+              {t.supervisor.edit_hint}
             </p>
-            {[
-              { key: 'title', label: '职称' },
-              { key: 'affiliated_unit', label: '所属单位' },
-              { key: 'webpage_url_1', label: '主页链接 1' },
-              { key: 'webpage_url_2', label: '主页链接 2' },
-              { key: 'webpage_url_3', label: '主页链接 3' },
-            ].map(({ key, label }) => (
+            {editFormFields.map(({ key, label }) => (
               <div key={key} className="flex items-center gap-3">
                 <label className="text-xs text-gray-500 w-24 shrink-0">{label}</label>
                 <input
@@ -889,21 +899,21 @@ export default function SupervisorPage() {
                 disabled={editSubmitting}
                 className="bg-teal-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-teal-700 transition-colors disabled:opacity-50"
               >
-                {editSubmitting ? '提交中…' : '提交修改建议'}
+                {editSubmitting ? t.supervisor.submitting : t.supervisor.edit_submit}
               </button>
               <button
                 type="button"
                 onClick={() => setShowEditForm(false)}
                 className="text-sm text-gray-400 hover:text-gray-600 px-3 py-1.5"
               >
-                取消
+                {t.supervisor.cancel}
               </button>
             </div>
           </form>
         )}
 
         {editDone && (
-          <p className="text-sm text-teal-600 mb-4">修改建议已提交，感谢你的贡献！</p>
+          <p className="text-sm text-teal-600 mb-4">{t.supervisor.edit_success}</p>
         )}
 
         {/* Comment creation form */}
@@ -913,7 +923,7 @@ export default function SupervisorPage() {
               ref={commentTextareaRef}
               value={commentText}
               onChange={(e) => setCommentText(e.target.value.slice(0, COMMENT_MAX_LENGTH))}
-              placeholder="建议从以下方面分享：&#10;1. 自证与导师的关系（如导师的口头禅/特征辨识）&#10;2. 学术水平&#10;3. 学生培养&#10;4. 身心健康（工作时间、师生关系）&#10;5. 科研资源&#10;6. 生活补助&#10;7. 学术道德"
+              placeholder={t.supervisor.comment_placeholder}
               rows={3}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-teal-400 placeholder-gray-400"
             />
@@ -931,7 +941,7 @@ export default function SupervisorPage() {
                 className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
               />
               <label htmlFor="comment-anon" className="text-sm text-gray-600 cursor-pointer">
-                匿名发布
+                {t.supervisor.post_anonymous}
               </label>
             </div>
 
@@ -945,25 +955,23 @@ export default function SupervisorPage() {
                 className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 shrink-0"
               />
               <label htmlFor="comment-tos" className="text-sm text-gray-600 leading-snug cursor-pointer">
-                我了解并同意本站{' '}
+                {t.supervisor.tos_agree}{' '}
                 <a
                   href="/terms"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-teal-600 hover:underline"
                 >
-                  服务条款与免责声明
+                  {t.supervisor.tos_link}
                 </a>
               </label>
             </div>
 
             {/* Privacy notice */}
             <div className="mt-3 text-xs text-gray-400 space-y-1 leading-relaxed">
-              <p>
-                研选尊重并保护所有用户的个人隐私权，用户的个人资料，非经用户许可或根据相关法律法规的强制性规定，研选不会主动地泄露给第三方。
-              </p>
-              <p>用户在研选发布的言论仅代表其个人意见和观点，与研选立场无关。</p>
-              <p>用户因其使用研选产生的一切后果由其自己承担，研选不承担任何责任。</p>
+              <p>{t.supervisor.privacy_note1}</p>
+              <p>{t.supervisor.privacy_note2}</p>
+              <p>{t.supervisor.privacy_note3}</p>
             </div>
 
             {commentError && (
@@ -975,16 +983,17 @@ export default function SupervisorPage() {
                 disabled={!commentText.trim() || !commentTosAgreed}
                 className="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                发布评论/评分
+                {t.supervisor.submit_comment}
               </button>
             </div>
           </div>
         ) : (
           <div className="mb-6 py-4 px-4 bg-gray-50 rounded-xl text-sm text-gray-500 text-center">
-            <Link to="/login" className="text-teal-600 hover:underline font-medium">登录</Link>
-            {' '}后参与讨论
+            <Link to="/login" className="text-teal-600 hover:underline font-medium">{t.nav.login}</Link>
+            {' '}{t.supervisor.login_to_discuss}
           </div>
         )}
+
         {/* Unified feed */}
         {feedItems.length > 0 ? (
           <div className="space-y-4 mb-8">
@@ -1020,33 +1029,32 @@ export default function SupervisorPage() {
             })}
             {(ratingsTotal > ratings.length || commentsTotal > comments.length) && (
               <p className="text-xs text-gray-400 text-center">
-                显示部分内容，共 {ratingsTotal + commentsTotal} 条
+                {t.supervisor.partial_feed(ratingsTotal + commentsTotal)}
               </p>
             )}
           </div>
         ) : (
           !loading && (
-            <p className="text-gray-400 text-center py-6">暂无评价，来发起第一条吧</p>
+            <p className="text-gray-400 text-center py-6">{t.supervisor.no_reviews}</p>
           )
         )}
-
 
         {/* Reply form */}
         {replyingTo && (
           <div className="mt-4 p-3 bg-teal-50 border border-teal-200 rounded-xl">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-teal-700">回复 {replyingTo.authorName}</span>
+              <span className="text-xs text-teal-700">{t.supervisor.reply_label_for.replace('{name}', replyingTo.authorName)}</span>
               <button
                 onClick={() => setReplyingTo(null)}
                 className="text-xs text-gray-400 hover:text-gray-600"
               >
-                取消
+                {t.supervisor.cancel}
               </button>
             </div>
             <textarea
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
-              placeholder="输入回复…"
+              placeholder={t.supervisor.reply_placeholder}
               rows={2}
               className="w-full border border-teal-200 rounded-lg px-3 py-2 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-teal-400 bg-white"
               autoFocus
@@ -1060,7 +1068,7 @@ export default function SupervisorPage() {
                 disabled={submittingReply || !replyText.trim()}
                 className="bg-teal-600 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submittingReply ? '回复中…' : '回复'}
+                {submittingReply ? t.supervisor.replying : t.supervisor.reply}
               </button>
             </div>
           </div>
@@ -1074,9 +1082,9 @@ export default function SupervisorPage() {
 
       {/* Legal Disclaimer */}
       <div className="px-1 pt-6 pb-2">
-        <p className="text-sm font-semibold text-gray-400 mb-1.5">⚖️ 免责声明</p>
+        <p className="text-sm font-semibold text-gray-400 mb-1.5">{t.supervisor.disclaimer_title}</p>
         <p className="text-sm text-gray-400 leading-relaxed">
-          本平台所有评价内容均为用户个人观点，仅代表发布者本人立场，不代表研选 GradChoice 平台立场。平台不对评价内容的真实性、准确性或合法性承担责任。如您认为某条评价侵犯了您的合法权益，请通过平台举报功能联系我们，我们将在核实后依法处理。
+          {t.supervisor.disclaimer_body}
         </p>
       </div>
     </div>
@@ -1091,16 +1099,16 @@ export default function SupervisorPage() {
         />
         {/* Card */}
         <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-1">{zh.supervisor.score_popup_title}</h2>
-          <p className="text-xs text-gray-500 mb-4">{zh.supervisor.score_popup_hint}</p>
+          <h2 className="text-lg font-bold text-gray-900 mb-1">{t.supervisor.score_popup_title}</h2>
+          <p className="text-xs text-gray-500 mb-4">{t.supervisor.score_popup_hint}</p>
 
           {/* Overall score */}
           <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 mb-3">
             <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
-              {zh.supervisor.score_popup_overall_section} <span className="text-red-500">*</span>
+              {t.supervisor.score_popup_overall_section} <span className="text-red-500">*</span>
             </p>
             <PopupStarPicker
-              label={zh.supervisor.score_labels.overall}
+              label={t.supervisor.score_labels.overall}
               value={popupOverallScore}
               onChange={setPopupOverallScore}
               required
@@ -1110,13 +1118,13 @@ export default function SupervisorPage() {
           {/* Sub-scores */}
           <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 mb-4">
             <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
-              {zh.supervisor.score_popup_sub_section}
+              {t.supervisor.score_popup_sub_section}
             </p>
             <div className="divide-y divide-gray-100">
               {SUB_SCORE_KEYS.map((key) => (
                 <PopupStarPicker
                   key={key}
-                  label={zh.supervisor.score_labels[key]}
+                  label={t.supervisor.score_labels[key]}
                   value={popupSubScores[key]}
                   onChange={(v) => setPopupSubScores((prev) => ({ ...prev, [key]: v }))}
                 />
@@ -1124,10 +1132,10 @@ export default function SupervisorPage() {
             </div>
           </div>
 
-          {/* 毕业首年收入 */}
+          {/* First-year income */}
           <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 mb-4">
             <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
-              毕业首年收入（可选）
+              {t.supervisor.first_year_income_label}
             </p>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-500">¥</span>
@@ -1135,10 +1143,10 @@ export default function SupervisorPage() {
                 type="number"
                 value={popupFirstYearIncome}
                 onChange={(e) => setPopupFirstYearIncome(e.target.value)}
-                placeholder="年薪（元）"
+                placeholder={t.supervisor.income_placeholder}
                 className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
               />
-              <span className="text-sm text-gray-400">元/年</span>
+              <span className="text-sm text-gray-400">{t.supervisor.income_unit}</span>
             </div>
           </div>
 
@@ -1154,7 +1162,7 @@ export default function SupervisorPage() {
             disabled={popupSubmitting || popupOverallScore == null}
             className="w-full bg-teal-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed mb-2"
           >
-            {popupSubmitting ? '提交中…' : zh.supervisor.score_popup_submit}
+            {popupSubmitting ? t.supervisor.submitting : t.supervisor.score_popup_submit}
           </button>
           <button
             type="button"
@@ -1162,7 +1170,7 @@ export default function SupervisorPage() {
             disabled={popupSubmitting}
             className="w-full text-sm text-gray-500 hover:text-teal-600 py-2 transition-colors disabled:opacity-40"
           >
-            {zh.supervisor.score_popup_skip}
+            {t.supervisor.score_popup_skip}
           </button>
         </div>
       </div>
