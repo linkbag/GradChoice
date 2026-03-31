@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { chatsApi, usersApi } from '@/services/api'
+import { useI18n } from '@/i18n'
 import type { Chat, ChatMessage } from '@/types'
 
 const QUOTE_START = '【引用评论】\n'
@@ -29,6 +30,7 @@ export default function InboxPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
+  const { t } = useI18n()
 
   const openChat = async (chat: Chat) => {
     setSelectedChat(chat)
@@ -78,21 +80,21 @@ export default function InboxPage() {
     }
   }
 
-  if (loading) return <div className="max-w-4xl mx-auto px-4 py-6 md:py-12 text-gray-400">加载中…</div>
+  if (loading) return <div className="max-w-4xl mx-auto px-4 py-6 md:py-12 text-gray-400">{t.inbox.loading}</div>
 
-  const otherName = selectedChat?.other_user_display_name || '匿名用户'
+  const otherName = selectedChat?.other_user_display_name || t.inbox.anonymous_user
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 md:py-12">
-      <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">私信</h1>
+      <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">{t.inbox.title}</h1>
       <div className="mb-3 md:mb-4 px-3 md:px-4 py-2 md:py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs md:text-sm text-amber-700">
-        本站私信为阅后即删模式，仅保留最近2条消息
+        {t.inbox.ephemeral_notice}
       </div>
       <div className="flex flex-col md:flex-row gap-4 h-auto md:h-[600px]">
         {/* Chat list */}
         <div className="w-full md:w-1/3 max-h-48 md:max-h-none bg-white rounded-2xl border border-gray-200 overflow-y-auto">
           {chats.length === 0 ? (
-            <div className="p-6 text-center text-gray-400 text-sm">暂无会话</div>
+            <div className="p-6 text-center text-gray-400 text-sm">{t.inbox.no_chats}</div>
           ) : (
             chats.map((chat) => (
               <button
@@ -101,16 +103,16 @@ export default function InboxPage() {
                 className={`w-full text-left p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors ${selectedChat?.id === chat.id ? 'bg-brand-50' : ''}`}
               >
                 <p className="text-sm font-medium text-gray-900 truncate">
-                  {chat.other_user_display_name || '匿名用户'}
+                  {chat.other_user_display_name || t.inbox.anonymous_user}
                 </p>
                 {chat.supervisor_name && (
                   <p className="text-xs text-gray-400 truncate mt-0.5">
-                    关于 {chat.supervisor_name}
+                    {t.inbox.about_supervisor(chat.supervisor_name)}
                   </p>
                 )}
                 {chat.last_message && (
                   <p className="text-xs text-gray-400 truncate mt-0.5">
-                    {chat.last_message.startsWith('【引用评论】') ? '[引用评论]' : chat.last_message}
+                    {chat.last_message.startsWith('【引用评论】') ? t.inbox.quote_preview : chat.last_message}
                   </p>
                 )}
                 {chat.unread_count > 0 && (
@@ -132,7 +134,7 @@ export default function InboxPage() {
                 <p className="text-sm font-semibold text-gray-800">{otherName}</p>
                 {selectedChat.supervisor_name && (
                   <p className="text-xs text-gray-400">
-                    关于 {selectedChat.supervisor_name}
+                    {t.inbox.about_supervisor(selectedChat.supervisor_name)}
                     {selectedChat.school_name ? ` · ${selectedChat.school_name}` : ''}
                   </p>
                 )}
@@ -150,7 +152,7 @@ export default function InboxPage() {
                     <div key={msg.id} className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
                       {showLabel && (
                         <span className="text-xs text-gray-400 mb-1 px-1">
-                          {isMine ? '我' : otherName}
+                          {isMine ? t.inbox.me : otherName}
                         </span>
                       )}
                       <div
@@ -166,12 +168,12 @@ export default function InboxPage() {
                               isMine ? 'border-blue-200 text-blue-100' : 'border-gray-300 text-gray-500'
                             }`}
                           >
-                            <p className="font-medium mb-0.5">引用评论：</p>
+                            <p className="font-medium mb-0.5">{t.inbox.quote_label}</p>
                             <p className="whitespace-pre-wrap line-clamp-4">{quote}</p>
                           </div>
                         )}
                         {body && <p className="whitespace-pre-wrap">{body}</p>}
-                        {!body && !quote && <p className="opacity-60">（空消息）</p>}
+                        {!body && !quote && <p className="opacity-60">{t.inbox.empty_message}</p>}
                       </div>
                     </div>
                   )
@@ -185,7 +187,7 @@ export default function InboxPage() {
                   type="text"
                   value={newMsg}
                   onChange={(e) => setNewMsg(e.target.value)}
-                  placeholder="输入消息…"
+                  placeholder={t.inbox.input_placeholder}
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
                 />
                 <button
@@ -193,13 +195,13 @@ export default function InboxPage() {
                   disabled={sending}
                   className="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-brand-700 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {sending ? '发送中…' : '发送'}
+                  {sending ? t.inbox.sending : t.inbox.send_btn}
                 </button>
               </form>
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-400">
-              选择一个会话
+              {t.inbox.select_chat}
             </div>
           )}
         </div>

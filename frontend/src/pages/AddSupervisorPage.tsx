@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import AutocompleteInput from '@/components/AutocompleteInput'
 import { supervisorsApi } from '@/services/api'
-import { zh } from '@/i18n/zh'
+import { useI18n } from '@/i18n'
 
-const TITLE_OPTIONS = ['教授', '副教授', '讲师', '助理教授', '研究员', '其他']
+// Canonical backend values stay in Chinese regardless of locale
+const TITLE_CANONICAL_VALUES = ['教授', '副教授', '讲师', '助理教授', '研究员', '其他']
 
 export default function AddSupervisorPage() {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const isLoggedIn = !!localStorage.getItem('access_token')
 
   const [schoolNames, setSchoolNames] = useState<string[]>([])
@@ -70,9 +72,9 @@ export default function AddSupervisorPage() {
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
       if (detail === '该导师可能已存在') {
-        setError(zh.addSupervisor.error_duplicate)
+        setError(t.addSupervisor.error_duplicate)
       } else {
-        setError(zh.addSupervisor.error_generic)
+        setError(t.addSupervisor.error_generic)
       }
     } finally {
       setSubmitting(false)
@@ -81,19 +83,19 @@ export default function AddSupervisorPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
-      <h1 className="text-2xl font-bold text-gray-800 mb-2">{zh.addSupervisor.page_title}</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-2">{t.addSupervisor.page_title}</h1>
 
       {/* Guidance */}
       <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 mb-6 space-y-1.5 text-sm text-teal-800">
-        <p>{zh.addSupervisor.guidance_language}</p>
-        <p>{zh.addSupervisor.guidance_duplicate}</p>
+        <p>{t.addSupervisor.guidance_language}</p>
+        <p>{t.addSupervisor.guidance_duplicate}</p>
       </div>
 
       {!isLoggedIn && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-800">
-          {zh.addSupervisor.login_required}{' '}
+          {t.addSupervisor.login_required}{' '}
           <Link to="/login" className="underline font-medium hover:text-amber-900">
-            {zh.auth.login_btn}
+            {t.auth.login_btn}
           </Link>
         </div>
       )}
@@ -102,41 +104,41 @@ export default function AddSupervisorPage() {
         {/* School name */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {zh.addSupervisor.field_school}
+            {t.addSupervisor.field_school}
             <span className="text-red-500 ml-0.5">*</span>
           </label>
           <AutocompleteInput
             options={schoolNames}
             value={form.school_name}
             onChange={(v) => handleChange('school_name', v)}
-            placeholder={zh.addSupervisor.field_school_placeholder}
+            placeholder={t.addSupervisor.field_school_placeholder}
           />
         </div>
 
         {/* Department — cascades from school selection, free text also accepted */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {zh.addSupervisor.field_department}
+            {t.addSupervisor.field_department}
           </label>
           <AutocompleteInput
             options={departmentOptions}
             value={form.department}
             onChange={(v) => handleChange('department', v)}
-            placeholder={zh.addSupervisor.field_department_placeholder}
+            placeholder={t.addSupervisor.field_department_placeholder}
           />
         </div>
 
         {/* Supervisor name */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {zh.addSupervisor.field_name}
+            {t.addSupervisor.field_name}
             <span className="text-red-500 ml-0.5">*</span>
           </label>
           <input
             type="text"
             value={form.name}
             onChange={(e) => handleChange('name', e.target.value)}
-            placeholder={zh.addSupervisor.field_name_placeholder}
+            placeholder={t.addSupervisor.field_name_placeholder}
             required
             className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
           />
@@ -145,17 +147,17 @@ export default function AddSupervisorPage() {
         {/* Title */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {zh.addSupervisor.field_title}
+            {t.addSupervisor.field_title}
           </label>
           <select
             value={form.title}
             onChange={(e) => handleChange('title', e.target.value)}
             className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-300 bg-white"
           >
-            <option value="">{zh.addSupervisor.field_title_placeholder}</option>
-            {TITLE_OPTIONS.map((t) => (
-              <option key={t} value={t}>
-                {t}
+            <option value="">{t.addSupervisor.field_title_placeholder}</option>
+            {TITLE_CANONICAL_VALUES.map((value, i) => (
+              <option key={value} value={value}>
+                {t.addSupervisor.title_options[i]}
               </option>
             ))}
           </select>
@@ -164,13 +166,13 @@ export default function AddSupervisorPage() {
         {/* Website */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {zh.addSupervisor.field_website}
+            {t.addSupervisor.field_website}
           </label>
           <input
             type="url"
             value={form.website_url}
             onChange={(e) => handleChange('website_url', e.target.value)}
-            placeholder={zh.addSupervisor.field_website_placeholder}
+            placeholder={t.addSupervisor.field_website_placeholder}
             className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
           />
         </div>
@@ -190,9 +192,9 @@ export default function AddSupervisorPage() {
             className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-300"
           />
           <span>
-            {zh.addSupervisor.tos_agreement}{' '}
+            {t.addSupervisor.tos_agreement}{' '}
             <Link to="/terms" className="text-teal-600 underline hover:text-teal-800">
-              {zh.addSupervisor.tos_link}
+              {t.addSupervisor.tos_link}
             </Link>
           </span>
         </label>
@@ -202,7 +204,7 @@ export default function AddSupervisorPage() {
           disabled={submitting || !isLoggedIn || !form.name.trim() || !form.school_name.trim() || !tosAgreed}
           className="w-full bg-teal-600 text-white py-2.5 rounded-xl font-medium text-sm hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {submitting ? zh.addSupervisor.submitting : zh.addSupervisor.submit_btn}
+          {submitting ? t.addSupervisor.submitting : t.addSupervisor.submit_btn}
         </button>
       </form>
     </div>
