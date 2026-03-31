@@ -31,7 +31,7 @@ export const zh = {
     score_disclaimer_body: '当前部分评分和评论来源于历史平台数据（如导师评价网、研控等），其评分体系与本站不完全一致。部分历史评价可能缺少子维度评分（如学术水平、学生培养等）。新提交的评价将使用研选完整的六维度评分系统。',
   },
   search: {
-    placeholder: '搜索导师姓名、院校或院系…',
+    placeholder: '搜索导师姓名',
     filter_province: '选择省份',
     filter_school: '选择院校',
     filter_department: '按学院/院系筛选',
