@@ -906,54 +906,9 @@ export default function SupervisorPage() {
           <p className="text-sm text-teal-600 mb-4">修改建议已提交，感谢你的贡献！</p>
         )}
 
-        {/* Unified feed */}
-        {feedItems.length > 0 ? (
-          <div className="space-y-4 mb-8">
-            {feedItems.map((item) => {
-              if (item.type === 'combined') {
-                return (
-                  <CombinedCard
-                    key={`combined-${item.rating.id}-${item.comment.id}`}
-                    rating={item.rating}
-                    comment={item.comment}
-                    isLoggedIn={isLoggedIn}
-                    currentUserId={currentUserId}
-                    onVote={handleVote}
-                    onReply={handleReply}
-                    onChat={handleChat}
-                  />
-                )
-              }
-              if (item.type === 'rating') {
-                return <RatingCard key={item.data.id} rating={item.data} />
-              }
-              return (
-                <CommentCard
-                  key={item.data.id}
-                  comment={item.data}
-                  isLoggedIn={isLoggedIn}
-                  currentUserId={currentUserId}
-                  onVote={handleVote}
-                  onReply={handleReply}
-                  onChat={handleChat}
-                />
-              )
-            })}
-            {(ratingsTotal > ratings.length || commentsTotal > comments.length) && (
-              <p className="text-xs text-gray-400 text-center">
-                显示部分内容，共 {ratingsTotal + commentsTotal} 条
-              </p>
-            )}
-          </div>
-        ) : (
-          !loading && (
-            <p className="text-gray-400 text-center py-6">暂无评价，来发起第一条吧</p>
-          )
-        )}
-
         {/* Comment creation form */}
         {isLoggedIn ? (
-          <div className="mt-6 pt-6 border-t border-gray-100">
+          <div className="mb-6">
             <textarea
               ref={commentTextareaRef}
               value={commentText}
@@ -1025,11 +980,56 @@ export default function SupervisorPage() {
             </div>
           </div>
         ) : (
-          <div className="mt-6 pt-6 border-t border-gray-100 py-4 px-4 bg-gray-50 rounded-xl text-sm text-gray-500 text-center">
+          <div className="mb-6 py-4 px-4 bg-gray-50 rounded-xl text-sm text-gray-500 text-center">
             <Link to="/login" className="text-teal-600 hover:underline font-medium">登录</Link>
             {' '}后参与讨论
           </div>
         )}
+        {/* Unified feed */}
+        {feedItems.length > 0 ? (
+          <div className="space-y-4 mb-8">
+            {feedItems.map((item) => {
+              if (item.type === 'combined') {
+                return (
+                  <CombinedCard
+                    key={`combined-${item.rating.id}-${item.comment.id}`}
+                    rating={item.rating}
+                    comment={item.comment}
+                    isLoggedIn={isLoggedIn}
+                    currentUserId={currentUserId}
+                    onVote={handleVote}
+                    onReply={handleReply}
+                    onChat={handleChat}
+                  />
+                )
+              }
+              if (item.type === 'rating') {
+                return <RatingCard key={item.data.id} rating={item.data} />
+              }
+              return (
+                <CommentCard
+                  key={item.data.id}
+                  comment={item.data}
+                  isLoggedIn={isLoggedIn}
+                  currentUserId={currentUserId}
+                  onVote={handleVote}
+                  onReply={handleReply}
+                  onChat={handleChat}
+                />
+              )
+            })}
+            {(ratingsTotal > ratings.length || commentsTotal > comments.length) && (
+              <p className="text-xs text-gray-400 text-center">
+                显示部分内容，共 {ratingsTotal + commentsTotal} 条
+              </p>
+            )}
+          </div>
+        ) : (
+          !loading && (
+            <p className="text-gray-400 text-center py-6">暂无评价，来发起第一条吧</p>
+          )
+        )}
+
 
         {/* Reply form */}
         {replyingTo && (
