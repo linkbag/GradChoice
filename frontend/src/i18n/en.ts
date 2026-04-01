@@ -231,6 +231,7 @@ export const en: Translations = {
     edu_email_hint: '(Optional) Using a .edu or .org email enables automatic student verification. Your identity is kept strictly private — you only receive a Verified badge to increase review credibility.',
     sending: 'Sending…',
     spam_check_hint: '⚠️ If you did not receive the code, please check your Spam/Junk folder',
+    school_block_hint: '🏫 Some schools may block verification emails entirely. If this happens, please use your personal email to register',
     verifying: 'Verifying…',
     resend_countdown: (s: number) => `Resend (${s}s)`,
     resend_code: 'Resend code',

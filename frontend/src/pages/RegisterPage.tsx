@@ -213,8 +213,11 @@ export default function RegisterPage() {
                 {t.auth.code_sent_to}{' '}
                 <span className="font-medium text-gray-800">{maskEmail(email)}</span>
               </p>
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-2">
                 <p className="text-amber-800 text-sm font-medium">{t.auth.spam_check_hint}</p>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <p className="text-blue-800 text-sm">{t.auth.school_block_hint}</p>
               </div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t.auth.verification_code_label}

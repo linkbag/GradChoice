@@ -229,6 +229,7 @@ export const zh = {
     edu_email_hint: '(可选) 使用 .edu 或 .org 邮箱注册可自动完成学生身份认证，信息严格保密，仅会获得已验证标签以增加评价可信度',
     sending: '发送中…',
     spam_check_hint: '⚠️ 如未收到验证码，请务必检查垃圾邮箱（Spam/Junk）',
+    school_block_hint: '🏫 部分学校邮箱可能会完全屏蔽验证邮件，如遇此情况请使用个人邮箱注册',
     verifying: '验证中…',
     resend_countdown: (s: number) => `重新发送 (${s}s)`,
     resend_code: '重新发送验证码',
