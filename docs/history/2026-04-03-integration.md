@@ -194,3 +194,138 @@ All code changes syntactically valid. slowapi imports confirmed working. App imp
 - **Build verified:** pass — all 12 modified Python files compile cleanly
 - **Fixes applied:** Resolved all merge conflicts in supervisors.py: kept `le=20` (quick-fixes) + `current_user` param (auth-gate) + `@limiter.limit()` decorator (rate-limit) + `request: Request` param (rate-limit); dropped `response_model=` on endpoints that return different types based on auth state; ensured `q_escaped` ILIKE sanitization (quick-fixes) coexists with tiered page_size logic (auth-gate)
 - **Remaining concerns:** `main.py` `settings.DEBUG` must be configured in prod env. Frontend may need to handle `requires_login: true` responses and new 403s from analytics. In-memory rate limiting (slowapi default) means per-Lambda-container limits, acceptable at current scale.
+
+---
+
+# Integration Log: Wikipedia-style instant edits with history
+**Project:** GradChoice
+**Subteams:** claude-gc-wiki-edits-backend claude-gc-wiki-edits-frontend
+**Started:** 2026-04-03 23:09:49
+
+## Subteam Summaries
+
+
+========================================
+## Subteam: claude-gc-wiki-edits-backend
+========================================
+# Work Log: Wikipedia-Style Instant Edits Backend
+Date: 2026-04-03
+Branch: feat/gc-wiki-edits-backend
+
+## Changes Made
+
+### 1. Migration: `backend/alembic/versions/0012_add_previous_data_to_edit_proposals.py`
+- Revision: 0012, down_revision: 0011
+- Adds `previous_data JSONB` column to `edit_proposals` table via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`
+
+### 2. Model: `backend/app/models/edit_proposal.py`
+- Added `previous_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)`
+
+### 3. Schema: `backend/app/schemas/edit_proposal.py`
+- Added `previous_data: Optional[dict[str, Any]] = None` to `EditProposalResponse`
+
+### 4. API: `backend/app/api/edit_proposals.py`
+- `create_edit_proposal`: Changed from `get_current_verified_user` → `get_current_user` (any logged-in user can edit)
+- Create endpoint now: snapshots current supervisor data into `previous_data`, applies changes immediately, saves record with `status=approved, resolved_at=now`
+- New supervisor proposals: validates required fields before creating
+- Added `GET /edit-proposals/supervisor/{supervisor_id}/history` endpoint (public, paginated)
+- Kept `/pending` and `/{id}/review` endpoints for backward compatibility (no-ops since all edits auto-approve)
+- Removed `_apply_proposal` helper (no longer needed)
+
+## How to Verify
+```bash
+# Import check
+cd backend && SECRET_KEY=test python3 -c "from app.api.edit_proposals import router; print('OK')"
+
+# Run migration
+cd backend && SECRET_KEY=xxx python3 -m alembic upgrade head
+
+# Test edit endpoint
+POST /edit-proposals  (requires JWT auth)
+{"supervisor_id": "<uuid>", "proposed_data": {"title": "教授"}}
+→ Returns proposal with status=approved, previous_data={"title": "副教授"}, resolved_at set
+
+# Test history endpoint
+GET /edit-proposals/supervisor/<uuid>/history
+→ Returns {"items": [...], "total": N, "page": 1, "page_size": 20}
+```
+
+## Decisions Made
+- Any logged-in user (not just verified) can edit — lower friction matches Wikipedia model
+- New supervisor creation via edit proposals now validates required fields upfront (returns 422)
+- History endpoint is public (no auth) — transparent edit log
+- `_apply_proposal` helper removed since old 2-reviewer flow is retired
+
+## Known Issues / Integration Notes
+- `boto3` not installed in local dev environment — `from app.main import app` fails locally; use Docker for full testing
+- Existing pending proposals in DB (if any) will remain in `pending` state forever — could clean up manually
+- Migration uses `IF NOT EXISTS` so it's safe to run multiple times
+
+## Build Status
+- `from app.api.edit_proposals import router` → OK
+- `EditProposal.__table__.columns.keys()` includes `previous_data` → OK
+- Migration chain: 0001 → 0002 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → **0012**
+
+### Review Round 1
+- Verdict: Review passed — reviewer fixed issues (commit: 8f94f52 fix: show scores in limited results for unauthenticated users (signup incentive))
+
+========================================
+## Subteam: claude-gc-wiki-edits-frontend
+========================================
+# Work Log — gc-wiki-edits-frontend
+
+**Branch:** feat/gc-wiki-edits-frontend
+**Date:** 2026-04-03
+**PR:** https://github.com/linkbag/GradChoice/pull/71
+
+## Changes Made
+
+### New Files
+- `frontend/src/components/EditHistoryPanel.tsx` — Collapsible edit history panel
+
+### Modified Files
+- `frontend/src/types/index.ts` — Added `EditHistoryItem` and `EditHistoryResponse` interfaces
+- `frontend/src/services/api.ts` — Added `editProposalsApi.editHistory()` + imported new types
+- `frontend/src/i18n/zh.ts` — Added: edit_info, edit_hint_instant, edit_field_name/dept, edit_info_submit, edit_saved, edit_login_prompt, edit_history, edit_history_system
+- `frontend/src/i18n/en.ts` — Same keys in English
+- `frontend/src/pages/SupervisorPage.tsx` — Integrated EditHistoryPanel, updated edit form
+
+## Key Decisions
+- Used `refreshKey` prop pattern to trigger EditHistoryPanel re-fetch after edits
+- Edit button always visible; non-logged-in users get redirected to /login
+- Relative time implemented inline (no date library dependency)
+- Field label mapping bilingual (zh/en) inside EditHistoryPanel
+- Success message changed from `edit_success` to `edit_saved` (instant UX)
+- After save: refreshes supervisor data via `supervisorsApi.get(id)`
+
+## Build Status
+- `tsc --noEmit`: ✅ no errors
+- `vite build`: ✅ passed (26s, 780KB bundle)
+
+## How to Verify
+1. Open supervisor detail page → "编辑信息" button in discussion header
+2. Not logged in → redirects to /login
+3. Logged in → inline form with 7 fields (name, dept, title, unit, 3 URLs)
+4. Submit → "修改已保存", panel count badge increments
+5. Expand "📝 信息编辑历史" → diff entries with relative timestamps
+6. System-imported entry → shows "系统初始数据"
+
+## Integration Notes
+- Backend endpoint: `GET /edit-proposals/supervisor/{supervisor_id}/history`
+- Response type: `{ items: EditHistoryItem[], total, page, page_size }`
+- `previous_data: null` = system initial record
+- `skipAuthRedirect: true` on history endpoint (public-readable)
+
+### Review Round 1
+- Verdict: Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
+
+---
+## Integration Review
+
+### Integration Round 1
+- **Timestamp:** 2026-04-03 23:09:56
+- **Cross-team conflicts found:** None — backend and frontend branches touch completely separate files (except docs/ESR.md which auto-merged cleanly)
+- **Duplicated code merged:** None
+- **Build verified:** pass — backend imports OK, TypeScript `tsc --noEmit` clean
+- **Fixes applied:** None needed — API contract between backend (`GET /edit-proposals/supervisor/{id}/history` returning `{items, total, page, page_size}`) and frontend (`EditHistoryResponse` type + `editProposalsApi.editHistory()`) aligns perfectly. `skipAuthRedirect` properly supported. Auth change (`get_current_user` for creates) matches frontend showing edit button to all users with login redirect for unauthenticated.
+- **Remaining concerns:** None — both branches merged cleanly into main and pushed.
