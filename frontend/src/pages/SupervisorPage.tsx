@@ -6,6 +6,7 @@ import type { Supervisor, SupervisorAnalytics, ScoreBreakdown, Rating, Comment }
 import RadarChart from '@/components/RadarChart'
 import DistributionChart from '@/components/DistributionChart'
 import PercentileDisplay from '@/components/PercentileDisplay'
+import EditHistoryPanel from '@/components/EditHistoryPanel'
 
 type UserStatus = 'all' | 'verified' | 'unverified'
 
@@ -451,9 +452,10 @@ export default function SupervisorPage() {
 
   // Suggest-edit form state
   const [showEditForm, setShowEditForm] = useState(false)
-  const [editFields, setEditFields] = useState({ title: '', affiliated_unit: '', webpage_url_1: '', webpage_url_2: '', webpage_url_3: '' })
+  const [editFields, setEditFields] = useState({ name: '', department: '', title: '', affiliated_unit: '', webpage_url_1: '', webpage_url_2: '', webpage_url_3: '' })
   const [editSubmitting, setEditSubmitting] = useState(false)
   const [editDone, setEditDone] = useState(false)
+  const [editRefreshKey, setEditRefreshKey] = useState(0)
 
   const isLoggedIn = !!localStorage.getItem('access_token')
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
@@ -470,6 +472,8 @@ export default function SupervisorPage() {
 
   // Edit form field definitions
   const editFormFields = [
+    { key: 'name', label: t.supervisor.edit_field_name },
+    { key: 'department', label: t.supervisor.edit_field_dept },
     { key: 'title', label: t.supervisor.edit_field_title },
     { key: 'affiliated_unit', label: t.supervisor.edit_field_unit },
     { key: 'webpage_url_1', label: t.supervisor.edit_field_url1 },
@@ -574,7 +578,12 @@ export default function SupervisorPage() {
       await editProposalsApi.create({ supervisor_id: supervisor.id, proposed_data })
       setEditDone(true)
       setShowEditForm(false)
-      setEditFields({ title: '', affiliated_unit: '', webpage_url_1: '', webpage_url_2: '', webpage_url_3: '' })
+      setEditFields({ name: '', department: '', title: '', affiliated_unit: '', webpage_url_1: '', webpage_url_2: '', webpage_url_3: '' })
+      setEditRefreshKey((k) => k + 1)
+      // Refresh supervisor data to reflect the instant edit
+      if (id) {
+        supervisorsApi.get(id).then((res) => setSupervisor(res.data)).catch(() => {})
+      }
     } catch {
       // ignore — user will see nothing happened
     } finally {
@@ -865,12 +874,16 @@ export default function SupervisorPage() {
               </span>
             )}
           </h2>
-          {isLoggedIn && supervisor && (
+          {supervisor && (
             <button
-              onClick={() => { setShowEditForm((v) => !v); setEditDone(false) }}
+              onClick={() => {
+                if (!isLoggedIn) { navigate('/login'); return }
+                setShowEditForm((v) => !v)
+                setEditDone(false)
+              }}
               className="text-xs text-gray-400 hover:text-teal-600 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors"
             >
-              {t.supervisor.suggest_edit}
+              {t.supervisor.edit_info}
             </button>
           )}
         </div>
@@ -879,7 +892,7 @@ export default function SupervisorPage() {
         {showEditForm && (
           <form onSubmit={handleEditSubmit} className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
             <p className="text-xs text-gray-500 mb-2">
-              {t.supervisor.edit_hint}
+              {t.supervisor.edit_hint_instant}
             </p>
             {editFormFields.map(({ key, label }) => (
               <div key={key} className="flex items-center gap-3">
@@ -899,7 +912,7 @@ export default function SupervisorPage() {
                 disabled={editSubmitting}
                 className="bg-teal-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-teal-700 transition-colors disabled:opacity-50"
               >
-                {editSubmitting ? t.supervisor.submitting : t.supervisor.edit_submit}
+                {editSubmitting ? t.supervisor.submitting : t.supervisor.edit_info_submit}
               </button>
               <button
                 type="button"
@@ -913,7 +926,7 @@ export default function SupervisorPage() {
         )}
 
         {editDone && (
-          <p className="text-sm text-teal-600 mb-4">{t.supervisor.edit_success}</p>
+          <p className="text-sm text-teal-600 mb-4">{t.supervisor.edit_saved}</p>
         )}
 
         {/* Comment creation form */}
@@ -1079,6 +1092,11 @@ export default function SupervisorPage() {
           <p className="text-xs text-red-500 mt-3">{voteError}</p>
         )}
       </div>
+
+      {/* Edit History Panel */}
+      {supervisor && (
+        <EditHistoryPanel supervisorId={supervisor.id} refreshKey={editRefreshKey} />
+      )}
 
       {/* Legal Disclaimer */}
       <div className="px-1 pt-6 pb-2">

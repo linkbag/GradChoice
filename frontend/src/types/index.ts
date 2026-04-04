@@ -251,6 +251,22 @@ export interface EditProposal {
   resolved_at: string | null
 }
 
+export interface EditHistoryItem {
+  id: string
+  editor_name: string
+  editor_id: string
+  proposed_data: Record<string, string>
+  previous_data: Record<string, string> | null
+  created_at: string
+}
+
+export interface EditHistoryResponse {
+  items: EditHistoryItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
 // ============================================================
 // Analytics types
 // ============================================================
