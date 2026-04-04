@@ -129,6 +129,8 @@ def get_supervisor_comments(
 ):
     """获取导师的顶层评论"""
     try:
+        effective_page_size = min(page_size, 3) if not current_user else page_size
+
         # Count separately to avoid joinedload affecting the count
         total = db.query(func.count(Comment.id)).filter(
             Comment.supervisor_id == supervisor_id,
@@ -142,11 +144,11 @@ def get_supervisor_comments(
             Comment.supervisor_id == supervisor_id,
             Comment.parent_comment_id.is_(None),
             Comment.is_deleted.is_(False),
-        ).order_by(Comment.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
+        ).order_by(Comment.created_at.desc()).offset((page - 1) * effective_page_size).limit(effective_page_size).all()
 
         user_id = current_user.id if current_user else None
         items = [_build_response(c, user_id, db) for c in comments]
-        return CommentListResponse(items=items, total=total, page=page, page_size=page_size)
+        return CommentListResponse(items=items, total=total, page=page, page_size=effective_page_size)
     except HTTPException:
         raise
     except Exception as e:

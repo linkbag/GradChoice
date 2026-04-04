@@ -12,8 +12,11 @@ from app.database import get_db
 from app.models.supervisor import Supervisor
 from app.models.rating import Rating
 from app.models.comment import Comment
-from app.schemas.supervisor import SupervisorResponse, SupervisorListResponse, SupervisorSearchResult, SupervisorSubmit
-from app.utils.auth import get_current_user
+from app.schemas.supervisor import (
+    SupervisorResponse, SupervisorListResponse, SupervisorSearchResult, SupervisorSubmit,
+    SupervisorLimitedResult, SupervisorLimitedListResponse,
+)
+from app.utils.auth import get_current_user, get_optional_current_user
 from app.utils.name_filter import get_name_filter
 
 router = APIRouter(prefix="/supervisors", tags=["导师"])
@@ -171,6 +174,7 @@ def list_school_supervisors(
     school_code: str,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=20),
+    current_user=Depends(get_optional_current_user),
     db: Session = Depends(get_db),
 ):
     """获取某院校的导师列表（按院系分组）"""
@@ -183,14 +187,42 @@ def list_school_supervisors(
 
     school_name = supervisors[0].school_name
     province = supervisors[0].province
+    total_count = len(supervisors)
 
-    # Group by department
-    dept_map: dict = {}
+    if not current_user:
+        # Unauthenticated: first 5 supervisors, limited fields only
+        limited = supervisors[:5]
+        dept_map: dict = {}
+        for s in limited:
+            dept = s.department or "其他"
+            if dept not in dept_map:
+                dept_map[dept] = []
+            dept_map[dept].append({
+                "id": str(s.id),
+                "name": s.name,
+                "school_name": s.school_name,
+                "department": s.department,
+            })
+        departments = [
+            {"department": dept, "supervisors": sups}
+            for dept, sups in dept_map.items()
+        ]
+        return {
+            "school_code": school_code,
+            "school_name": school_name,
+            "province": province,
+            "total_count": total_count,
+            "departments": departments,
+            "requires_login": True,
+        }
+
+    # Authenticated: full data
+    dept_map_full: dict = {}
     for s in supervisors:
         dept = s.department or "其他"
-        if dept not in dept_map:
-            dept_map[dept] = []
-        dept_map[dept].append({
+        if dept not in dept_map_full:
+            dept_map_full[dept] = []
+        dept_map_full[dept].append({
             "id": str(s.id),
             "school_code": s.school_code,
             "school_name": s.school_name,
@@ -204,19 +236,19 @@ def list_school_supervisors(
 
     departments = [
         {"department": dept, "supervisors": sups}
-        for dept, sups in dept_map.items()
+        for dept, sups in dept_map_full.items()
     ]
 
     return {
         "school_code": school_code,
         "school_name": school_name,
         "province": province,
-        "total_count": len(supervisors),
+        "total_count": total_count,
         "departments": departments,
     }
 
 
-@router.get("/search", response_model=SupervisorListResponse)
+@router.get("/search")
 def search_supervisors(
     q: str = Query(..., min_length=1, description="搜索关键词"),
     province: Optional[str] = None,
@@ -225,10 +257,19 @@ def search_supervisors(
     department: Optional[str] = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=20),
+    current_user=Depends(get_optional_current_user),
     db: Session = Depends(get_db),
 ):
     """搜索导师（按姓名、院校、院系 — ILIKE 模糊搜索）"""
     q_escaped = q.replace("%", "\\%").replace("_", "\\_")
+    is_verified = current_user and current_user.is_student_verified
+    if not current_user:
+        effective_page_size = min(page_size, 5)
+    elif is_verified:
+        effective_page_size = min(page_size, 50)
+    else:
+        effective_page_size = min(page_size, 20)
+
     comment_count_subq = (
         db.query(func.count(Comment.id))
         .filter(Comment.supervisor_id == Supervisor.id, Comment.parent_comment_id.is_(None), Comment.is_deleted.is_(False))
@@ -254,7 +295,22 @@ def search_supervisors(
     first_char_code = func.ascii(func.substr(Supervisor.name, 1, 1))
     is_cjk = and_(first_char_code >= 0x4E00, first_char_code <= 0x9FFF)
     chinese_first = case((is_cjk, 0), else_=1)
-    rows = query.order_by(chinese_first, Supervisor.name).offset((page - 1) * page_size).limit(page_size).all()
+    rows = query.order_by(chinese_first, Supervisor.name).offset((page - 1) * effective_page_size).limit(effective_page_size).all()
+
+    if not current_user:
+        limited_items = [
+            SupervisorLimitedResult(
+                id=sup.id,
+                name=sup.name,
+                school_name=sup.school_name,
+                department=sup.department,
+            )
+            for sup, _ in rows
+        ]
+        return SupervisorLimitedListResponse(
+            items=limited_items, total=total, page=page, page_size=effective_page_size, requires_login=True
+        )
+
     items = []
     for sup, cc in rows:
         result = SupervisorSearchResult(
@@ -272,10 +328,10 @@ def search_supervisors(
             verified_rating_count=sup.verified_rating_count or 0,
         )
         items.append(result)
-    return SupervisorListResponse(items=items, total=total, page=page, page_size=page_size)
+    return SupervisorListResponse(items=items, total=total, page=page, page_size=effective_page_size)
 
 
-@router.get("", response_model=SupervisorListResponse)
+@router.get("")
 def list_supervisors(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=20),
@@ -284,9 +340,18 @@ def list_supervisors(
     province: Optional[str] = None,
     department: Optional[str] = None,
     sort_by: Optional[str] = None,
+    current_user=Depends(get_optional_current_user),
     db: Session = Depends(get_db),
 ):
     """获取导师列表（支持分页和过滤）"""
+    is_verified = current_user and current_user.is_student_verified
+    if not current_user:
+        effective_page_size = min(page_size, 5)
+    elif is_verified:
+        effective_page_size = min(page_size, 50)
+    else:
+        effective_page_size = min(page_size, 20)
+
     comment_count_subq = (
         db.query(func.count(Comment.id))
         .filter(Comment.supervisor_id == Supervisor.id, Comment.parent_comment_id.is_(None), Comment.is_deleted.is_(False))
@@ -317,7 +382,22 @@ def list_supervisors(
         is_cjk = and_(first_char_code >= 0x4E00, first_char_code <= 0x9FFF)
         chinese_first = case((is_cjk, 0), else_=1)
         q = q.order_by(chinese_first, Supervisor.school_name, Supervisor.name)
-    rows = q.offset((page - 1) * page_size).limit(page_size).all()
+    rows = q.offset((page - 1) * effective_page_size).limit(effective_page_size).all()
+
+    if not current_user:
+        limited_items = [
+            SupervisorLimitedResult(
+                id=sup.id,
+                name=sup.name,
+                school_name=sup.school_name,
+                department=sup.department,
+            )
+            for sup, _ in rows
+        ]
+        return SupervisorLimitedListResponse(
+            items=limited_items, total=total, page=page, page_size=effective_page_size, requires_login=True
+        )
+
     items = []
     for sup, cc in rows:
         result = SupervisorSearchResult(
@@ -335,13 +415,24 @@ def list_supervisors(
             verified_rating_count=sup.verified_rating_count or 0,
         )
         items.append(result)
-    return SupervisorListResponse(items=items, total=total, page=page, page_size=page_size)
+    return SupervisorListResponse(items=items, total=total, page=page, page_size=effective_page_size)
 
 
-@router.get("/{supervisor_id}", response_model=SupervisorResponse)
-def get_supervisor(supervisor_id: uuid.UUID, db: Session = Depends(get_db)):
+@router.get("/{supervisor_id}")
+def get_supervisor(
+    supervisor_id: uuid.UUID,
+    current_user=Depends(get_optional_current_user),
+    db: Session = Depends(get_db),
+):
     """获取导师详情"""
     sup = db.query(Supervisor).filter(Supervisor.id == supervisor_id).first()
     if not sup:
         raise HTTPException(status_code=404, detail="导师不存在")
-    return sup
+    if not current_user:
+        return SupervisorLimitedResult(
+            id=sup.id,
+            name=sup.name,
+            school_name=sup.school_name,
+            department=sup.department,
+        )
+    return SupervisorResponse.model_validate(sup)
