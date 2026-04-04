@@ -9,7 +9,7 @@ from app.models.supervisor import Supervisor
 from app.schemas.edit_proposal import (
     EditProposalCreate, EditProposalResponse, EditProposalListResponse, ReviewAction
 )
-from app.utils.auth import get_current_verified_user
+from app.utils.auth import get_current_user, get_current_verified_user
 
 router = APIRouter(prefix="/edit-proposals", tags=["编辑申请"])
 
@@ -24,33 +24,13 @@ _UPDATABLE_SUPERVISOR_FIELDS = {
 _REQUIRED_NEW_SUPERVISOR_FIELDS = {"name", "school_code", "school_name", "province", "department"}
 
 
-def _apply_proposal(db: Session, proposal: EditProposal) -> None:
-    """Apply an approved proposal's changes to the supervisor table."""
-    data = {k: v for k, v in proposal.proposed_data.items() if k in _UPDATABLE_SUPERVISOR_FIELDS}
-
-    if proposal.supervisor_id is not None:
-        supervisor = db.get(Supervisor, proposal.supervisor_id)
-        if supervisor is None:
-            return  # supervisor deleted in the meantime — nothing to apply
-        for field, value in data.items():
-            setattr(supervisor, field, value)
-        db.add(supervisor)
-    else:
-        # New supervisor proposal — create the record
-        missing = _REQUIRED_NEW_SUPERVISOR_FIELDS - set(data.keys())
-        if missing:
-            return  # required fields missing — skip creation
-        supervisor = Supervisor(**data)
-        db.add(supervisor)
-
-
 @router.post("", response_model=EditProposalResponse, status_code=201)
 def create_edit_proposal(
     proposal_in: EditProposalCreate,
-    current_user=Depends(get_current_verified_user),
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """提交导师信息修改申请"""
+    """提交导师信息修改（立即生效，自动记录历史）"""
     if not proposal_in.proposed_data:
         raise HTTPException(status_code=422, detail="proposed_data 不能为空")
 
@@ -59,22 +39,87 @@ def create_edit_proposal(
     if unknown:
         raise HTTPException(status_code=422, detail=f"不允许修改的字段: {', '.join(sorted(unknown))}")
 
-    # If editing an existing supervisor, verify it exists
     if proposal_in.supervisor_id is not None:
         supervisor = db.get(Supervisor, proposal_in.supervisor_id)
         if supervisor is None:
             raise HTTPException(status_code=404, detail="导师不存在")
 
+        # Snapshot current data before applying changes
+        previous_data = {
+            field: getattr(supervisor, field, None)
+            for field in proposal_in.proposed_data
+            if field in _UPDATABLE_SUPERVISOR_FIELDS
+        }
+
+        # Apply changes immediately
+        for field, value in proposal_in.proposed_data.items():
+            if field in _UPDATABLE_SUPERVISOR_FIELDS:
+                setattr(supervisor, field, value)
+        db.add(supervisor)
+    else:
+        # New supervisor proposal — validate required fields
+        missing = _REQUIRED_NEW_SUPERVISOR_FIELDS - set(proposal_in.proposed_data.keys())
+        if missing:
+            raise HTTPException(
+                status_code=422,
+                detail=f"新增导师缺少必填字段: {', '.join(sorted(missing))}",
+            )
+        data = {k: v for k, v in proposal_in.proposed_data.items() if k in _UPDATABLE_SUPERVISOR_FIELDS}
+        supervisor = Supervisor(**data)
+        db.add(supervisor)
+        previous_data = {}
+
+    now = datetime.now(timezone.utc)
     proposal = EditProposal(
         supervisor_id=proposal_in.supervisor_id,
         proposed_by=current_user.id,
         proposed_data=proposal_in.proposed_data,
-        status=ProposalStatus.pending,
+        previous_data=previous_data,
+        status=ProposalStatus.approved,
+        resolved_at=now,
     )
     db.add(proposal)
     db.commit()
     db.refresh(proposal)
     return proposal
+
+
+@router.get("/supervisor/{supervisor_id}/history")
+def get_edit_history(
+    supervisor_id: uuid.UUID,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=20),
+    db: Session = Depends(get_db),
+):
+    """获取导师信息编辑历史（公开）"""
+    from app.models.user import User
+
+    base_q = db.query(EditProposal).filter(
+        EditProposal.supervisor_id == supervisor_id,
+        EditProposal.status == ProposalStatus.approved,
+    )
+    total = base_q.count()
+    items = (
+        base_q
+        .order_by(EditProposal.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    result = []
+    for item in items:
+        editor = db.get(User, item.proposed_by)
+        result.append({
+            "id": str(item.id),
+            "editor_name": editor.display_name if editor and editor.display_name else "匿名用户",
+            "editor_id": str(item.proposed_by),
+            "proposed_data": item.proposed_data,
+            "previous_data": item.previous_data,
+            "created_at": item.created_at.isoformat(),
+        })
+
+    return {"items": result, "total": total, "page": page, "page_size": page_size}
 
 
 @router.get("/pending", response_model=EditProposalListResponse)
@@ -84,16 +129,14 @@ def get_pending_proposals(
     current_user=Depends(get_current_verified_user),
     db: Session = Depends(get_db),
 ):
-    """获取待审核的编辑申请（需要学生认证）"""
+    """获取待审核的编辑申请（保留兼容，实际不会有待审核项）"""
     if not current_user.is_student_verified:
         raise HTTPException(status_code=403, detail="需要学生认证才能审核申请")
 
     base_q = (
         db.query(EditProposal)
         .filter(EditProposal.status == ProposalStatus.pending)
-        # Exclude proposals the user submitted themselves
         .filter(EditProposal.proposed_by != current_user.id)
-        # Exclude proposals the user already reviewed as reviewer_1
         .filter(
             (EditProposal.reviewer_1_id == None) |  # noqa: E711
             (EditProposal.reviewer_1_id != current_user.id)
@@ -117,7 +160,7 @@ def review_proposal(
     current_user=Depends(get_current_verified_user),
     db: Session = Depends(get_db),
 ):
-    """审核编辑申请（需要两位学生认证用户通过）"""
+    """审核编辑申请（保留兼容，实际不会有待审核项）"""
     if not current_user.is_student_verified:
         raise HTTPException(status_code=403, detail="需要学生认证才能审核申请")
 
@@ -134,17 +177,14 @@ def review_proposal(
     decision = ReviewDecision(action.decision)
 
     if proposal.reviewer_1_id is None:
-        # Assign as reviewer 1
         proposal.reviewer_1_id = current_user.id
         proposal.reviewer_1_decision = decision
     elif proposal.reviewer_2_id is None:
-        # Assign as reviewer 2
         proposal.reviewer_2_id = current_user.id
         proposal.reviewer_2_decision = decision
     else:
         raise HTTPException(status_code=409, detail="该申请已有两位审核者")
 
-    # Resolve if either rejects or both approve
     now = datetime.now(timezone.utc)
     if decision == ReviewDecision.reject:
         proposal.status = ProposalStatus.rejected
@@ -155,7 +195,6 @@ def review_proposal(
     ):
         proposal.status = ProposalStatus.approved
         proposal.resolved_at = now
-        _apply_proposal(db, proposal)
 
     db.add(proposal)
     db.commit()
