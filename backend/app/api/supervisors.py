@@ -2,9 +2,10 @@ import logging
 import traceback
 import uuid
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import and_, case, func, or_
 from sqlalchemy.orm import Session
+from app.middleware.rate_limit import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +171,9 @@ def list_departments(
 
 
 @router.get("/school/{school_code}")
+@limiter.limit("30/minute")
 def list_school_supervisors(
+    request: Request,
     school_code: str,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=20),
@@ -249,7 +252,9 @@ def list_school_supervisors(
 
 
 @router.get("/search")
+@limiter.limit("30/minute")
 def search_supervisors(
+    request: Request,
     q: str = Query(..., min_length=1, description="搜索关键词"),
     province: Optional[str] = None,
     school_code: Optional[str] = None,
@@ -332,7 +337,9 @@ def search_supervisors(
 
 
 @router.get("")
+@limiter.limit("30/minute")
 def list_supervisors(
+    request: Request,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=20),
     school_code: Optional[str] = None,
@@ -419,7 +426,9 @@ def list_supervisors(
 
 
 @router.get("/{supervisor_id}")
+@limiter.limit("60/minute")
 def get_supervisor(
+    request: Request,
     supervisor_id: uuid.UUID,
     current_user=Depends(get_optional_current_user),
     db: Session = Depends(get_db),
