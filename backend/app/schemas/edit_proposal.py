@@ -23,6 +23,7 @@ class EditProposalResponse(BaseModel):
     supervisor_id: Optional[uuid.UUID] = None
     proposed_by: uuid.UUID
     proposed_data: dict[str, Any]
+    previous_data: Optional[dict[str, Any]] = None
     status: ProposalStatus
     reviewer_1_id: Optional[uuid.UUID] = None
     reviewer_1_decision: Optional[ReviewDecision] = None

@@ -32,6 +32,7 @@ class EditProposal(Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     proposed_data: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    previous_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     status: Mapped[ProposalStatus] = mapped_column(
         SAEnum(ProposalStatus), default=ProposalStatus.pending, nullable=False, index=True
     )
