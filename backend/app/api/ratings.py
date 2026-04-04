@@ -95,7 +95,7 @@ def create_rating(
 def get_supervisor_ratings(
     supervisor_id: uuid.UUID,
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=20),
     db: Session = Depends(get_db),
     current_user=Depends(get_optional_current_user),
 ):

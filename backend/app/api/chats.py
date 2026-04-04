@@ -153,7 +153,7 @@ def list_chats(current_user=Depends(get_current_user), db: Session = Depends(get
 def get_messages(
     chat_id: uuid.UUID,
     page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=20),
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
