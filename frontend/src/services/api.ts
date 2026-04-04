@@ -14,6 +14,7 @@ import type {
   ChatMessagesResponse,
   UnreadCountResponse,
   EditProposal,
+  EditHistoryResponse,
   Token,
   RegisterResponse,
   PaginatedResponse,
@@ -342,4 +343,7 @@ export const editProposalsApi = {
     http.post<EditProposal>(`/edit-proposals/${id}/review`, { decision, comment }),
 
   get: (id: string) => http.get<EditProposal>(`/edit-proposals/${id}`),
+
+  editHistory: (supervisorId: string, params?: { page?: number; page_size?: number }) =>
+    http.get<EditHistoryResponse>(`/edit-proposals/supervisor/${supervisorId}/history`, { params, skipAuthRedirect: true }),
 }
