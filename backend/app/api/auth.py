@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.models.user import User, VerificationType
+from app.models.verification_code import VerificationCode, VerificationPurpose
 from app.schemas.user import (
     UserCreate, UserMe, Token, RegisterResponse,
     SendVerificationRequest, VerifySchoolEmailRequest,
@@ -33,11 +34,48 @@ def is_edu_email(email: str) -> bool:
     # Match .edu, .edu.xx, .edu.xx.yy, etc. and .org
     return domain.endswith(".edu") or ".edu." in domain or domain.endswith(".org")
 
-router = APIRouter(prefix="/auth", tags=["认证"])
 
-# In-memory store for signup email verifications
-# { email: { "code": str, "expires_at": datetime, "verified": bool } }
-_signup_verifications: dict = {}
+def _upsert_verification_code(db: Session, email: str, purpose: VerificationPurpose, code: str) -> VerificationCode:
+    """Delete any existing code for this email+purpose, insert a new one, and clean up expired rows."""
+    # Delete all existing rows for this email+purpose
+    db.query(VerificationCode).filter(
+        VerificationCode.email == email,
+        VerificationCode.purpose == purpose,
+    ).delete()
+    # Also clean up expired rows for this email across all purposes
+    db.query(VerificationCode).filter(
+        VerificationCode.email == email,
+        VerificationCode.expires_at < datetime.now(timezone.utc),
+    ).delete()
+    entry = VerificationCode(
+        email=email,
+        code=code,
+        purpose=purpose,
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=15),
+        verified=False,
+    )
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
+def _get_valid_entry(db: Session, email: str, purpose: VerificationPurpose) -> VerificationCode:
+    """Return a non-expired VerificationCode row or raise HTTPException."""
+    entry = db.query(VerificationCode).filter(
+        VerificationCode.email == email,
+        VerificationCode.purpose == purpose,
+    ).first()
+    if not entry:
+        raise HTTPException(status_code=400, detail="请先发送验证码")
+    if datetime.now(timezone.utc) > entry.expires_at:
+        db.delete(entry)
+        db.commit()
+        raise HTTPException(status_code=400, detail="验证码已过期，请重新发送")
+    return entry
+
+
+router = APIRouter(prefix="/auth", tags=["认证"])
 
 
 @router.post("/send-signup-verification")
@@ -49,37 +87,29 @@ def send_signup_verification(body: SendSignupVerificationRequest, db: Session = 
         raise HTTPException(status_code=400, detail="该邮箱已被注册")
 
     code = f"{random.randint(0, 999999):06d}"
-
-    _signup_verifications[email] = {
-        "code": code,
-        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=15),
-        "verified": False,
-    }
+    entry = _upsert_verification_code(db, email, VerificationPurpose.signup, code)
 
     from app.utils.email import send_verification_email
     if send_verification_email(email, code, purpose="注册"):
         return {"message": "验证码已发送，请查看邮箱"}
     else:
-        # SMTP failed — fall back to auto-verify
-        _signup_verifications[email]["verified"] = True
+        # SMTP failed — auto-verify
+        entry.verified = True
+        db.commit()
         logger.warning("SMTP send failed — auto-verifying signup for %s", email)
         return {"message": "邮箱已自动验证（邮件发送失败）"}
 
 
 @router.post("/verify-signup-code")
-def verify_signup_code(body: VerifySignupCodeRequest):
+def verify_signup_code(body: VerifySignupCodeRequest, db: Session = Depends(get_db)):
     """验证注册邮箱验证码"""
     email = body.email.lower()
-    entry = _signup_verifications.get(email)
-    if not entry:
-        raise HTTPException(status_code=400, detail="请先发送验证码")
-    if datetime.now(timezone.utc) > entry["expires_at"]:
-        _signup_verifications.pop(email, None)
-        raise HTTPException(status_code=400, detail="验证码已过期，请重新发送")
-    if body.code != entry["code"]:
+    entry = _get_valid_entry(db, email, VerificationPurpose.signup)
+    if body.code != entry.code:
         raise HTTPException(status_code=400, detail="验证码错误")
 
-    _signup_verifications[email]["verified"] = True
+    entry.verified = True
+    db.commit()
     return {"message": "邮箱验证成功"}
 
 
@@ -92,11 +122,14 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="该邮箱已被注册")
 
     # Check if email was pre-verified via signup verification flow
-    entry = _signup_verifications.get(email)
+    entry = db.query(VerificationCode).filter(
+        VerificationCode.email == email,
+        VerificationCode.purpose == VerificationPurpose.signup,
+    ).first()
     is_pre_verified = (
         entry is not None
-        and entry.get("verified")
-        and datetime.now(timezone.utc) <= entry["expires_at"]
+        and entry.verified
+        and datetime.now(timezone.utc) <= entry.expires_at
     )
 
     is_edu = is_edu_email(user_in.email)
@@ -115,7 +148,9 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     db.refresh(user)
 
     # Clean up verification entry
-    _signup_verifications.pop(email, None)
+    if entry:
+        db.delete(entry)
+        db.commit()
 
     # Generate JWT for auto-login
     token = create_access_token(user.id)
@@ -249,12 +284,7 @@ def send_reset_verification(body: SendSignupVerificationRequest, db: Session = D
         raise HTTPException(status_code=400, detail="该邮箱尚未注册，请先注册账号")
 
     code = f"{random.randint(0, 999999):06d}"
-
-    _signup_verifications[email] = {
-        "code": code,
-        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=15),
-        "verified": False,
-    }
+    _upsert_verification_code(db, email, VerificationPurpose.password_reset, code)
 
     from app.utils.email import send_verification_email
     if send_verification_email(email, code, purpose="密码重置"):
@@ -265,18 +295,15 @@ def send_reset_verification(body: SendSignupVerificationRequest, db: Session = D
 
 
 @router.post("/verify-reset-code")
-def verify_reset_code(body: VerifySignupCodeRequest):
+def verify_reset_code(body: VerifySignupCodeRequest, db: Session = Depends(get_db)):
     """验证密码重置验证码"""
     email = body.email.lower()
-    entry = _signup_verifications.get(email)
-    if not entry:
-        raise HTTPException(status_code=400, detail="请先发送验证码")
-    if datetime.now(timezone.utc) > entry["expires_at"]:
-        _signup_verifications.pop(email, None)
-        raise HTTPException(status_code=400, detail="验证码已过期，请重新发送")
-    if body.code != entry["code"]:
+    entry = _get_valid_entry(db, email, VerificationPurpose.password_reset)
+    if body.code != entry.code:
         raise HTTPException(status_code=400, detail="验证码错误")
 
+    entry.verified = True
+    db.commit()
     return {"message": "验证码正确"}
 
 
@@ -284,14 +311,9 @@ def verify_reset_code(body: VerifySignupCodeRequest):
 def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
     """重置密码（使用邮箱验证码）"""
     email = body.email.lower()
-    entry = _signup_verifications.get(email)
-    if not entry:
-        raise HTTPException(status_code=400, detail="请先发送验证码")
-    if datetime.now(timezone.utc) > entry["expires_at"]:
-        _signup_verifications.pop(email, None)
-        raise HTTPException(status_code=400, detail="验证码已过期，请重新发送")
+    entry = _get_valid_entry(db, email, VerificationPurpose.password_reset)
 
-    if body.code != entry["code"]:
+    if body.code != entry.code:
         raise HTTPException(status_code=400, detail="验证码错误")
 
     if len(body.new_password) < 8:
@@ -302,7 +324,6 @@ def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="用户不存在")
 
     user.hashed_password = hash_password(body.new_password)
+    db.delete(entry)
     db.commit()
-
-    _signup_verifications.pop(email, None)
     return {"message": "密码重置成功"}
