@@ -52,7 +52,7 @@ export default function EditHistoryPanel({ supervisorId, refreshKey }: Props) {
   useEffect(() => {
     if (!expanded) return
     setLoading(true)
-    editProposalsApi.editHistory(supervisorId, { page_size: 50 })
+    editProposalsApi.editHistory(supervisorId, { page_size: 20 })
       .then((res) => {
         setItems(res.data.items)
         setTotal(res.data.total)
