@@ -12,3 +12,4 @@ python-multipart==0.0.12
 python-dotenv==1.0.1
 httpx==0.27.2
 boto3==1.37.28
+slowapi==0.1.9

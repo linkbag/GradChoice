@@ -2,9 +2,10 @@ import logging
 import random
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, status, UploadFile, File
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from app.middleware.rate_limit import limiter
 
 from app.config import settings
 from app.database import get_db
@@ -79,7 +80,8 @@ router = APIRouter(prefix="/auth", tags=["认证"])
 
 
 @router.post("/send-signup-verification")
-def send_signup_verification(body: SendSignupVerificationRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def send_signup_verification(request: Request, body: SendSignupVerificationRequest, db: Session = Depends(get_db)):
     """发送注册邮箱验证码（本地开发：验证码打印到控制台）"""
     email = body.email.lower()
     existing = db.query(User).filter(User.email == email).first()
@@ -159,7 +161,8 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """用户登录，返回JWT"""
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
@@ -276,7 +279,8 @@ def verify_school_email(
 
 
 @router.post("/send-reset-verification")
-def send_reset_verification(body: SendSignupVerificationRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def send_reset_verification(request: Request, body: SendSignupVerificationRequest, db: Session = Depends(get_db)):
     """发送密码重置验证码"""
     email = body.email.lower()
     user = db.query(User).filter(User.email == email).first()
