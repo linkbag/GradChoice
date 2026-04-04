@@ -47,7 +47,7 @@ def update_notifications(
 @router.get("/me/ratings", response_model=RatingListResponse)
 def get_my_ratings(
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=20),
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -78,7 +78,7 @@ def get_my_ratings(
 @router.get("/me/comments", response_model=CommentListResponse)
 def get_my_comments(
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=20),
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -107,7 +107,7 @@ def get_my_comments(
     return CommentListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
-@router.get("/{user_id}/profile", response_model=UserPublicProfile)
+@router.get("/{user_id}", response_model=UserPublicProfile)
 def get_user_profile(user_id: uuid.UUID, db: Session = Depends(get_db)):
     """获取用户公开资料"""
     user = db.query(User).filter(User.id == user_id).first()

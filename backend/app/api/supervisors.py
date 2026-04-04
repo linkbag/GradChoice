@@ -170,7 +170,7 @@ def list_departments(
 def list_school_supervisors(
     school_code: str,
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=200),
+    page_size: int = Query(20, ge=1, le=20),
     db: Session = Depends(get_db),
 ):
     """获取某院校的导师列表（按院系分组）"""
@@ -224,10 +224,11 @@ def search_supervisors(
     school_name: Optional[str] = None,
     department: Optional[str] = None,
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=20),
     db: Session = Depends(get_db),
 ):
     """搜索导师（按姓名、院校、院系 — ILIKE 模糊搜索）"""
+    q_escaped = q.replace("%", "\\%").replace("_", "\\_")
     comment_count_subq = (
         db.query(func.count(Comment.id))
         .filter(Comment.supervisor_id == Supervisor.id, Comment.parent_comment_id.is_(None), Comment.is_deleted.is_(False))
@@ -236,9 +237,9 @@ def search_supervisors(
     )
     query = db.query(Supervisor, comment_count_subq.label("comment_count"))
     search_filter = or_(
-        Supervisor.name.ilike(f"%{q}%"),
-        Supervisor.school_name.ilike(f"%{q}%"),
-        Supervisor.department.ilike(f"%{q}%"),
+        Supervisor.name.ilike(f"%{q_escaped}%"),
+        Supervisor.school_name.ilike(f"%{q_escaped}%"),
+        Supervisor.department.ilike(f"%{q_escaped}%"),
     )
     query = query.filter(search_filter)
     if province:
@@ -277,7 +278,7 @@ def search_supervisors(
 @router.get("", response_model=SupervisorListResponse)
 def list_supervisors(
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=20),
     school_code: Optional[str] = None,
     school_name: Optional[str] = None,
     province: Optional[str] = None,

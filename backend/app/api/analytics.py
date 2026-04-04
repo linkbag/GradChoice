@@ -45,7 +45,7 @@ def get_rankings(
     department: Optional[str] = Query(None, description="按院系筛选"),
     sort_order: str = Query("desc", description="排序方向: asc 或 desc"),
     page: int = Query(1, ge=1, description="页码"),
-    page_size: int = Query(20, ge=1, le=100, description="每页条数"),
+    page_size: int = Query(20, ge=1, le=20, description="每页条数"),
     min_ratings: int = Query(1, ge=1, description="最低评价数量"),
     user_status: str = Query("all", description="用户筛选: all | verified | unverified"),
     db: Session = Depends(get_db),

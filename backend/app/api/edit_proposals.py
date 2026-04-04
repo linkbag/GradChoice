@@ -80,7 +80,7 @@ def create_edit_proposal(
 @router.get("/pending", response_model=EditProposalListResponse)
 def get_pending_proposals(
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=20),
     current_user=Depends(get_current_verified_user),
     db: Session = Depends(get_db),
 ):

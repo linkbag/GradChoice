@@ -8,8 +8,9 @@ app = FastAPI(
     title="研选 GradChoice API",
     description="匿名导师评分平台 API — 帮助研究生选择导师，保障学生权益",
     version="0.1.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
+    openapi_url="/openapi.json" if settings.DEBUG else None,
 )
 
 app.add_middleware(
