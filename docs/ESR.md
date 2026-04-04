@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-04-03 21:55*
+*Last updated: 2026-04-03 22:01*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -469,3 +469,8 @@ Review passed — reviewer fixed issues (commit: 6913dcb docs: auto-update ESR +
 ### Update: 2026-04-03 21:55
 ### claude-gc-sec-auth-gate — 2026-04-03 21:55
 Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indicated)
+
+### Update: 2026-04-03 22:01
+### Integration Review — 2026-04-03 22:01
+**Subteams:** claude-gc-sec-quick-fixes claude-gc-sec-auth-gate claude-gc-sec-rate-limit
+**Result:** All 3 security branches (quick-fixes, auth-gate, rate-limit) merged into main. Resolved merge conflicts in supervisors.py: combined page_size caps (le=20), ILIKE sanitization, tiered auth gating, and rate limiting decorators. All 12 modified Python files compile cleanly. main.py has both docs-disable and SlowAPI middleware.
