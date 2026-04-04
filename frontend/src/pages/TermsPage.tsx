@@ -79,10 +79,10 @@ export default function TermsPage() {
             <p>
               {t.terms.report_conditions_intro_prefix}{' '}
               <a
-                href="mailto:realmofresearch.contact@gmail.com"
+                href="mailto:Webster@gradchoice.org"
                 className="text-teal-600 hover:underline"
               >
-                realmofresearch.contact@gmail.com
+                Webster@gradchoice.org
               </a>{' '}
               {t.terms.report_conditions_intro_suffix}
             </p>
