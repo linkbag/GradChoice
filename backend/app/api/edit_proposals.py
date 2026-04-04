@@ -81,7 +81,20 @@ def create_edit_proposal(
     db.add(proposal)
     db.commit()
     db.refresh(proposal)
-    return proposal
+    return EditProposalResponse(
+        id=proposal.id,
+        supervisor_id=proposal.supervisor_id,
+        proposed_by=proposal.proposed_by,
+        proposed_data=proposal.proposed_data,
+        previous_data=proposal.previous_data if hasattr(proposal, 'previous_data') else previous_data,
+        status=proposal.status.value if hasattr(proposal.status, 'value') else proposal.status,
+        reviewer_1_id=proposal.reviewer_1_id,
+        reviewer_1_decision=proposal.reviewer_1_decision.value if proposal.reviewer_1_decision else None,
+        reviewer_2_id=proposal.reviewer_2_id,
+        reviewer_2_decision=proposal.reviewer_2_decision.value if proposal.reviewer_2_decision else None,
+        created_at=proposal.created_at,
+        resolved_at=proposal.resolved_at,
+    )
 
 
 @router.get("/supervisor/{supervisor_id}/history")
