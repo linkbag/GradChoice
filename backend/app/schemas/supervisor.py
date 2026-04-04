@@ -70,3 +70,20 @@ class SupervisorListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class SupervisorLimitedResult(BaseModel):
+    id: uuid.UUID
+    name: str
+    school_name: str
+    department: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class SupervisorLimitedListResponse(BaseModel):
+    items: list[SupervisorLimitedResult]
+    total: int
+    page: int
+    page_size: int
+    requires_login: bool = True

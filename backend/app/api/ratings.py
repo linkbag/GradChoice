@@ -100,12 +100,18 @@ def get_supervisor_ratings(
     current_user=Depends(get_optional_current_user),
 ):
     """获取某导师的所有评分（分页）"""
+    effective_page_size = min(page_size, 3) if not current_user else page_size
     q = db.query(Rating).filter(Rating.supervisor_id == supervisor_id)
     total = q.count()
-    ratings = q.order_by(Rating.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
+    ratings = q.order_by(Rating.created_at.desc()).offset((page - 1) * effective_page_size).limit(effective_page_size).all()
     user_id = current_user.id if current_user else None
-    items = [_to_response(r, user_id, db) for r in ratings]
-    return RatingListResponse(items=items, total=total, page=page, page_size=page_size)
+    items = []
+    for r in ratings:
+        resp = _to_response(r, user_id, db)
+        if not current_user:
+            resp.user_id = uuid.UUID(int=0)
+        items.append(resp)
+    return RatingListResponse(items=items, total=total, page=page, page_size=effective_page_size)
 
 
 @router.put("/{rating_id}", response_model=RatingResponse)
