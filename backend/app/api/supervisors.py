@@ -309,8 +309,11 @@ def search_supervisors(
                 name=sup.name,
                 school_name=sup.school_name,
                 department=sup.department,
+                avg_overall_score=sup.avg_overall_score,
+                rating_count=sup.rating_count or 0,
+                comment_count=cc or 0,
             )
-            for sup, _ in rows
+            for sup, cc in rows
         ]
         return SupervisorLimitedListResponse(
             items=limited_items, total=total, page=page, page_size=effective_page_size, requires_login=True
@@ -398,8 +401,11 @@ def list_supervisors(
                 name=sup.name,
                 school_name=sup.school_name,
                 department=sup.department,
+                avg_overall_score=sup.avg_overall_score,
+                rating_count=sup.rating_count or 0,
+                comment_count=cc or 0,
             )
-            for sup, _ in rows
+            for sup, cc in rows
         ]
         return SupervisorLimitedListResponse(
             items=limited_items, total=total, page=page, page_size=effective_page_size, requires_login=True
@@ -443,5 +449,7 @@ def get_supervisor(
             name=sup.name,
             school_name=sup.school_name,
             department=sup.department,
+            avg_overall_score=sup.avg_overall_score,
+            rating_count=sup.rating_count or 0,
         )
     return SupervisorResponse.model_validate(sup)

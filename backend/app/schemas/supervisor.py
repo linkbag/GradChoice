@@ -77,6 +77,9 @@ class SupervisorLimitedResult(BaseModel):
     name: str
     school_name: str
     department: Optional[str] = None
+    avg_overall_score: Optional[float] = None
+    rating_count: int = 0
+    comment_count: int = 0
 
     model_config = {"from_attributes": True}
 
