@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy import DateTime, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -14,7 +14,7 @@ class StatsSnapshot(Base):
     total_users: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     rated_supervisors: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     recent_ratings_30d: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    most_active_schools: Mapped[str | None] = mapped_column(Text, nullable=True)
+    most_active_schools: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     last_refreshed: Mapped[datetime] = mapped_column(
         DateTime(timezone=False), nullable=False,
         default=lambda: datetime.utcnow(),
