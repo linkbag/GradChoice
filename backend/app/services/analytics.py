@@ -1,4 +1,5 @@
 import uuid
+import threading
 from typing import Optional
 from datetime import datetime, timedelta
 from sqlalchemy import text, func
@@ -557,3 +558,38 @@ def get_overview(db: Session) -> OverviewStats:
         most_active_schools=most_active_schools,
         recent_ratings_30d=recent_ratings,
     )
+
+
+_OVERVIEW_CACHE_TTL = timedelta(hours=24)
+_overview_cache: dict = {"value": None, "expires_at": None}
+_overview_cache_lock = threading.Lock()
+
+
+def get_overview_cached(db: Session) -> OverviewStats:
+    """Return platform overview stats, cached in-process for 24 hours.
+
+    The first request after expiry recomputes; concurrent callers wait on the
+    lock so only one DB roundtrip happens per refresh. If the recompute raises,
+    the previous cached value (when present) is returned so a transient DB
+    issue does not break the hero page.
+    """
+    now = datetime.utcnow()
+    cached = _overview_cache["value"]
+    expires_at = _overview_cache["expires_at"]
+    if cached is not None and expires_at is not None and now < expires_at:
+        return cached
+
+    with _overview_cache_lock:
+        cached = _overview_cache["value"]
+        expires_at = _overview_cache["expires_at"]
+        if cached is not None and expires_at is not None and now < expires_at:
+            return cached
+        try:
+            fresh = get_overview(db)
+        except Exception:
+            if cached is not None:
+                return cached
+            raise
+        _overview_cache["value"] = fresh
+        _overview_cache["expires_at"] = now + _OVERVIEW_CACHE_TTL
+        return fresh
