@@ -6,6 +6,7 @@ from app.models.comment_flag import CommentFlag
 from app.models.chat import Chat, ChatMessage
 from app.models.edit_proposal import EditProposal
 from app.models.verification_code import VerificationCode, VerificationPurpose
+from app.models.stats_snapshot import StatsSnapshot
 
 __all__ = [
     "User",
@@ -20,4 +21,5 @@ __all__ = [
     "EditProposal",
     "VerificationCode",
     "VerificationPurpose",
+    "StatsSnapshot",
 ]
