@@ -1,13 +1,16 @@
+import json
 import uuid
 from typing import Optional
 from datetime import datetime, timedelta
 from sqlalchemy import text, func
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.models.supervisor import Supervisor
 from app.models.rating import Rating
 from app.models.user import User
 from app.models.comment import Comment
+from app.models.stats_snapshot import StatsSnapshot
 from app.schemas.analytics import (
     SupervisorAnalytics,
     SchoolAnalytics,
@@ -520,17 +523,7 @@ def get_rankings(
     return RankingsResponse(items=items, total=total, page=page, page_size=page_size)
 
 
-_overview_cache: dict = {"data": None, "expires_at": None}
-_OVERVIEW_TTL_HOURS = 24
-
-
-def get_overview(db: Session) -> OverviewStats:
-    now = datetime.utcnow()
-    cached = _overview_cache.get("data")
-    expires_at = _overview_cache.get("expires_at")
-    if cached is not None and expires_at is not None and now < expires_at:
-        return cached
-
+def refresh_stats_snapshot(db: Session) -> StatsSnapshot:
     total_supervisors = db.query(func.count(Supervisor.id)).scalar() or 0
     total_ratings = db.query(func.count(Rating.id)).scalar() or 0
     total_users = db.query(func.count(User.id)).scalar() or 0
@@ -559,15 +552,46 @@ def get_overview(db: Session) -> OverviewStats:
         for r in school_rows
     ]
 
-    result = OverviewStats(
+    now = datetime.utcnow()
+    stmt = pg_insert(StatsSnapshot).values(
+        id=1,
         total_supervisors=total_supervisors,
         total_ratings=total_ratings,
         total_users=total_users,
         rated_supervisors=rated_supervisors,
-        most_active_schools=most_active_schools,
         recent_ratings_30d=recent_ratings,
+        most_active_schools=json.dumps(most_active_schools),
         last_refreshed=now,
+    ).on_conflict_do_update(
+        index_elements=["id"],
+        set_={
+            "total_supervisors": total_supervisors,
+            "total_ratings": total_ratings,
+            "total_users": total_users,
+            "rated_supervisors": rated_supervisors,
+            "recent_ratings_30d": recent_ratings,
+            "most_active_schools": json.dumps(most_active_schools),
+            "last_refreshed": now,
+        },
     )
-    _overview_cache["data"] = result
-    _overview_cache["expires_at"] = now + timedelta(hours=_OVERVIEW_TTL_HOURS)
-    return result
+    db.execute(stmt)
+    db.commit()
+    return db.query(StatsSnapshot).filter_by(id=1).first()
+
+
+def get_overview(db: Session) -> OverviewStats:
+    row = db.query(StatsSnapshot).filter_by(id=1).first()
+    if row is None:
+        row = refresh_stats_snapshot(db)
+
+    most_active_schools = json.loads(row.most_active_schools) if row.most_active_schools else []
+
+    return OverviewStats(
+        total_supervisors=row.total_supervisors,
+        total_ratings=row.total_ratings,
+        total_users=row.total_users,
+        rated_supervisors=row.rated_supervisors,
+        most_active_schools=most_active_schools,
+        recent_ratings_30d=row.recent_ratings_30d,
+        last_refreshed=row.last_refreshed,
+    )
