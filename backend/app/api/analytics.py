@@ -89,10 +89,7 @@ def get_rankings(
 
 @router.get("/overview", response_model=OverviewStats)
 def get_overview(
-    current_user=Depends(get_optional_current_user),
     db: Session = Depends(get_db),
 ):
-    """获取平台整体统计数据"""
-    if not current_user:
-        raise HTTPException(status_code=403, detail=_UNAUTH_MSG)
-    return analytics_service.get_overview(db)
+    """获取平台整体统计数据（公开接口，结果缓存 24 小时）"""
+    return analytics_service.get_overview_cached(db)
