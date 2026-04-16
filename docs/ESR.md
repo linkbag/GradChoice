@@ -1,5 +1,5 @@
 # GradChoice — Executive Summary Report (ESR)
-*Last updated: 2026-04-15T23:33:41-07:00*
+*Last updated: 2026-04-03 23:12*
 
 ## What We've Built
 <!-- High-level summary of what exists -->
@@ -487,11 +487,3 @@ Review passed — reviewer exited cleanly (auto-pass: clean exit, no issues indi
 ### Integration Review — 2026-04-03 23:12
 **Subteams:** claude-gc-wiki-edits-backend claude-gc-wiki-edits-frontend
 **Result:** Both wiki-edits branches (backend + frontend) merged cleanly into main. No cross-team conflicts, no duplicate code, no API contract mismatches. Backend imports and frontend TypeScript checks pass. API contract (history endpoint shape, auth requirements, field names) fully aligned between subteams.
-
-### 🚢 Batch `audit-stats-cache` — 2026-04-15T23:33:41-07:00
-- **Project:** GradChoice
-- **Status:** shipped
-- **Tasks:** 1
-- **Duration:** 496s
-- **Notes:** Branches: feat/audit-stats-cache
-
