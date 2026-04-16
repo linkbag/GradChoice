@@ -1,5 +1,3 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
@@ -9,15 +7,6 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.config import settings
 from app.api import auth, users, supervisors, ratings, comments, analytics, chats, edit_proposals
 from app.middleware.rate_limit import limiter
-from app.scheduler import start_scheduler, stop_scheduler
-
-
-@asynccontextmanager
-async def lifespan(app):
-    start_scheduler()
-    yield
-    stop_scheduler()
-
 
 app = FastAPI(
     title="研选 GradChoice API",
@@ -26,7 +15,6 @@ app = FastAPI(
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redoc" if settings.DEBUG else None,
     openapi_url="/openapi.json" if settings.DEBUG else None,
-    lifespan=lifespan,
 )
 
 app.add_middleware(
