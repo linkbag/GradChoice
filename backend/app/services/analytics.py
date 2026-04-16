@@ -520,7 +520,17 @@ def get_rankings(
     return RankingsResponse(items=items, total=total, page=page, page_size=page_size)
 
 
+_overview_cache: dict = {"data": None, "expires_at": None}
+_OVERVIEW_TTL_HOURS = 24
+
+
 def get_overview(db: Session) -> OverviewStats:
+    now = datetime.utcnow()
+    cached = _overview_cache.get("data")
+    expires_at = _overview_cache.get("expires_at")
+    if cached is not None and expires_at is not None and now < expires_at:
+        return cached
+
     total_supervisors = db.query(func.count(Supervisor.id)).scalar() or 0
     total_ratings = db.query(func.count(Rating.id)).scalar() or 0
     total_users = db.query(func.count(User.id)).scalar() or 0
@@ -549,11 +559,15 @@ def get_overview(db: Session) -> OverviewStats:
         for r in school_rows
     ]
 
-    return OverviewStats(
+    result = OverviewStats(
         total_supervisors=total_supervisors,
         total_ratings=total_ratings,
         total_users=total_users,
         rated_supervisors=rated_supervisors,
         most_active_schools=most_active_schools,
         recent_ratings_30d=recent_ratings,
+        last_refreshed=now,
     )
+    _overview_cache["data"] = result
+    _overview_cache["expires_at"] = now + timedelta(hours=_OVERVIEW_TTL_HOURS)
+    return result

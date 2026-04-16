@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel
 
@@ -92,3 +93,4 @@ class OverviewStats(BaseModel):
     rated_supervisors: int = 0
     most_active_schools: list[dict] = []
     recent_ratings_30d: int = 0
+    last_refreshed: Optional[datetime] = None

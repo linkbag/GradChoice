@@ -366,6 +366,7 @@ export interface OverviewStats {
   rated_supervisors: number
   most_active_schools: { school_name: string; school_code: string; rating_count: number }[]
   recent_ratings_30d: number
+  last_refreshed?: string
 }
 
 // ============================================================

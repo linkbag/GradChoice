@@ -63,6 +63,17 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+        {stats?.last_refreshed && (
+          <p className="text-center text-xs text-gray-400 mt-4">
+            {t.home.stats_last_updated}{' '}
+            {(() => {
+              const diffMs = Date.now() - new Date(stats.last_refreshed + 'Z').getTime()
+              const diffH = Math.floor(diffMs / 3600000)
+              if (diffH < 1) return t.home.stats_updated_just_now
+              return t.home.stats_updated_hours_ago.replace('{h}', String(diffH))
+            })()}
+          </p>
+        )}
       </section>
 
       {/* Add Supervisor CTA */}
