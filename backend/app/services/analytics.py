@@ -576,7 +576,10 @@ def refresh_stats_snapshot(db: Session) -> StatsSnapshot:
     )
     db.execute(stmt)
     db.commit()
-    return db.query(StatsSnapshot).filter_by(id=1).first()
+    snapshot = db.query(StatsSnapshot).filter_by(id=1).first()
+    if snapshot is None:
+        raise RuntimeError("StatsSnapshot upsert failed: row id=1 not found after commit")
+    return snapshot
 
 
 def get_overview(db: Session) -> OverviewStats:
