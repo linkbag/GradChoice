@@ -34,6 +34,8 @@ export const zh = {
     stat_supervisors: '收录导师',
     stat_ratings: '用户评价',
     stat_schools: '覆盖院校',
+    stat_last_updated_just_now: '刚刚更新',
+    stat_last_updated_hours: (h: number) => `${h} 小时前更新`,
     attribution_title: '数据致谢',
     attribution_desc: '本站部分历史评价数据转载自开源社区，包括：',
     attribution_site1_name: '导师评价网',

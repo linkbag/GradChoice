@@ -19,6 +19,15 @@ export default function HomePage() {
     { label: t.home.stat_schools, value: stats ? (stats.most_active_schools?.length > 0 ? '400+' : '—') : '—' },
   ]
 
+  const lastUpdatedLabel = (() => {
+    if (!stats?.last_refreshed) return null
+    const diffMs = Date.now() - new Date(stats.last_refreshed).getTime()
+    const diffHours = Math.max(0, Math.floor(diffMs / 3_600_000))
+    return diffHours === 0
+      ? t.home.stat_last_updated_just_now
+      : t.home.stat_last_updated_hours(diffHours)
+  })()
+
   return (
     <div>
       {/* Hero */}
@@ -63,6 +72,9 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+        {lastUpdatedLabel && (
+          <p className="text-center text-xs text-gray-400 mt-4">{lastUpdatedLabel}</p>
+        )}
       </section>
 
       {/* Add Supervisor CTA */}

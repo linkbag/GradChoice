@@ -36,6 +36,8 @@ export const en: Translations = {
     stat_supervisors: 'Supervisors',
     stat_ratings: 'Reviews',
     stat_schools: 'Institutions',
+    stat_last_updated_just_now: 'Updated just now',
+    stat_last_updated_hours: (h: number) => `Updated ${h}h ago`,
     attribution_title: 'Data Attribution',
     attribution_desc: 'Some historical review data on this site is sourced from the open-source community, including:',
     attribution_site1_name: 'RateMySupervisor',

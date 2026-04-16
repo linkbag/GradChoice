@@ -1,6 +1,7 @@
 import uuid
+import threading
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import text, func
 from sqlalchemy.orm import Session
 
@@ -21,6 +22,14 @@ from app.schemas.analytics import (
 )
 
 MIN_RATINGS_FOR_PERCENTILE = 3
+
+# ---------------------------------------------------------------------------
+# Overview stats cache — avoids expensive full-table counts on every page load
+# TTL: 24 h.  threading.Lock keeps writes safe under multi-threaded ASGI workers.
+# ---------------------------------------------------------------------------
+_OVERVIEW_TTL = timedelta(hours=24)
+_overview_cache: dict = {}          # keys: "data" (OverviewStats), "cached_at" (datetime)
+_overview_lock = threading.Lock()
 
 VALID_DIMENSIONS = {
     "overall": "AVG(r.overall_score)",
@@ -325,7 +334,7 @@ def get_school_analytics(db: Session, school_code: str) -> Optional[SchoolAnalyt
         total_ratings=agg.total_ratings or 0,
     )
 
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
     recent_ratings = (
         db.execute(
             text("""
@@ -521,12 +530,20 @@ def get_rankings(
 
 
 def get_overview(db: Session) -> OverviewStats:
+    """Return cached overview stats; refreshes after _OVERVIEW_TTL (24 h)."""
+    with _overview_lock:
+        cached_at: Optional[datetime] = _overview_cache.get("cached_at")
+        if cached_at is not None:
+            if datetime.now(timezone.utc) - cached_at < _OVERVIEW_TTL:
+                return _overview_cache["data"]
+
+    # Cache miss — run DB queries outside the lock to avoid blocking other threads.
     total_supervisors = db.query(func.count(Supervisor.id)).scalar() or 0
     total_ratings = db.query(func.count(Rating.id)).scalar() or 0
     total_users = db.query(func.count(User.id)).scalar() or 0
     rated_supervisors = db.query(func.count(func.distinct(Rating.supervisor_id))).scalar() or 0
 
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
     recent_ratings = (
         db.query(func.count(Rating.id)).filter(Rating.created_at >= thirty_days_ago).scalar() or 0
     )
@@ -549,11 +566,19 @@ def get_overview(db: Session) -> OverviewStats:
         for r in school_rows
     ]
 
-    return OverviewStats(
+    refreshed_at = datetime.now(timezone.utc)
+    result = OverviewStats(
         total_supervisors=total_supervisors,
         total_ratings=total_ratings,
         total_users=total_users,
         rated_supervisors=rated_supervisors,
         most_active_schools=most_active_schools,
         recent_ratings_30d=recent_ratings,
+        last_refreshed=refreshed_at.isoformat(),
     )
+
+    with _overview_lock:
+        _overview_cache["data"] = result
+        _overview_cache["cached_at"] = refreshed_at
+
+    return result

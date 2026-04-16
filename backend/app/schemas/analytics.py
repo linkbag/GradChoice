@@ -92,3 +92,4 @@ class OverviewStats(BaseModel):
     rated_supervisors: int = 0
     most_active_schools: list[dict] = []
     recent_ratings_30d: int = 0
+    last_refreshed: Optional[str] = None  # ISO 8601 UTC string; None on first request
