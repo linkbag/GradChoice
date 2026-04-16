@@ -1,4 +1,4 @@
-"""Add stats_snapshots table for persistent overview cache
+"""Add stats_snapshots table
 
 Revision ID: 0013
 Revises: 0012
@@ -16,14 +16,15 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "stats_snapshots",
-        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("total_supervisors", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("total_ratings", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("total_users", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("rated_supervisors", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("recent_ratings_30d", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("most_active_schools", sa.Text(), nullable=True),
-        sa.Column("last_refreshed", sa.DateTime(), nullable=False),
+        sa.Column("most_active_schools", sa.Text(), nullable=False, server_default="'[]'"),
+        sa.Column("last_refreshed", sa.DateTime(), nullable=False, server_default=sa.text("NOW()")),
+        sa.PrimaryKeyConstraint("id"),
     )
 
 
