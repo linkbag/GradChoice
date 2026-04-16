@@ -524,6 +524,12 @@ _overview_cache: dict = {"data": None, "expires_at": None}
 _OVERVIEW_TTL_HOURS = 24
 
 
+def refresh_stats_snapshot(db: Session) -> OverviewStats:
+    """Force-recompute the overview snapshot, bypassing the TTL cache."""
+    _overview_cache["expires_at"] = None
+    return get_overview(db)
+
+
 def get_overview(db: Session) -> OverviewStats:
     now = datetime.utcnow()
     cached = _overview_cache.get("data")
