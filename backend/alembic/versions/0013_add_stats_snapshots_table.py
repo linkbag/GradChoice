@@ -22,7 +22,7 @@ def upgrade() -> None:
         sa.Column("total_users", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("rated_supervisors", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("recent_ratings_30d", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("most_active_schools", sa.Text(), nullable=False, server_default="[]"),
+        sa.Column("most_active_schools", sa.Text(), nullable=False, server_default="'[]'"),
         sa.Column("last_refreshed", sa.DateTime(), nullable=False, server_default=sa.text("NOW()")),
         sa.PrimaryKeyConstraint("id"),
     )
