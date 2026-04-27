@@ -23,10 +23,24 @@ export default function Layout() {
 
   useEffect(() => {
     if (!isLoggedIn) return
-    fetchUnread()
-    intervalRef.current = setInterval(fetchUnread, 30_000)
+
+    // Only poll while the tab is visible. Hidden tabs don't need a fresh badge,
+    // and skipping their polls is the single biggest reduction in DB traffic.
+    const tick = () => {
+      if (document.visibilityState === 'visible') fetchUnread()
+    }
+    tick()
+    intervalRef.current = setInterval(tick, 90_000)
+
+    // Refresh immediately when the user comes back to the tab.
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') fetchUnread()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
+      document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [isLoggedIn])
 
