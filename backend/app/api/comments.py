@@ -1,7 +1,7 @@
 import logging
 import traceback
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
@@ -11,6 +11,7 @@ from app.schemas.comment import (
     CommentCreate, CommentUpdate, CommentResponse, CommentAuthorResponse, CommentVoteCreate, CommentListResponse
 )
 from app.utils.auth import get_current_user, get_current_verified_user, get_optional_current_user
+from app.utils.caching import set_public_cache, set_private_cache
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +123,7 @@ def create_comment(
 @router.get("/supervisor/{supervisor_id}", response_model=CommentListResponse)
 def get_supervisor_comments(
     supervisor_id: uuid.UUID,
+    response: Response,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=20),
     db: Session = Depends(get_db),
@@ -129,6 +131,12 @@ def get_supervisor_comments(
 ):
     """获取导师的顶层评论"""
     try:
+        # Anon view (page_size=3) is identical for everyone — cache at edge.
+        # Logged-in view depends on user vote state, keep private.
+        if current_user is None:
+            set_public_cache(response, 120)  # 2 min
+        else:
+            set_private_cache(response)
         effective_page_size = min(page_size, 3) if not current_user else page_size
 
         # Count separately to avoid joinedload affecting the count

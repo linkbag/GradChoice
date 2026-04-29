@@ -2,7 +2,7 @@ import logging
 import traceback
 import uuid
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import and_, case, func, or_
 from sqlalchemy.orm import Session
 from app.middleware.rate_limit import limiter
@@ -18,6 +18,7 @@ from app.schemas.supervisor import (
     SupervisorLimitedResult, SupervisorLimitedListResponse,
 )
 from app.utils.auth import get_current_user, get_optional_current_user
+from app.utils.caching import set_public_cache, set_private_cache
 from app.utils.name_filter import get_name_filter
 
 router = APIRouter(prefix="/supervisors", tags=["导师"])
@@ -95,10 +96,12 @@ def submit_supervisor(
 
 @router.get("/schools")
 def list_schools(
+    response: Response,
     province: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
     """获取所有院校及导师数量（匹配前端 SchoolListResponse）"""
+    set_public_cache(response, 3600)  # 1h: schools list rarely changes
     q = db.query(
         Supervisor.school_code,
         Supervisor.school_name,
@@ -125,8 +128,9 @@ def list_schools(
 
 
 @router.get("/provinces")
-def list_provinces(db: Session = Depends(get_db)):
+def list_provinces(response: Response, db: Session = Depends(get_db)):
     """获取所有省份（含院校数和导师数）"""
+    set_public_cache(response, 21600)  # 6h: province list essentially static
     rows = db.query(
         Supervisor.province,
         func.count(Supervisor.school_code.distinct()).label("school_count"),
@@ -139,8 +143,9 @@ def list_provinces(db: Session = Depends(get_db)):
 
 
 @router.get("/school-names")
-def list_school_names(db: Session = Depends(get_db)):
+def list_school_names(response: Response, db: Session = Depends(get_db)):
     """获取所有院校名称（去重，用于前端筛选下拉）"""
+    set_public_cache(response, 21600)  # 6h: school list rarely changes
     rows = db.query(
         Supervisor.school_name,
         Supervisor.school_code,
@@ -150,10 +155,12 @@ def list_school_names(db: Session = Depends(get_db)):
 
 @router.get("/departments")
 def list_departments(
+    response: Response,
     school_code: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
     """获取某院校的院系列表（去重，用于前端筛选下拉）"""
+    set_public_cache(response, 3600)  # 1h: departments rarely added
     if not school_code:
         return []
     rows = (
@@ -343,6 +350,7 @@ def search_supervisors(
 @limiter.limit("30/minute")
 def list_supervisors(
     request: Request,
+    response: Response,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=20),
     school_code: Optional[str] = None,
@@ -354,6 +362,13 @@ def list_supervisors(
     db: Session = Depends(get_db),
 ):
     """获取导师列表（支持分页和过滤）"""
+    # Anonymous responses are identical for everyone and dominate traffic — cache
+    # them at the edge. Logged-in responses depend on user verification tier so
+    # they must stay private.
+    if current_user is None:
+        set_public_cache(response, 300)  # 5 min
+    else:
+        set_private_cache(response)
     is_verified = current_user and current_user.is_student_verified
     if not current_user:
         effective_page_size = min(page_size, 5)
@@ -435,6 +450,7 @@ def list_supervisors(
 @limiter.limit("60/minute")
 def get_supervisor(
     request: Request,
+    response: Response,
     supervisor_id: uuid.UUID,
     current_user=Depends(get_optional_current_user),
     db: Session = Depends(get_db),
@@ -443,6 +459,10 @@ def get_supervisor(
     sup = db.query(Supervisor).filter(Supervisor.id == supervisor_id).first()
     if not sup:
         raise HTTPException(status_code=404, detail="导师不存在")
+    if current_user is None:
+        set_public_cache(response, 300)  # 5 min: anon detail page is identical for all
+    else:
+        set_private_cache(response)
     if not current_user:
         return SupervisorLimitedResult(
             id=sup.id,

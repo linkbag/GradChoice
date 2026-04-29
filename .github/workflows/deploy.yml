@@ -203,8 +203,9 @@ jobs:
 
       - name: Build frontend
         working-directory: frontend
-        env:
-          VITE_API_URL: ${{ secrets.API_URL }}
+        # No VITE_API_URL: production talks to /api on the same origin,
+        # served by frontend/functions/api/[[path]].ts which proxies to
+        # API Gateway with Cloudflare edge caching.
         run: npm run build
 
       - name: Create Cloudflare Pages project (if needed)
