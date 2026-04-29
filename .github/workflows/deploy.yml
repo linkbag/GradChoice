@@ -220,4 +220,8 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy frontend/dist --project-name=gradchoice --commit-dirty=true
+          workingDirectory: frontend
+          # Run wrangler from frontend/ so it auto-discovers frontend/functions/
+          # (Pages Function for /api/* edge cache). Deploy target is dist/ relative
+          # to that working directory.
+          command: pages deploy dist --project-name=gradchoice --commit-dirty=true
