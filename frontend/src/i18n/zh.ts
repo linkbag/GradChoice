@@ -17,7 +17,7 @@ export const zh = {
   },
   home: {
     hero_title: '研选 GradChoice',
-    hero_subtitle: '中立、公开、免费的研究生导师匿名评分平台',
+    hero_subtitle: '中立、公开、免费的研究生导师评价平台',
     hero_cta: '搜索导师',
     mission_title: '我们的使命',
     mission_text: '帮助研究生做出明智的导师选择，保障学术发展与身心健康。',
