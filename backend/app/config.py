@@ -21,7 +21,9 @@ class Settings(BaseSettings):
     def allowed_origins_list(self) -> list[str]:
         return [s.strip() for s in self.ALLOWED_ORIGINS.split(",") if s.strip()]
 
-    # Email (SMTP)
+    # Email — legacy SMTP settings, unused since the SES rewrite
+    # (see app/utils/email.py). Kept so existing deployments that still export
+    # these variables keep starting cleanly.
     SMTP_HOST: Optional[str] = None
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None

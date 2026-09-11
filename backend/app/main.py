@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
@@ -7,6 +9,17 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.config import settings
 from app.api import auth, users, supervisors, ratings, comments, analytics, chats, edit_proposals
 from app.middleware.rate_limit import limiter
+
+# Without this the root logger stays at WARNING, so every logger.info() in the app
+# (including the record of who was emailed) was silently dropped — which made a
+# delivery investigation impossible from CloudWatch. Keep chatty third-party loggers
+# at WARNING so raising the root level does not start logging every SQL statement.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+)
+for _noisy_logger in ("sqlalchemy.engine", "botocore", "urllib3", "python_multipart"):
+    logging.getLogger(_noisy_logger).setLevel(logging.WARNING)
 
 app = FastAPI(
     title="研选 GradChoice API",

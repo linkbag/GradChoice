@@ -26,6 +26,12 @@
 
 const UPSTREAM = "https://pe360p9tga.execute-api.ap-southeast-1.amazonaws.com/prod";
 
+// Header the API keys its rate limits on. The API trusts this header, so this
+// function must pass the real client IP and never let the caller choose one —
+// otherwise a rotating X-Forwarded-For hands out a fresh bucket per request and
+// defeats every limit (verified against production before this was fixed).
+const CLIENT_IP_HEADER = "x-gc-client-ip";
+
 // Headers Cloudflare adds that we don't want to forward upstream.
 const STRIPPED_REQUEST_HEADERS = [
   "host",
@@ -72,6 +78,13 @@ export const onRequest = async (context: {
   // Build forwarded request. Preserve method, headers, body.
   const upstreamHeaders = new Headers(request.headers);
   for (const h of STRIPPED_REQUEST_HEADERS) upstreamHeaders.delete(h);
+
+  // Rate-limit identity: drop anything the caller sent, then set our own value from
+  // Cloudflare's cf-connecting-ip (which Cloudflare overwrites on inbound requests).
+  upstreamHeaders.delete("x-forwarded-for");
+  upstreamHeaders.delete(CLIENT_IP_HEADER);
+  const clientIp = request.headers.get("cf-connecting-ip");
+  if (clientIp) upstreamHeaders.set(CLIENT_IP_HEADER, clientIp);
 
   const upstreamReq = new Request(upstreamUrl, {
     method: request.method,

@@ -1,9 +1,10 @@
 import logging
-import random
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status, UploadFile, File
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.middleware.rate_limit import limiter
 
@@ -36,24 +37,81 @@ def is_edu_email(email: str) -> bool:
     return domain.endswith(".edu") or ".edu." in domain or domain.endswith(".org")
 
 
+CODE_TTL = timedelta(minutes=15)
+RESEND_COOLDOWN = timedelta(seconds=60)
+MAX_SENDS_PER_DAY = 5
+SEND_HISTORY_RETENTION = timedelta(days=7)
+
+
+def _generate_code() -> str:
+    """Return a cryptographically secure 6-digit verification code."""
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def _as_utc(value: datetime) -> datetime:
+    """Normalise a DB timestamp to aware UTC (SQLite hands back naive datetimes)."""
+    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+
+
+def _enforce_send_limits(db: Session, email: str, purpose: VerificationPurpose) -> None:
+    """Throttle verification mail per recipient address.
+
+    The IP-based limiter is evadable (rotating proxies, spoofed forwarding headers);
+    the recipient address is not, and it is the one thing an abuser mail-bombing a
+    stranger and a user who fat-fingered their own address have in common.
+    """
+    now = datetime.now(timezone.utc)
+    last = (
+        db.query(VerificationCode)
+        .filter(VerificationCode.email == email, VerificationCode.purpose == purpose)
+        .order_by(VerificationCode.created_at.desc())
+        .first()
+    )
+    if last is not None:
+        elapsed = now - _as_utc(last.created_at)
+        if elapsed < RESEND_COOLDOWN:
+            wait = int((RESEND_COOLDOWN - elapsed).total_seconds()) + 1
+            raise HTTPException(status_code=429, detail=f"发送过于频繁，请在 {wait} 秒后重试")
+
+    recent = (
+        db.query(func.count(VerificationCode.id))
+        .filter(
+            VerificationCode.email == email,
+            VerificationCode.purpose == purpose,
+            VerificationCode.created_at >= now - timedelta(days=1),
+        )
+        .scalar()
+        or 0
+    )
+    if recent >= MAX_SENDS_PER_DAY:
+        raise HTTPException(status_code=429, detail="该邮箱今日验证码发送次数过多，请稍后再试")
+
+
 def _upsert_verification_code(db: Session, email: str, purpose: VerificationPurpose, code: str) -> VerificationCode:
-    """Delete any existing code for this email+purpose, insert a new one, and clean up expired rows."""
-    # Delete all existing rows for this email+purpose
+    """Invalidate any live code for this email+purpose, then insert a fresh one.
+
+    Superseded rows are expired rather than deleted: `_enforce_send_limits` counts them
+    to throttle repeat sends, so no schema change is needed. Rows older than
+    SEND_HISTORY_RETENTION are purged to keep the table small.
+    """
+    now = datetime.now(timezone.utc)
     db.query(VerificationCode).filter(
         VerificationCode.email == email,
         VerificationCode.purpose == purpose,
-    ).delete()
-    # Also clean up expired rows for this email across all purposes
+        VerificationCode.expires_at > now,
+    ).update({"expires_at": now, "verified": False}, synchronize_session=False)
     db.query(VerificationCode).filter(
         VerificationCode.email == email,
-        VerificationCode.expires_at < datetime.now(timezone.utc),
-    ).delete()
+        VerificationCode.created_at < now - SEND_HISTORY_RETENTION,
+    ).delete(synchronize_session=False)
+
     entry = VerificationCode(
         email=email,
         code=code,
         purpose=purpose,
-        expires_at=datetime.now(timezone.utc) + timedelta(minutes=15),
+        expires_at=now + CODE_TTL,
         verified=False,
+        created_at=now,
     )
     db.add(entry)
     db.commit()
@@ -62,16 +120,19 @@ def _upsert_verification_code(db: Session, email: str, purpose: VerificationPurp
 
 
 def _get_valid_entry(db: Session, email: str, purpose: VerificationPurpose) -> VerificationCode:
-    """Return a non-expired VerificationCode row or raise HTTPException."""
-    entry = db.query(VerificationCode).filter(
-        VerificationCode.email == email,
-        VerificationCode.purpose == purpose,
-    ).first()
+    """Return the most recent non-expired VerificationCode row or raise HTTPException."""
+    entry = (
+        db.query(VerificationCode)
+        .filter(
+            VerificationCode.email == email,
+            VerificationCode.purpose == purpose,
+        )
+        .order_by(VerificationCode.created_at.desc())
+        .first()
+    )
     if not entry:
         raise HTTPException(status_code=400, detail="请先发送验证码")
-    if datetime.now(timezone.utc) > entry.expires_at:
-        db.delete(entry)
-        db.commit()
+    if datetime.now(timezone.utc) > _as_utc(entry.expires_at):
         raise HTTPException(status_code=400, detail="验证码已过期，请重新发送")
     return entry
 
@@ -82,24 +143,31 @@ router = APIRouter(prefix="/auth", tags=["认证"])
 @router.post("/send-signup-verification")
 @limiter.limit("5/minute")
 def send_signup_verification(request: Request, body: SendSignupVerificationRequest, db: Session = Depends(get_db)):
-    """发送注册邮箱验证码（本地开发：验证码打印到控制台）"""
+    """发送注册邮箱验证码"""
     email = body.email.lower()
     existing = db.query(User).filter(User.email == email).first()
     if existing:
         raise HTTPException(status_code=400, detail="该邮箱已被注册")
 
-    code = f"{random.randint(0, 999999):06d}"
+    _enforce_send_limits(db, email, VerificationPurpose.signup)
+
+    code = _generate_code()
     entry = _upsert_verification_code(db, email, VerificationPurpose.signup, code)
 
     from app.utils.email import send_verification_email
-    if send_verification_email(email, code, purpose="注册"):
-        return {"message": "验证码已发送，请查看邮箱"}
-    else:
-        # SMTP failed — auto-verify
-        entry.verified = True
+    if not send_verification_email(email, code, purpose="注册"):
+        # Never fall back to auto-verify: that let anyone register an address they do
+        # not control (and that may not even exist). Roll the row back so a failed
+        # attempt does not consume the address's send quota, and tell the user the
+        # truth so they can correct a mistyped address instead of waiting for mail
+        # that will never arrive.
+        db.delete(entry)
         db.commit()
-        logger.warning("SMTP send failed — auto-verifying signup for %s", email)
-        return {"message": "邮箱已自动验证（邮件发送失败）"}
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="验证码发送失败，请确认邮箱地址是否正确，或稍后重试",
+        )
+    return {"message": "验证码已发送，请查看邮箱"}
 
 
 @router.post("/verify-signup-code")
@@ -124,14 +192,19 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="该邮箱已被注册")
 
     # Check if email was pre-verified via signup verification flow
-    entry = db.query(VerificationCode).filter(
-        VerificationCode.email == email,
-        VerificationCode.purpose == VerificationPurpose.signup,
-    ).first()
+    entry = (
+        db.query(VerificationCode)
+        .filter(
+            VerificationCode.email == email,
+            VerificationCode.purpose == VerificationPurpose.signup,
+        )
+        .order_by(VerificationCode.created_at.desc())
+        .first()
+    )
     is_pre_verified = (
         entry is not None
         and entry.verified
-        and datetime.now(timezone.utc) <= entry.expires_at
+        and datetime.now(timezone.utc) <= _as_utc(entry.expires_at)
     )
 
     is_edu = is_edu_email(user_in.email)
@@ -149,9 +222,12 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    # Clean up verification entry
+    # Clean up verification rows for this address
     if entry:
-        db.delete(entry)
+        db.query(VerificationCode).filter(
+            VerificationCode.email == email,
+            VerificationCode.purpose == VerificationPurpose.signup,
+        ).delete(synchronize_session=False)
         db.commit()
 
     # Generate JWT for auto-login
@@ -226,29 +302,30 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 
 @router.post("/send-verification")
+@limiter.limit("5/minute")
 def send_verification(
+    request: Request,
     body: SendVerificationRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """发送学校邮箱验证码（本地开发：验证码打印到控制台）"""
+    """发送学校邮箱验证码"""
     email = body.school_email.lower()
     if not is_edu_email(email):
         raise HTTPException(status_code=400, detail="仅支持教育邮箱 (.edu*) 或 .org 邮箱")
 
-    code = f"{random.randint(0, 999999):06d}"
+    code = _generate_code()
     current_user.school_email = email
     current_user.school_email_verified = False
     current_user.verification_code = code
-    current_user.verification_code_expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
+    current_user.verification_code_expires_at = datetime.now(timezone.utc) + CODE_TTL
     db.commit()
 
     from app.utils.email import send_verification_email
     if send_verification_email(email, code, purpose="学校邮箱"):
         return {"message": "验证码已发送，请查看邮箱"}
-    else:
-        logger.warning("SMTP send failed for school email %s — code: %s", email, code)
-        return {"message": "验证码发送失败，请稍后重试"}
+    logger.warning("Verification email send failed for school email %s", email)
+    return {"message": "验证码发送失败，请稍后重试"}
 
 
 @router.post("/verify-school-email")
@@ -287,15 +364,20 @@ def send_reset_verification(request: Request, body: SendSignupVerificationReques
     if not user:
         raise HTTPException(status_code=400, detail="该邮箱尚未注册，请先注册账号")
 
-    code = f"{random.randint(0, 999999):06d}"
-    _upsert_verification_code(db, email, VerificationPurpose.password_reset, code)
+    _enforce_send_limits(db, email, VerificationPurpose.password_reset)
+
+    code = _generate_code()
+    entry = _upsert_verification_code(db, email, VerificationPurpose.password_reset, code)
 
     from app.utils.email import send_verification_email
-    if send_verification_email(email, code, purpose="密码重置"):
-        return {"message": "验证码已发送，请查看邮箱"}
-    else:
-        logger.warning("SMTP send failed for reset — code for %s: %s", email, code)
-        return {"message": "验证码已发送，如未收到请稍后重试"}
+    if not send_verification_email(email, code, purpose="密码重置"):
+        db.delete(entry)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="验证码发送失败，请确认邮箱地址是否正确，或稍后重试",
+        )
+    return {"message": "验证码已发送，请查看邮箱"}
 
 
 @router.post("/verify-reset-code")

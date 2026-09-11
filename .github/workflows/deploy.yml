@@ -49,10 +49,6 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
           ROLE_NAME="${LAMBDA_FUNCTION}-role"
 
@@ -70,7 +66,7 @@ jobs:
               --function-name $LAMBDA_FUNCTION \
               --timeout 30 \
               --memory-size 512 \
-              --environment "Variables={DATABASE_URL=${DATABASE_URL},SECRET_KEY=${SECRET_KEY},SMTP_HOST=${SMTP_HOST},SMTP_PORT=${SMTP_PORT},SMTP_USER=${SMTP_USER},SMTP_PASSWORD=${SMTP_PASSWORD},ALLOWED_ORIGINS=https://gradchoice.org\,https://www.gradchoice.org\,https://gradchoice.pages.dev}"
+              --environment "Variables={DATABASE_URL=${DATABASE_URL},SECRET_KEY=${SECRET_KEY},ALLOWED_ORIGINS=https://gradchoice.org\,https://www.gradchoice.org\,https://gradchoice.pages.dev}"
           else
             echo "Creating Lambda execution role..."
             TRUST_POLICY='{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"lambda.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
@@ -97,11 +93,37 @@ jobs:
               --zip-file fileb://lambda.zip \
               --timeout 30 \
               --memory-size 512 \
-              --environment "Variables={DATABASE_URL=${DATABASE_URL},SECRET_KEY=${SECRET_KEY},SMTP_HOST=${SMTP_HOST},SMTP_PORT=${SMTP_PORT},SMTP_USER=${SMTP_USER},SMTP_PASSWORD=${SMTP_PASSWORD},ALLOWED_ORIGINS=https://gradchoice.org\,https://www.gradchoice.org\,https://gradchoice.pages.dev}"
+              --environment "Variables={DATABASE_URL=${DATABASE_URL},SECRET_KEY=${SECRET_KEY},ALLOWED_ORIGINS=https://gradchoice.org\,https://www.gradchoice.org\,https://gradchoice.pages.dev}"
           fi
 
           aws lambda wait function-updated --function-name $LAMBDA_FUNCTION 2>/dev/null || true
           echo "✅ Lambda function deployed"
+
+      - name: Ensure SES send permission on the Lambda role
+        # The role is only created with AWSLambdaBasicExecutionRole, so SES sending has
+        # been working because the policy was attached out of band — a from-scratch
+        # deploy would fail to send mail (and, before this change, silently auto-verify
+        # signups instead). Deliberately non-fatal: a missing iam:PutRolePolicy must not
+        # break the deploy.
+        run: |
+          ROLE_NAME="${LAMBDA_FUNCTION}-role"
+          cat > /tmp/ses-send-policy.json <<'EOF'
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": ["ses:SendEmail", "ses:SendRawEmail"],
+                "Resource": "*"
+              }
+            ]
+          }
+          EOF
+          aws iam put-role-policy \
+            --role-name "$ROLE_NAME" \
+            --policy-name "${LAMBDA_FUNCTION}-ses-send" \
+            --policy-document file:///tmp/ses-send-policy.json \
+            || echo "::warning::Could not attach SES send policy — check the IAM role manually"
 
       - name: Create or get API Gateway
         id: api-gw

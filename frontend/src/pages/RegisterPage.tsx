@@ -6,19 +6,6 @@ import axios from 'axios'
 
 type Step = 'email' | 'code' | 'details'
 
-function maskEmail(email: string): string {
-  const atIdx = email.indexOf('@')
-  if (atIdx < 1) return email
-  const local = email.slice(0, atIdx)
-  const domain = email.slice(atIdx + 1)
-  const dotIdx = domain.lastIndexOf('.')
-  const domainName = dotIdx > 0 ? domain.slice(0, dotIdx) : domain
-  const tld = dotIdx > 0 ? domain.slice(dotIdx) : ''
-  const maskedLocal = local.charAt(0) + '***'
-  const maskedDomain = domainName.charAt(0) + '***' + tld
-  return `${maskedLocal}@${maskedDomain}`
-}
-
 function extractError(err: unknown, fallback: string, noConnectionMsg?: string): string {
   if (axios.isAxiosError(err)) {
     const detail = err.response?.data?.detail
@@ -211,7 +198,9 @@ export default function RegisterPage() {
             <div>
               <p className="text-sm text-gray-600 mb-3">
                 {t.auth.code_sent_to}{' '}
-                <span className="font-medium text-gray-800">{maskEmail(email)}</span>
+                {/* Shown in full (not masked) so a mistyped address is visible here,
+                    which is the only place the user can still catch it. */}
+                <span className="font-medium text-gray-800 break-all">{email}</span>
               </p>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-2">
                 <p className="text-amber-800 text-sm font-medium">{t.auth.spam_check_hint}</p>
