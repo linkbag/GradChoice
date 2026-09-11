@@ -54,6 +54,10 @@ NEW_SOURCE_URL = "https://github.com/pengp25/RateMySupervisor"
 
 BATCH_SIZE = 500
 
+# Anything stamped at/after this is the import run itself rather than a real posting
+# date, so counting these tells us whether a backfill has actually been applied.
+IMPORT_ERA = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
 
 def content_hash(text: str) -> str:
     """Hash comment text the same way data/build_import_date_index.py hashes sources."""
@@ -174,6 +178,17 @@ def main() -> None:
             print("  restored by year: " + ", ".join(
                 f"{y}:{n:,}" for y, n in sorted(years.items())))
             print(f"  range: {min(years)} – {max(years)}")
+
+        # Read back what is stored right now: a dry run after --apply should report 0
+        # here, which is how we prove the write actually landed.
+        cur.execute(
+            "SELECT COUNT(*) FROM comments WHERE content LIKE %s AND created_at >= %s",
+            (f"%{IMPORT_MARKER}%", IMPORT_ERA),
+        )
+        still_import_date = cur.fetchone()[0]
+        print(f"  stored created_at still at/after {IMPORT_ERA:%Y-%m-%d} (i.e. not yet "
+              f"backfilled): {still_import_date:,} of {len(rows):,}")
+
         if unmatched:
             print(f"  unmatched (edited or absent from the source set) — left untouched: "
                   f"{', '.join(unmatched[:5])}{' ...' if len(unmatched) > 5 else ''}")
