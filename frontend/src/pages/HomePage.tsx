@@ -102,7 +102,7 @@ export default function HomePage() {
           <ul className="text-sm text-gray-600 list-disc list-inside mb-3 space-y-1">
             <li>
               <a
-                href="https://github.com/kgco/RateMySupervisor"
+                href="https://github.com/pengp25/RateMySupervisor"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-brand-600 hover:underline"

@@ -73,7 +73,10 @@ SYSTEM_USER_PASSWORD = "system-import-not-for-login-" + uuid.uuid4().hex[:8]
 BATCH_SIZE = 500
 
 # Attribution suffixes
-ATTR_RATEMYSUPERVISOR = "\n\n——此条评论转载自 https://github.com/kgco/RateMySupervisor"
+# NOTE: the data came from the pengp25/RateMySupervisor fork; kgco's original repository
+# has been deleted (404). Do not "restore" the old URL — existing rows were repaired by
+# backend/backfill_import_metadata.py.
+ATTR_RATEMYSUPERVISOR = "\n\n——此条评论转载自 https://github.com/pengp25/RateMySupervisor"
 ATTR_YANKONG = "\n\n——此条评论转载自 https://www.yankong.org/"
 
 # urfire.json scores are 1-5 per dimension, map to GradChoice schema:

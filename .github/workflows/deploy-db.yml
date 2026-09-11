@@ -11,6 +11,16 @@ on:
         options:
           - 'migrate'
           - 'full-seed'
+          - 'backfill-comments'
+      apply:
+        description: 'backfill-comments: dry-run (report), probe (run SQL then roll back), apply (write)'
+        required: false
+        default: 'dry-run'
+        type: choice
+        options:
+          - 'dry-run'
+          - 'probe'
+          - 'apply'
 
 jobs:
   deploy:
@@ -62,6 +72,21 @@ jobs:
           cd backend
           alembic upgrade head
           echo "✅ Alembic migrations complete"
+
+      - name: Backfill imported comment metadata
+        if: ${{ inputs.mode == 'backfill-comments' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          pip install -r backend/requirements.txt
+          cd backend
+          case "${{ inputs.apply }}" in
+            apply) ARGS="--attribution --dates --apply" ;;
+            probe) ARGS="--attribution --dates --probe" ;;
+            *)     ARGS="--attribution --dates --dry-run" ;;
+          esac
+          echo "running: backfill_import_metadata.py $ARGS"
+          python backfill_import_metadata.py $ARGS
 
       - name: Safety net — ensure all columns exist
         if: ${{ inputs.mode == 'migrate' }}

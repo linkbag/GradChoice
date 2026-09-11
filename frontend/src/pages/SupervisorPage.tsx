@@ -88,6 +88,18 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
+// Comments imported from the open-source archives carry the original month only
+// (RateMySupervisor stored "2019-03", never a day), so render month-only rather than
+// presenting the 1st as if it were the real posting day.
+const IMPORTED_MARKER = '此条评论转载自'
+
+function formatCommentDate(iso: string, content: string): string {
+  if (content.includes(IMPORTED_MARKER)) {
+    return new Date(iso).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })
+  }
+  return formatDate(iso)
+}
+
 function StarRow({ score }: { score: number }) {
   return (
     <span className="text-yellow-400 text-sm" aria-label={`${score}`}>
@@ -185,7 +197,7 @@ function CommentCard({ comment, isLoggedIn, currentUserId, onVote, onReply, onCh
             <span className="text-xs text-gray-400">{t.supervisor.edited_badge}</span>
           )}
         </div>
-        <span className="text-xs text-gray-400">{formatDate(comment.created_at)}</span>
+        <span className="text-xs text-gray-400">{formatCommentDate(comment.created_at, comment.content)}</span>
       </div>
       <p className="text-sm text-gray-800 whitespace-pre-wrap">{comment.content}</p>
       <div className="flex items-center gap-3 mt-2 text-xs">
@@ -311,7 +323,7 @@ function CombinedCard({ rating, comment, isLoggedIn, currentUserId, onVote, onRe
             <span className="text-xs text-gray-400">{t.supervisor.edited_badge}</span>
           )}
         </div>
-        <span className="text-xs text-gray-400">{formatDate(comment.created_at)}</span>
+        <span className="text-xs text-gray-400">{formatCommentDate(comment.created_at, comment.content)}</span>
       </div>
 
       {/* Rating stars */}
